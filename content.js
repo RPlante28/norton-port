@@ -78,7 +78,7 @@ portrait:
 fortune:
 " ___________________________________\n"+
 "/ \"Talk is cheap. Show me the code.\" \\\n"+
-"\\          , Linus Torvalds          /\n"+
+"\\          - Linus Torvalds          /\n"+
 " -----------------------------------\n"+
 "        \\   ^__^\n"+
 "         \\  (oo)\\_______\n"+
@@ -195,11 +195,11 @@ snake:
             'Embedded a live scalar-pipeline 6502 emulator and opens two interactive Tableau dashboards in popup windows.' ] }) },
         ]},
         { name:'FULL-STACK', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'06.26.26', children:[
-          { name:'MARISTMAPS.PRJ', kind:'file', size:'12 480', date:'04.20.26', doc:D({ viz:'route', vizLabel:'INDOOR / OUTDOOR ROUTE SOLVER', title:'MaristMaps', meta:'BEST OVERALL · APR 2026', sub:'Campus navigation platform with a voice-enabled AI agent.', link:'https://github.com/RPlante28/MaristMaps', linkLabel:'OPEN REPO \u25b8', tags:['Flask','MapLibre GL','PostGIS','NetworkX','LangChain'], bullets:[
+          { name:'MARISTMAPS.PRJ', kind:'file', size:'12 480', date:'04.20.26', doc:D({ viz:'route', vizLabel:'INDOOR / OUTDOOR ROUTE SOLVER', title:'MaristMaps', meta:'BEST OVERALL · APR 2026', sub:'A campus navigation platform with a voice-enabled AI agent, built with a team.', link:'https://github.com/RPlante28/MaristMaps', linkLabel:'OPEN REPO \u25b8', tags:['Flask','MapLibre GL','PostGIS','NetworkX','LangChain'], bullets:[
             'Won Best Overall at Marist\u2019s Spring 2026 hackathon: a Google Maps-style navigator for indoor and outdoor routing.',
             'Designed an indoor routing algorithm that flattens multi-floor paths and stitches them through shared stairs and elevators.',
             'Built mobile GPS surveying and desktop editing tools to map entrances, stairs, elevators, rooms, and hallways across campus.' ] }) },
-          { name:'KITCHEN .SQL', kind:'file', size:'6 656', date:'12.10.25', doc:D({ viz:'pantry', vizLabel:'RECIPE RECOMMENDER · LIVE', title:'Kitchen Management Suite', meta:'SEP \u2013 DEC 2025', sub:'Full-stack pantry & recipe manager for households.', link:'https://github.com/RPlante28/kitchen-suite', linkLabel:'OPEN REPO \u25b8', tags:['Flask','PostgreSQL','Custom JS'], bullets:[
+          { name:'KITCHEN .SQL', kind:'file', size:'6 656', date:'12.10.25', doc:D({ viz:'pantry', vizLabel:'RECIPE RECOMMENDER · LIVE', title:'Kitchen Management Suite', meta:'SEP \u2013 DEC 2025', sub:'A full-stack pantry and recipe manager for households, built with a team.', link:'https://github.com/RPlante28/kitchen-suite', linkLabel:'OPEN REPO \u25b8', tags:['Flask','PostgreSQL','Custom JS'], bullets:[
             'Built a full-stack app with a relational database supporting multi-household recipe and pantry management.',
             'Implemented recipe creation and recommendation, role-based access control, and household membership.',
             'Wrote a seeding script that populates the database with realistic users, groups, items, and recipes.' ] }) },
@@ -216,7 +216,7 @@ snake:
         ]},
       ]},
       { name:'EXTRACURRICULARS', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'09.10.25', children:[
-        { name:'SCOUTING.LOG', kind:'file', size:'3 584', date:'12.03.23', doc:D({ title:'Scouting, Eagle Scout', meta:'SCOUTS BSA · TROOP 19, MIDDLETON, MA · 2016 – 2024', imgSrc:'uploads/eagle-citation.jpg', tags:['Eagle Scout','Order of the Arrow','Leadership','Service'], goto:'EAGLE', gotoLabel:'OPEN EAGLE SCOUT PROJECT ▸', bullets:[
+        { name:'SCOUTING.LOG', kind:'file', size:'3 584', date:'12.03.23', doc:D({ title:'Scouting, Eagle Scout', meta:'SCOUTS BSA · TROOP 19, MIDDLETON, MA · 2016 – 2024', imgSrc:'uploads/eagle-citation.jpg', dither:true, tags:['Eagle Scout','Order of the Arrow','Leadership','Service'], goto:'EAGLE', gotoLabel:'EAGLE SCOUT PROJECT ▸', goto2:'ARROW', gotoLabel2:'ORDER OF THE ARROW ▸', bullets:[
           'In Scouting from a young age through Scouts BSA, roughly 5th grade to 12th grade (graduated 2024), with Troop 19 in Middleton, MA.',
           'Earned the rank of Eagle Scout in March 2023, the highest rank in Scouting.',
           'For my Eagle Scout Project I designed and built the King Pines Trail: a hiking trail and 40-ft elevated boardwalk on conservation land, over 400 volunteer hours across 2 years.',
@@ -253,8 +253,8 @@ snake:
       { name:'AWARDS', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'11.20.24', children:[
         { name:'HARRIS .AWD', kind:'file', size:'1 280', date:'07.01.21', doc:D({ title:'Bernard Harris STEM Supernova Award', meta:'2021', sub:'Recognized for excellence in STEM at the Bernard Harris Summer Science Camp.', link:'https://www.thespacecenter.org/bernard-harris-summer-science-camp', linkLabel:'SOURCE \u25b8', bullets:[] }) },
         { name:'ARROW .AWD', kind:'file', size:'1 280', date:'05.10.21', doc:D({ title:'Order of the Arrow Inductee', meta:'2021', sub:'Inducted into Scouting\u2019s national honor society; earned three Silver Palms.', link:'https://oa-bsa.org', linkLabel:'SOURCE \u25b8', bullets:[] }) },
-        { name:'MAVA .AWD', kind:'file', size:'1 280', date:'05.20.24', doc:D({ title:'2024 Outstanding Vocational Technical Student Award', meta:'DATE EARNED: MAY 2024 · FOR ESSEX TECH', sub:'Massachusetts Association of Vocational Administrators honoree.', link:'https://www.essextech.net', linkLabel:'SOURCE \u25b8', imgSrc:'uploads/mava_award.jpg', bullets:['Awarded in recognition of exceptional academic achievement and leadership in the vocational technical field.'] }) },
-        { name:'CYBER .AWD', kind:'file', size:'1 536', date:'11.15.22', doc:D({ title:'Fall 2022 National Cyber League', meta:'DATE EARNED: FALL 2022', sub:'National collegiate cybersecurity competition (Cyber Skyline).', link:'https://nationalcyberleague.org', linkLabel:'SOURCE \u25b8', imgSrc:'uploads/genCyber.jpg', bullets:[
+        { name:'MAVA .AWD', kind:'file', size:'1 280', date:'05.20.24', doc:D({ title:'2024 Outstanding Vocational Technical Student Award', meta:'DATE EARNED: MAY 2024 · FOR ESSEX TECH', sub:'Massachusetts Association of Vocational Administrators honoree.', link:'https://www.essextech.net', linkLabel:'SOURCE \u25b8', imgSrc:'uploads/mava_award.jpg', dither:true, bullets:['Awarded in recognition of exceptional academic achievement and leadership in the vocational technical field.'] }) },
+        { name:'CYBER .AWD', kind:'file', size:'1 536', date:'11.15.22', doc:D({ title:'Fall 2022 National Cyber League', meta:'DATE EARNED: FALL 2022', sub:'National collegiate cybersecurity competition (Cyber Skyline).', link:'https://nationalcyberleague.org', linkLabel:'SOURCE \u25b8', imgSrc:'uploads/genCyber.jpg', dither:true, bullets:[
           'Team Game: placed 369th of 3,926 competing teams in the country.',
           'Individual Game: placed 1,137th of 6,679 individuals across the country.',
           'Also placed 1st of 40 at the UMass Lowell GenCyber CTF.' ] }) },
