@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rohan Plante</title>
-<meta name="description" content="Rohan Plante — software developer, Eagle Scout, systems thinker.">
+<meta name="description" content="Rohan Plante: software developer, Eagle Scout, systems thinker.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="favicon-180.png">
 <!-- React runtime vendored locally so the page is self-contained (no unpkg CDN) -->
 <script src="./vendor/react.js"></script>
 <script src="./vendor/react-dom.js"></script>
@@ -152,6 +155,10 @@
   .nc-crt-lines { animation: nc-crt-roll 0.7s linear infinite; will-change:background-position; }
   .nc-crt-sweep { animation: nc-crt-sweep 6.5s linear infinite; will-change:transform; }
   @media (prefers-reduced-motion: reduce) { .nc-crt-lines, .nc-crt-sweep { animation:none; } }
+  /* photo thumbnails in the right panel match the profile portrait's look
+     (grayscale, pixelated). Clicking opens the viewer, which shows the original. */
+  .nc-photo { filter: grayscale(1) brightness(1.06) contrast(1.05); image-rendering: pixelated; transition: filter 0.18s ease; }
+  .nc-photo:hover { filter: grayscale(0.2) brightness(1.03) contrast(1.04); }
 </style>
 </helmet>
 
@@ -264,8 +271,8 @@
           <div style="border-top:1px solid #2746b8; margin-bottom:12px;"></div>
 
           <!-- about blurb -->
-          <div style="font-size:13px; line-height:1.6; color:#d4d8dc; max-width:52ch; margin-bottom:12px;">
-            I build systems with moving parts you can see: a <a class="nc-link" href="https://github.com/RPlante28/MaristMaps" target="_blank" rel="noopener">campus navigator</a> that talks back, a <a class="nc-link" href="https://github.com/RPlante28/422-tsiraM/tree/scalar-pipeline" target="_blank" rel="noopener">6502 pipelined CPU</a> rebuilt stage by stage, and you are standing inside my <a class="nc-link" href="#" style="color:#54fcfc;">portfolio</a> right now.
+          <div style="font-size:13px; line-height:1.62; color:#d4d8dc; max-width:56ch; margin-bottom:12px;">
+            I'm a Computer Science student at Marist University who likes building real, working systems, the kind with moving parts you can actually watch run. I've built a <a class="nc-link" href="https://github.com/RPlante28/MaristMaps" target="_blank" rel="noopener">campus navigator</a> with a voice-enabled AI agent, rebuilt a <a class="nc-link" href="https://github.com/RPlante28/6502-emulator" target="_blank" rel="noopener">6502 CPU</a> one pipeline stage at a time, and shipped full-stack apps, data pipelines, and interactive maps. This whole <a class="nc-link" href="#" style="color:#54fcfc;">portfolio</a> is one of those projects, a DOS-era interface you're exploring right now. I'm looking for software and data internships where I can build things that matter.
           </div>
 
           <!-- quick links row -->
@@ -274,6 +281,12 @@
             <a class="nc-btn" href="https://linkedin.com/in/rohan-plante" target="_blank" rel="noopener" style="text-decoration:none;">LinkedIn ▸</a>
             <a class="nc-btn" href="mailto:rohanplante@gmail.com" style="text-decoration:none;">E-mail ▸</a>
             <span class="nc-btn" onClick="{{ openResume }}" style="cursor:pointer;">Resume ▸</span>
+          </div>
+
+          <div style="border-top:1px solid #2746b8; margin-bottom:10px;"></div>
+          <div style="color:#fcfc54; font-size:11px; letter-spacing:0.06em; margin-bottom:7px;">SKILLS</div>
+          <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:14px;">
+            <sc-for list="{{ homeSkills }}" as="sk" hint-placeholder-count="10"><span class="nc-tag">{{ sk }}</span></sc-for>
           </div>
 
           <div style="border-top:1px solid #2746b8; margin-bottom:10px;"></div>
@@ -320,10 +333,10 @@
             <pre style="margin:0 0 12px; color:#54fcfc; font-size:11px; line-height:1.15; white-space:pre;">{{ d.art }}</pre>
           </sc-if>
           <sc-if value="{{ isISWPImg }}" hint-placeholder-val="{{ false }}">
-            <img src="uploads/ISWP_SUP_SIMP_LOGO.svg" alt="ISWP logo" onClick="{{ viewImg }}" style="height:64px; width:auto; display:block; margin-bottom:12px; cursor:zoom-in; filter:brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(170deg);" />
+            <img src="{{ docImgSrc }}" alt="project logo" onClick="{{ viewImg }}" style="height:64px; width:auto; display:block; margin-bottom:12px; cursor:zoom-in; filter:brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(170deg);" />
           </sc-if>
           <sc-if value="{{ isMCWImg }}" hint-placeholder-val="{{ false }}">
-            <img src="uploads/mcwstarz-logo.png" alt="MCW Starz logo" onClick="{{ viewImg }}" style="height:96px; width:auto; display:block; margin-bottom:12px; cursor:zoom-in;" />
+            <img src="{{ docImgSrc }}" alt="project image" class="nc-photo" onClick="{{ viewImg }}" style="max-height:230px; width:auto; max-width:100%; display:block; margin-bottom:12px; cursor:zoom-in; border:1px solid #2f6fd0;" />
           </sc-if>
           <div style="font-size:19px; color:#fff;"><a class="nc-link" href="{{ d.link }}" target="_blank" rel="noopener" style="color:#fff;">{{ d.title }}</a></div>
           <div style="font-size:12px; color:#fcfc54; margin:3px 0 8px; letter-spacing:0.04em;">{{ d.meta }}</div>
@@ -352,7 +365,7 @@
                     <div style="font-size:14px; color:#fff; margin:1px 0 4px;">{{ e.title }}</div>
                     <div style="font-size:13px; line-height:1.5; color:#c8d2e0;">{{ e.desc }}</div>
                     <div onClick="{{ e.onImgClick }}" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
-                      <sc-for list="{{ e.imgs }}" as="im" hint-placeholder-count="2"><img src="{{ im }}" class="nc-tl-img" alt="King Pines Trail" style="height:100px; width:auto; border:1px solid #2f6fd0; cursor:zoom-in; image-rendering:pixelated; filter:brightness(1.05) contrast(1.04);" /></sc-for>
+                      <sc-for list="{{ e.imgs }}" as="im" hint-placeholder-count="2"><img src="{{ im }}" class="nc-photo" alt="King Pines Trail" style="height:110px; width:auto; border:1px solid #2f6fd0; cursor:zoom-in;" /></sc-for>
                     </div>
                   </div>
                 </sc-for>
@@ -372,7 +385,7 @@
               </div>
             </div>
           </sc-if>
-          <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;"><sc-if value="{{ d.hasLink }}" hint-placeholder-val="{{ true }}"><a class="nc-btn" href="{{ d.link }}" target="_blank" rel="noopener">{{ d.linkLabel }}</a></sc-if><sc-if value="{{ d.demo }}" hint-placeholder-val="{{ false }}"><span class="nc-btn" onClick="{{ openVM }}" style="cursor:pointer;">▶ RUN THE LIVE DEMO ▸</span></sc-if></div>
+          <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;"><sc-if value="{{ d.hasLink }}" hint-placeholder-val="{{ true }}"><a class="nc-btn" href="{{ d.link }}" target="_blank" rel="noopener">{{ d.linkLabel }}</a></sc-if><sc-if value="{{ d.hasGoto }}" hint-placeholder-val="{{ false }}"><span class="nc-btn" onClick="{{ gotoFile }}" style="cursor:pointer;">{{ d.gotoLabel }}</span></sc-if><sc-if value="{{ d.demo }}" hint-placeholder-val="{{ false }}"><span class="nc-btn" onClick="{{ openVM }}" style="cursor:pointer;">▶ RUN THE LIVE DEMO ▸</span></sc-if></div>
 
           <sc-if value="{{ isRavenPhotos }}" hint-placeholder-val="{{ false }}">
             <div style="margin-top:18px;">
@@ -932,6 +945,8 @@ class Component extends DCLogic {
     const ART = P.ART; this.art = ART;
     this.root = P.root;
     this.edu = P.edu;
+    // flat list of every skill tag (from the SKILLS folder) for the WHOAMI card
+    { const sd=(this.root.children||[]).find(c=>c.name==='SKILLS'); this.homeSkills = sd ? (sd.children||[]).reduce((a,c)=>a.concat((c.doc&&c.doc.tags)||[]),[]) : []; }
 
     this.helloArt = [
       " +-----------------------------+",
@@ -1078,18 +1093,18 @@ class Component extends DCLogic {
     const base = ((big?P.b[0]:P.b[1]) + (Math.random()*16-8)) * pitch;
     const dur = big?0.07:0.045;
     const vol = (big?0.13:0.09) * (0.9+Math.random()*0.2);
-    // soft, low-passed noise tick — the keycap "tap" (brightness + level scale with clickiness)
+    // soft, low-passed noise tick - the keycap "tap" (brightness + level scale with clickiness)
     const src=ac.createBufferSource(); src.buffer=this._noise;
     const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=(P.lp*(0.55+click*0.9))+Math.random()*300; lp.Q.value=0.4;
     const ng=ac.createGain(); const tick=0.012;
     ng.gain.setValueAtTime(vol*P.tk*(0.35+click*1.5), now); ng.gain.exponentialRampToValueAtTime(0.0004, now+tick);
     src.connect(lp).connect(ng).connect(ac.destination); src.start(now); src.stop(now+tick+0.01);
-    // tonal body — quick dampened decay
+    // tonal body - quick dampened decay
     const osc=ac.createOscillator(); osc.type=P.t; osc.frequency.setValueAtTime(base, now); osc.frequency.exponentialRampToValueAtTime(base*0.7, now+dur);
     const og=ac.createGain(); og.gain.setValueAtTime(0.0001, now); og.gain.exponentialRampToValueAtTime(vol, now+0.004); og.gain.exponentialRampToValueAtTime(0.0004, now+dur);
     osc.connect(og).connect(ac.destination); osc.start(now); osc.stop(now+dur);
   }
-  // crisp mouse-click tick — selectable profile (tick / tap / beep / off), pitch-aware
+  // crisp mouse-click tick - selectable profile (tick / tap / beep / off), pitch-aware
   clickSound(){
     const prof=this.cfg.clickProfile||'tick';
     if(prof==='off') return;
@@ -1105,7 +1120,7 @@ class Component extends DCLogic {
       return;
     }
     if(prof==='tap'){
-      // soft low-passed thunk — gentle, rounded
+      // soft low-passed thunk - gentle, rounded
       const src=ac.createBufferSource(); src.buffer=this._noise;
       const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=600+click*900;
       const ng=ac.createGain(); ng.gain.setValueAtTime(0.04+click*0.07, now); ng.gain.exponentialRampToValueAtTime(0.0004, now+0.03);
@@ -1115,7 +1130,7 @@ class Component extends DCLogic {
       osc.connect(og).connect(ac.destination); osc.start(now); osc.stop(now+0.06);
       return;
     }
-    // default 'tick' — tight high-passed click
+    // default 'tick' - tight high-passed click
     const src=ac.createBufferSource(); src.buffer=this._noise;
     const hp=ac.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=1200+click*1400;
     const ng=ac.createGain(); ng.gain.setValueAtTime(0.04+click*0.08, now); ng.gain.exponentialRampToValueAtTime(0.0004, now+0.018);
@@ -1135,7 +1150,7 @@ class Component extends DCLogic {
   // power-on / disk spin-up chime for the boot sequence (guarded so it fires once)
   // unlock audio as early as possible so the boot typing clicks can sound
   _bootSound(){ const ac=this._audio(); if(ac && ac.state==='suspended') ac.resume(); }
-  // teletype tick — a soft click as each boot character scans onto the screen
+  // teletype tick - a soft click as each boot character scans onto the screen
   _bootClick(){
     if(!this.cfg.bootSound) return;
     const ac=this._audio(); if(!ac) return;
@@ -1334,7 +1349,7 @@ class Component extends DCLogic {
     fd.append('email',   d.email||'');
     fd.append('subject', d.subject||'');
     fd.append('message', d.message||'');
-    fd.append('website', '');   // honeypot — leave blank
+    fd.append('website', '');   // honeypot - leave blank
     return fetch('contact.php', { method:'POST', body:fd })
       .then(r=>r.json().catch(()=>({ ok:r.ok })))
       .catch(()=>({ ok:false, error:'network' }));
@@ -1703,10 +1718,9 @@ class Component extends DCLogic {
     const dir = this.cur();
     let base = (dir.children||[]).slice();
     if(this.state.stack.length===1 && this.cfg.hidden){
-      base = base.concat([{ name:'.SECRET .EGG', kind:'file', size:'42', date:'01.01.70', hidden:true, doc:{ kind:'doc', title:'.SECRET.EGG', meta:'HIDDEN FILE', sub:'You turned on \u201cShow hidden files.\u201d Nicely done.', link:'https://github.com/RPlante28', linkLabel:'SNOOP THE REPOS \u25b8', tags:['curiosity','+10 XP'], bullets:[
+      base = base.concat([{ name:'.SECRET .EGG', kind:'file', size:'42', date:'01.01.70', hidden:true, doc:{ kind:'doc', title:'.SECRET.EGG', meta:'HIDDEN FILE', sub:'You found the hidden files.', link:'https://github.com/RPlante28', linkLabel:'OPEN THE REPOS \u25b8', tags:['hidden'], bullets:[
         'Real Norton Commander hid system and dotfiles until you flipped this switch in Configuration.',
-        'Fun fact: this whole portfolio is a single self-contained file, no frameworks.',
-        'If you are reading this, you clearly know your way around a file manager. We should talk.' ] } }]);
+        'This is not the only thing tucked away in here. I may have hidden a few more. Keep poking around, and try typing things into the terminal.' ] } }]);
     }
     const key = this.state.sortKey;
     if(key){
@@ -1907,13 +1921,12 @@ class Component extends DCLogic {
     this._curViz=type;
     const clock=()=> (typeof performance!=='undefined' ? performance.now() : Date.now());
     const start=clock(); let last=null;
-    // Drive with requestAnimationFrame on a TIME-BASED frame counter so
-    // continuous motion (rotations, waves) is smooth, while stepped art
-    // (Math.floor(f/…)) keeps its original cadence. Only touch the DOM when
-    // the rendered text actually changes, so stepped art stays efficient.
+    // Drive with requestAnimationFrame but hand the generators an INTEGER frame
+    // (they're all written for integer steps). A ~70ms step is smoother than the
+    // old 110ms, and we only touch the DOM when the rendered text changes.
     const tick=()=>{
       if(this._dead || !this._vizEl || this._curViz!==type){ this._vizRaf=null; return; }
-      const f=(clock()-start)/110;          // was: integer +1 every 110ms
+      const f=Math.floor((clock()-start)/70);   // was: +1 every 110ms
       let s=''; try { s=gen(f); } catch(e){}
       if(s!==last){ this._vizEl.textContent=s; last=s; }
       this._vizRaf=requestAnimationFrame(tick);
@@ -2025,7 +2038,7 @@ class Component extends DCLogic {
   componentDidMount(){
     // Hide any timeline photo that fails to load (e.g. before an image is added).
     // 'error' doesn't bubble, so listen in the capture phase.
-    this._onImgErr = (e)=>{ const t=e.target; if(t && t.tagName==='IMG' && t.classList && t.classList.contains('nc-tl-img')){ t.style.display='none'; } };
+    this._onImgErr = (e)=>{ const t=e.target; if(t && t.tagName==='IMG'){ t.style.display='none'; } };
     document.addEventListener('error', this._onImgErr, true);
     this._onKey = (e)=>{
       this._bootSound();
@@ -2125,7 +2138,7 @@ class Component extends DCLogic {
     const textBody = (sel && sel.user && sel.kind==='file') ? (sel.body||'') : ((sel && sel.doc && (sel.doc.kind==='text'||sel.doc.kind==='art')) ? sel.doc.body : '');
     const textEditable = !!(sel && sel.user && sel.kind==='file');
     const emptyTl = { intro:[], entries:[], footer:null, hasFooter:false };
-    let d = { title:'', meta:'', sub:'', bullets:[], tags:[], link:'#', linkLabel:'', hasSub:false, hasBullets:false, hasTags:false, timeline:emptyTl, hasTimeline:false };
+    let d = { title:'', meta:'', sub:'', bullets:[], tags:[], link:'#', linkLabel:'', hasSub:false, hasBullets:false, hasTags:false, timeline:emptyTl, hasTimeline:false, hasGoto:false, gotoLabel:'' };
     if(view==='doc'){
       const o=sel.doc;
       const tl = o.timeline ? {
@@ -2140,7 +2153,8 @@ class Component extends DCLogic {
             hasSub:!!o.sub, hasBullets:!!(o.bullets&&o.bullets.length), hasTags:!!(o.tags&&o.tags.length), dataviz:!!o.dataviz, demo:!!o.demo,
             art:o.art||'', hasArt:!!(o.art&&!o.imgSrc), imgSrc:o.imgSrc||'', hasImg:!!o.imgSrc,
             viz:o.viz||'', hasViz:!!o.viz, vizLabel:o.vizLabel||'', hasLink:!!o.link, imgFilter:!!o.imgFilter,
-            timeline:tl, hasTimeline:!!(o.timeline&&o.timeline.entries&&o.timeline.entries.length) };
+            timeline:tl, hasTimeline:!!(o.timeline&&o.timeline.entries&&o.timeline.entries.length),
+            hasGoto:!!o.goto, gotoLabel:o.gotoLabel||'OPEN ▸' };
     }
     const base = dir.children||[];
     const fullPath = this.state.stack.map((n,i)=> i===0 ? n.path : n.name).join('\\');
@@ -2198,6 +2212,8 @@ class Component extends DCLogic {
       isInfo: view==='info' && !this.state.editing && !(sel && sel.kind==='dir'), isDoc: view==='doc', isEdu: view==='edu', isContact: view==='contact',
       isDataViz: view==='dataviz', openDataViz:()=>this.openDataViz(),
       openMcServer:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('MCSERVER')>=0); if(f) this.revealNode(f); },
+      // jump to another file referenced by the current doc's `goto` field (internal link)
+      gotoFile:()=>{ const its=this.items(); const cur=its[this.state.sel]; const name=cur&&cur.doc&&cur.doc.goto; if(!name) return; const key=String(name).replace(/\s+/g,'').toUpperCase(); const f=this.flatten(this.root).find(x=>x.kind==='file' && x.name.replace(/\s+/g,'').toUpperCase().indexOf(key)>=0); if(f) this.revealNode(f); },
       openCompSoc:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('COMPSOC')>=0); if(f) this.revealNode(f); },
       openDataAnl:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('DATA-ANL')>=0); if(f) this.revealNode(f); },
       isGame: view==='game',
@@ -2288,6 +2304,7 @@ class Component extends DCLogic {
         if(e.key==='Backspace' && !e.target.value){ if(this.state.stack.length>1){ e.preventDefault(); this._upDir(); } return; }
       },
       showStatus: this.cfg.mini,
+      homeSkills: this.homeSkills,
       crt: this.cfg.crt,
       // CRT scanline intensity: build the gradient from the saved alpha, plus
       // the slider bar/label that drives it.
