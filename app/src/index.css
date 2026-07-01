@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================================
+   ROHAN-DOS  ·  Norton Commander UI
+   Design tokens  →  one source of truth for the DOS palette & metrics.
+   (These mirror the Tailwind theme in tailwind.config.js.)
+   ===================================================================== */
+:root {
+  --dos-blue:    #0000a8;
+  --dos-track:   #001b86;
+  --dos-sel:     #0030c8;
+  --dos-panel2:  #13357a;
+  --cyan:        #54fcfc;
+  --cyan-bright: #7afdfd;
+  --yellow:      #fcfc54;
+  --green:       #3cf06a;
+  --ink:         #d4d8dc;
+  --muted:       #9fc0f0;
+  --dim:         #6f93d8;
+  --border:      #2f6fd0;
+  --border-dim:  #2746b8;
+  --shadow:      #000050;
+  --mono: 'Space Mono', monospace;
+  --fs-row: 13px;
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 14px;
+}
+
+/* ---- document ---------------------------------------------------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+#root, #root > div { height: 100%; }
+body {
+  background: var(--dos-blue);
+  color: var(--ink);
+  font-family: var(--mono);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ---- block mouse cursor ------------------------------------------- */
+html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
+.nc-mouse { position: fixed; top: 0; left: 0; width: 9px; height: 18px; background: #e6eaf0; mix-blend-mode: difference; pointer-events: none; z-index: 99999; transform: translate(-50px, -50px); will-change: transform; display: none; }
+
+/* ---- DOS / Norton-Commander scrollbars ---------------------------- */
+* { scrollbar-color: var(--cyan) var(--dos-track); scrollbar-width: thin; }
+::-webkit-scrollbar { width: 17px; height: 17px; }
+::-webkit-scrollbar-track {
+  background-color: var(--dos-track);
+  background-image:
+    linear-gradient(45deg, #123fc0 25%, transparent 25%, transparent 75%, #123fc0 75%),
+    linear-gradient(45deg, #123fc0 25%, transparent 25%, transparent 75%, #123fc0 75%);
+  background-size: 4px 4px; background-position: 0 0, 2px 2px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--cyan);
+  border: 1px solid #003;
+  box-shadow: inset 2px 2px 0 #b4fbfb, inset -2px -2px 0 #1c9c9c;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--cyan-bright); }
+::-webkit-scrollbar-corner { background: var(--dos-track); }
+::-webkit-scrollbar-button:single-button {
+  display: block; height: 17px; width: 17px;
+  background-color: var(--dos-blue);
+  box-shadow: inset 2px 2px 0 #4a78e0, inset -2px -2px 0 #00115a;
+  background-repeat: no-repeat; background-position: center;
+}
+::-webkit-scrollbar-button:single-button:vertical:decrement { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='17' height='17'><polygon points='8.5,4 13,12 4,12' fill='%2354fcfc'/></svg>"); }
+::-webkit-scrollbar-button:single-button:vertical:increment { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='17' height='17'><polygon points='4,5 13,5 8.5,13' fill='%2354fcfc'/></svg>"); }
+::-webkit-scrollbar-button:single-button:horizontal:decrement { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='17' height='17'><polygon points='4,8.5 12,4 12,13' fill='%2354fcfc'/></svg>"); }
+::-webkit-scrollbar-button:single-button:horizontal:increment { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='17' height='17'><polygon points='13,8.5 5,4 5,13' fill='%2354fcfc'/></svg>"); }
+::-webkit-scrollbar-button:single-button:active { box-shadow: inset 2px 2px 0 #00115a, inset -2px -2px 0 #4a78e0; }
+::selection { background: var(--cyan); color: var(--dos-blue); }
+
+/* ---- animation ---------------------------------------------------- */
+@keyframes ncblink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+
+/* ---- links & buttons ---------------------------------------------- */
+.nc-link { color: var(--cyan); text-decoration: underline; text-underline-offset: 2px; }
+.nc-link:hover { background: var(--cyan); color: var(--dos-blue); text-decoration: none; }
+.nc-btn { display: inline-block; background: var(--cyan); color: var(--dos-blue) !important; padding: var(--sp-1) var(--sp-3); box-shadow: 2px 2px 0 var(--shadow); text-decoration: none; font-weight: 700; font-size: var(--fs-row); }
+.nc-btn:hover { background: var(--yellow); }
+.nc-tag { font-size: 11px; color: var(--cyan); border: 1px solid var(--border); padding: 1px 7px; }
+
+/* ---- file rows ---------------------------------------------------- */
+.nc-frow { display: grid; grid-template-columns: 1fr 104px 92px; cursor: pointer; line-height: 1.5; font-size: var(--fs-row); }
+.nc-frow > span { padding: 1px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nc-frow > span + span { border-left: 1px solid var(--border-dim); }
+.nc-frow:hover:not(.is-sel) { background: var(--dos-sel); }
+.nc-frow.is-sel { background: var(--cyan); color: var(--dos-blue); }
+.nc-frow.is-sel > span + span { border-left-color: var(--dos-blue); }
+
+/* ---- menu bar & function keys ------------------------------------- */
+.nc-fkey { display: flex; cursor: pointer; text-decoration: none; }
+.nc-fkey:hover > span:last-child { background: var(--yellow); }
+.nc-mtab:hover { background: var(--dos-blue) !important; color: var(--cyan) !important; }
+.nc-mitem:hover { background: var(--dos-blue); color: var(--cyan) !important; }
+.nc-cfg:hover { background: var(--dos-blue); color: var(--cyan); }
+
+/* ---- command line ------------------------------------------------- */
+.nc-cmd { background: transparent; border: none; outline: none; color: var(--yellow); font-family: var(--mono); font-size: 13.5px; caret-color: var(--yellow); flex: 1; padding: 0; }
+.nc-cmd-bc { caret-color: transparent; }
+.nc-curs { position: absolute; top: 50%; transform: translateY(-50%); width: 1ch; height: 1.2em; background: var(--yellow); color: var(--dos-blue); font-family: var(--mono); font-size: 13.5px; line-height: 1.2em; text-align: center; white-space: pre; pointer-events: none; animation: ncblink 1.06s steps(1,start) infinite; z-index: 2; }
+.nc-cmd::placeholder { color: #3f6dc4; }
+
+/* ---- dialogs & form fields ---------------------------------------- */
+.nc-dlgbtn:active { box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff !important; }
+.nc-dlgbtn:hover { background: #c8c8c8 !important; }
+.nc-field { font-family: var(--mono); font-size: var(--fs-row); color: var(--dos-blue); background: #fff; border: none; box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff; padding: var(--sp-1) 6px; outline: none; width: 100%; }
+.nc-field:focus { box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, 0 0 0 1px var(--dos-blue); }
+.nc-field::placeholder { color: #7a7a9a; }
+.nc-social:hover { background: var(--shadow) !important; box-shadow: 3px 3px 0 #303030 !important; }
+.nc-social:hover span:first-child { background: var(--yellow) !important; }
+
+/* ---- editor ------------------------------------------------------- */
+.nc-ed { width: 100%; flex: 1 1 auto; min-height: 0; resize: none; border: none; outline: none; background: var(--dos-blue); color: var(--ink); font-family: var(--mono); font-size: 13.5px; line-height: 1.5; padding: var(--sp-2) 10px; caret-color: var(--yellow); }
+.nc-ed[readonly] { color: var(--muted); }
+.nc-edcurs { position: absolute; display: none; background: rgba(252,252,84,0.5); box-shadow: 0 0 0 1px rgba(252,252,84,0.85); pointer-events: none; z-index: 4; }
+.nc-edcmd { background: transparent; border: none; outline: none; color: var(--yellow); font-family: var(--mono); font-size: var(--fs-row); flex: 1; padding: 0; caret-color: var(--yellow); }
+
+/* ---- 6502 VM controls --------------------------------------------- */
+.nc-vbtn { cursor: pointer; background: var(--dos-blue); color: var(--cyan); border: 1px solid var(--cyan); padding: 1px 9px; font-size: 12px; }
+.nc-vbtn:hover { background: var(--cyan); color: var(--dos-blue); }
+.nc-stage { border: 1px solid var(--border); padding: 5px 6px; min-width: 62px; text-align: center; }
+.nc-stage.act { border-color: var(--yellow); background: var(--dos-panel2); }
+.nc-stage.bub { opacity: 0.45; }
+.nc-vsel { font-family: var(--mono); font-size: 12px; color: var(--yellow); background: var(--dos-blue); border: 1px solid var(--cyan); padding: 2px 4px; outline: none; }
+.nc-mcell { font-size: 11px; text-align: center; padding: 1px 0; }
+
+/* ---- CRT effect: drifting scanlines + a slow refresh sweep -------- */
+@keyframes nc-crt-roll  { from { background-position: 0 0; }  to { background-position: 0 3px; } }
+@keyframes nc-crt-sweep { from { transform: translateY(0); }  to { transform: translateY(150vh); } }
+.nc-crt-lines { animation: nc-crt-roll 0.7s linear infinite; will-change: background-position; }
+.nc-crt-sweep { animation: nc-crt-sweep 6.5s linear infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .nc-crt-lines, .nc-crt-sweep { animation: none; } }
+
+/* photo thumbnails are pre-dithered (like the profile portrait). Rendered
+   crisp; clicking opens the viewer, which shows the untouched colour original. */
+.nc-photo { image-rendering: pixelated; transition: filter 0.15s ease, box-shadow 0.15s ease; }
+.nc-photo:hover { filter: brightness(1.18); }
+
+/* clickable rows in the folder-preview pane */
+.nc-dprow:hover { background: #0030c8; }
