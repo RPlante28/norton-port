@@ -155,10 +155,12 @@
   .nc-crt-lines { animation: nc-crt-roll 0.7s linear infinite; will-change:background-position; }
   .nc-crt-sweep { animation: nc-crt-sweep 6.5s linear infinite; will-change:transform; }
   @media (prefers-reduced-motion: reduce) { .nc-crt-lines, .nc-crt-sweep { animation:none; } }
-  /* photo thumbnails in the right panel match the profile portrait's look
-     (grayscale, pixelated). Clicking opens the viewer, which shows the original. */
-  .nc-photo { filter: grayscale(1) brightness(1.06) contrast(1.05); image-rendering: pixelated; transition: filter 0.18s ease; }
-  .nc-photo:hover { filter: grayscale(0.2) brightness(1.03) contrast(1.04); }
+  /* photo thumbnails are pre-dithered (like the profile portrait). Rendered
+     crisp; clicking opens the viewer, which shows the untouched colour original. */
+  .nc-photo { image-rendering: pixelated; transition: filter 0.15s ease, box-shadow 0.15s ease; }
+  .nc-photo:hover { filter: brightness(1.18); }
+  /* clickable rows in the folder-preview pane */
+  .nc-dprow:hover { background: #0030c8; }
 </style>
 </helmet>
 
@@ -305,13 +307,15 @@
           <sc-if value="{{ dirPreviewEmpty }}" hint-placeholder-val="{{ false }}">
             <div style="color:#6f93d8; font-size:12.5px; font-style:italic;">(empty directory)</div>
           </sc-if>
-          <sc-for list="{{ dirPreviewItems }}" as="dp" hint-placeholder-count="4">
-            <div style="display:flex; gap:8px; font-size:12.5px; line-height:1.6; color:{{ dp.color }};">
-              <span style="flex:1; min-width:0; overflow:hidden; white-space:nowrap;">{{ dp.n }}</span>
-              <span style="color:#6f93d8; flex:0 0 auto;">{{ dp.s }}</span>
-            </div>
-          </sc-for>
-          <div style="border-top:1px solid #2746b8; margin-top:8px; padding-top:6px; font-size:11px; color:#6f93d8;">Press Enter or double-click to open</div>
+          <div onClick="{{ dirPreviewOpen }}">
+            <sc-for list="{{ dirPreviewItems }}" as="dp" hint-placeholder-count="4">
+              <div class="nc-dprow" data-dpidx="{{ dp.i }}" style="display:flex; gap:8px; font-size:12.5px; line-height:1.7; color:{{ dp.color }}; cursor:pointer; padding:0 4px;">
+                <span style="flex:1; min-width:0; overflow:hidden; white-space:nowrap; pointer-events:none;">{{ dp.n }}</span>
+                <span style="color:#6f93d8; flex:0 0 auto; pointer-events:none;">{{ dp.s }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border-top:1px solid #2746b8; margin-top:8px; padding-top:6px; font-size:11px; color:#6f93d8;">Click an item to open it or go deeper · or press Enter</div>
         </div>
       </sc-if>
 
@@ -336,7 +340,7 @@
             <img src="{{ docImgSrc }}" alt="project logo" onClick="{{ viewImg }}" style="height:64px; width:auto; display:block; margin-bottom:12px; cursor:zoom-in; filter:brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(170deg);" />
           </sc-if>
           <sc-if value="{{ isMCWImg }}" hint-placeholder-val="{{ false }}">
-            <img src="{{ docImgSrc }}" alt="project image" class="nc-photo" onClick="{{ viewImg }}" style="max-height:230px; width:auto; max-width:100%; display:block; margin-bottom:12px; cursor:zoom-in; border:1px solid #2f6fd0;" />
+            <img src="{{ docImgSrc }}" data-full="{{ docImgFull }}" alt="project image" class="nc-photo" onClick="{{ viewImg }}" style="max-height:250px; width:auto; max-width:100%; display:block; margin-bottom:12px; cursor:zoom-in; border:1px solid #2f6fd0;" />
           </sc-if>
           <div style="font-size:19px; color:#fff;"><a class="nc-link" href="{{ d.link }}" target="_blank" rel="noopener" style="color:#fff;">{{ d.title }}</a></div>
           <div style="font-size:12px; color:#fcfc54; margin:3px 0 8px; letter-spacing:0.04em;">{{ d.meta }}</div>
@@ -353,19 +357,23 @@
           </sc-if>
           <sc-if value="{{ d.hasTimeline }}" hint-placeholder-val="{{ false }}">
             <div style="margin-top:18px;">
-              <div style="font-size:11px; color:#54fcfc; letter-spacing:0.08em; margin-bottom:10px;">PROJECT TIMELINE - KING PINES TRAIL</div>
+              <div style="display:flex; align-items:center; gap:9px; margin-bottom:12px;">
+                <span style="font-size:11px; color:#54fcfc; letter-spacing:0.11em;">PROJECT TIMELINE</span>
+                <span style="flex:1; height:1px; background:#2746b8;"></span>
+                <span style="font-size:10px; color:#6f93d8; letter-spacing:0.09em;">KING PINES TRAIL</span>
+              </div>
               <sc-for list="{{ d.timeline.intro }}" as="p" hint-placeholder-count="2">
                 <div style="font-size:13.5px; line-height:1.55; color:#c8d2e0; margin-bottom:9px;">{{ p }}</div>
               </sc-for>
               <div style="margin-top:8px;">
                 <sc-for list="{{ d.timeline.entries }}" as="e" hint-placeholder-count="8">
-                  <div style="position:relative; padding:0 0 18px 20px; border-left:2px solid #2f6fd0; margin-left:5px;">
-                    <span style="position:absolute; left:-8px; top:3px; width:12px; height:12px; background:#54fcfc; border:2px solid #001b6e; box-shadow:0 0 0 1px #2f6fd0;"></span>
-                    <div style="font-size:11px; color:#fcfc54; letter-spacing:0.05em;">{{ e.date }}</div>
-                    <div style="font-size:14px; color:#fff; margin:1px 0 4px;">{{ e.title }}</div>
-                    <div style="font-size:13px; line-height:1.5; color:#c8d2e0;">{{ e.desc }}</div>
-                    <div onClick="{{ e.onImgClick }}" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
-                      <sc-for list="{{ e.imgs }}" as="im" hint-placeholder-count="2"><img src="{{ im }}" class="nc-photo" alt="King Pines Trail" style="height:110px; width:auto; border:1px solid #2f6fd0; cursor:zoom-in;" /></sc-for>
+                  <div style="position:relative; padding:0 0 22px 22px; border-left:2px solid #2746b8; margin-left:6px;">
+                    <span style="position:absolute; left:-7px; top:4px; width:11px; height:11px; background:#54fcfc; transform:rotate(45deg); box-shadow:0 0 0 2px #001b6e, 0 0 0 3px #2f6fd0;"></span>
+                    <div style="font-size:10.5px; color:#fcfc54; letter-spacing:0.09em; text-transform:uppercase;">{{ e.date }}</div>
+                    <div style="font-size:14.5px; color:#fff; margin:2px 0 5px; letter-spacing:0.01em;">{{ e.title }}</div>
+                    <div style="font-size:13px; line-height:1.55; color:#c8d2e0; max-width:62ch;">{{ e.desc }}</div>
+                    <div onClick="{{ e.onImgClick }}" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
+                      <sc-for list="{{ e.imgs }}" as="im" hint-placeholder-count="2"><img src="{{ im.t }}" data-full="{{ im.f }}" class="nc-photo" alt="King Pines Trail" style="height:130px; width:auto; border:1px solid #54fcfc; box-shadow:3px 3px 0 #001b6e; cursor:zoom-in;" /></sc-for>
                     </div>
                   </div>
                 </sc-for>
@@ -385,7 +393,7 @@
               </div>
             </div>
           </sc-if>
-          <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;"><sc-if value="{{ d.hasLink }}" hint-placeholder-val="{{ true }}"><a class="nc-btn" href="{{ d.link }}" target="_blank" rel="noopener">{{ d.linkLabel }}</a></sc-if><sc-if value="{{ d.hasGoto }}" hint-placeholder-val="{{ false }}"><span class="nc-btn" onClick="{{ gotoFile }}" style="cursor:pointer;">{{ d.gotoLabel }}</span></sc-if><sc-if value="{{ d.demo }}" hint-placeholder-val="{{ false }}"><span class="nc-btn" onClick="{{ openVM }}" style="cursor:pointer;">▶ RUN THE LIVE DEMO ▸</span></sc-if></div>
+          <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;"><sc-if value="{{ d.hasLink }}" hint-placeholder-val="{{ true }}"><a class="nc-btn" href="{{ d.link }}" target="_blank" rel="noopener">{{ d.linkLabel }}</a></sc-if><sc-if value="{{ d.hasGoto }}" hint-placeholder-val="{{ false }}"><span class="nc-btn" onClick="{{ gotoFile }}" style="cursor:pointer;">{{ d.gotoLabel }}</span></sc-if><sc-if value="{{ d.hasGoto2 }}" hint-placeholder-val="{{ false }}"><span class="nc-btn" onClick="{{ gotoFile2 }}" style="cursor:pointer;">{{ d.gotoLabel2 }}</span></sc-if><sc-if value="{{ d.demo }}" hint-placeholder-val="{{ false }}"><span class="nc-btn" onClick="{{ openVM }}" style="cursor:pointer;">▶ RUN THE LIVE DEMO ▸</span></sc-if></div>
 
           <sc-if value="{{ isRavenPhotos }}" hint-placeholder-val="{{ false }}">
             <div style="margin-top:18px;">
@@ -2138,13 +2146,13 @@ class Component extends DCLogic {
     const textBody = (sel && sel.user && sel.kind==='file') ? (sel.body||'') : ((sel && sel.doc && (sel.doc.kind==='text'||sel.doc.kind==='art')) ? sel.doc.body : '');
     const textEditable = !!(sel && sel.user && sel.kind==='file');
     const emptyTl = { intro:[], entries:[], footer:null, hasFooter:false };
-    let d = { title:'', meta:'', sub:'', bullets:[], tags:[], link:'#', linkLabel:'', hasSub:false, hasBullets:false, hasTags:false, timeline:emptyTl, hasTimeline:false, hasGoto:false, gotoLabel:'' };
+    let d = { title:'', meta:'', sub:'', bullets:[], tags:[], link:'#', linkLabel:'', hasSub:false, hasBullets:false, hasTags:false, timeline:emptyTl, hasTimeline:false, hasGoto:false, gotoLabel:'', hasGoto2:false, gotoLabel2:'' };
     if(view==='doc'){
       const o=sel.doc;
       const tl = o.timeline ? {
         intro: o.timeline.intro||[],
         entries: (o.timeline.entries||[]).map(e=>({ date:e.date, title:e.title, desc:e.desc,
-          imgs:(e.imgs||[]),
+          imgs:(e.imgs||[]).map(src=>({ t:src.replace(/\.\w+$/,'-dither.png'), f:src })),
           onImgClick:(ev)=>{ const t=ev&&ev.target; if(t&&t.tagName==='IMG') this._imgOpen(t); },
           hasImgs:!!(e.imgs&&e.imgs.length) })),
         footer: o.timeline.footer||null, hasFooter: !!o.timeline.footer,
@@ -2154,7 +2162,7 @@ class Component extends DCLogic {
             art:o.art||'', hasArt:!!(o.art&&!o.imgSrc), imgSrc:o.imgSrc||'', hasImg:!!o.imgSrc,
             viz:o.viz||'', hasViz:!!o.viz, vizLabel:o.vizLabel||'', hasLink:!!o.link, imgFilter:!!o.imgFilter,
             timeline:tl, hasTimeline:!!(o.timeline&&o.timeline.entries&&o.timeline.entries.length),
-            hasGoto:!!o.goto, gotoLabel:o.gotoLabel||'OPEN ▸' };
+            hasGoto:!!o.goto, gotoLabel:o.gotoLabel||'OPEN ▸', hasGoto2:!!o.goto2, gotoLabel2:o.gotoLabel2||'OPEN ▸' };
     }
     const base = dir.children||[];
     const fullPath = this.state.stack.map((n,i)=> i===0 ? n.path : n.name).join('\\');
@@ -2214,6 +2222,7 @@ class Component extends DCLogic {
       openMcServer:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('MCSERVER')>=0); if(f) this.revealNode(f); },
       // jump to another file referenced by the current doc's `goto` field (internal link)
       gotoFile:()=>{ const its=this.items(); const cur=its[this.state.sel]; const name=cur&&cur.doc&&cur.doc.goto; if(!name) return; const key=String(name).replace(/\s+/g,'').toUpperCase(); const f=this.flatten(this.root).find(x=>x.kind==='file' && x.name.replace(/\s+/g,'').toUpperCase().indexOf(key)>=0); if(f) this.revealNode(f); },
+      gotoFile2:()=>{ const its=this.items(); const cur=its[this.state.sel]; const name=cur&&cur.doc&&cur.doc.goto2; if(!name) return; const key=String(name).replace(/\s+/g,'').toUpperCase(); const f=this.flatten(this.root).find(x=>x.kind==='file' && x.name.replace(/\s+/g,'').toUpperCase().indexOf(key)>=0); if(f) this.revealNode(f); },
       openCompSoc:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('COMPSOC')>=0); if(f) this.revealNode(f); },
       openDataAnl:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('DATA-ANL')>=0); if(f) this.revealNode(f); },
       isGame: view==='game',
@@ -2230,7 +2239,8 @@ class Component extends DCLogic {
       isText: (view==='text'||view==='art'), isArt: view==='art', textBody, textEditable, textReadonly: !textEditable,
       d, edu:this.edu, helloArt:this.helloArt,
       // ISWP logo direct key (bypasses d object)
-      docImgSrc: (view==='doc' && sel && sel.doc && sel.doc.imgSrc) ? sel.doc.imgSrc : '',
+      docImgSrc: (view==='doc' && sel && sel.doc && sel.doc.imgSrc) ? (sel.doc.dither ? sel.doc.imgSrc.replace(/\.\w+$/,'-dither.png') : sel.doc.imgSrc) : '',
+      docImgFull: (view==='doc' && sel && sel.doc && sel.doc.imgSrc) ? sel.doc.imgSrc : '',
       hasDocImg:  !!(view==='doc' && sel && sel.doc && sel.doc.imgSrc),
       isISWPImg: !!(view==='doc' && sel && sel.doc && sel.doc.imgSrc && sel.doc.imgFilter),
       isMCWImg: !!(view==='doc' && sel && sel.doc && sel.doc.imgSrc && !sel.doc.imgFilter),
@@ -2238,9 +2248,10 @@ class Component extends DCLogic {
       isTrailPhotos: !!(view==='doc' && sel && sel.doc && sel.doc.photoset==='trail'),
       // directory preview (NC-authentic: right panel shows dir contents when folder is highlighted)
       isDirPreview: !!(sel && sel.kind==='dir'),
-      dirPreviewItems: (sel && sel.kind==='dir') ? (sel.children||[]).map(c=>({
-        n:c.name, s:c.size||'', isDir:c.kind==='dir'||c.kind==='updir', color: c.kind==='dir'?'#fff':'#d4d8dc'
+      dirPreviewItems: (sel && sel.kind==='dir') ? (sel.children||[]).map((c,idx)=>({
+        n:c.name, s:c.size||'', i:idx, isDir:c.kind==='dir'||c.kind==='updir', color: c.kind==='dir'?'#fff':'#d4d8dc'
       })) : [],
+      dirPreviewOpen:(ev)=>{ let el=ev&&ev.target; while(el && (!el.getAttribute || el.getAttribute('data-dpidx')==null) && el!==ev.currentTarget) el=el.parentElement; if(!el||!el.getAttribute) return; const idx=parseInt(el.getAttribute('data-dpidx'),10); if(isNaN(idx)) return; const dir=this.items()[this.state.sel]; if(!dir||dir.kind!=='dir') return; const child=(dir.children||[])[idx]; if(child) this.revealNode(child); },
       dirPreviewName: (sel && sel.kind==='dir') ? sel.name : '',
       dirPreviewEmpty: !!(sel && sel.kind==='dir' && !(sel.children && sel.children.length)),
       goRoot:this.goRoot,
