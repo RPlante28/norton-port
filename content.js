@@ -151,7 +151,7 @@ snake:
         } },
       { name:'EDUCATION', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'09.01.24', children:[
         { name:'MARIST .EDU', kind:'file', size:'2 048', date:'09.01.24', doc:{ kind:'edu' } },
-        { name:'ESSEX .EDU', kind:'file', size:'2 304', date:'06.01.24', doc:D({ title:'Essex North Shore Agricultural & Technical School', meta:'INFORMATION TECHNOLOGY SERVICES \u00b7 2020 \u2013 2024 \u00b7 DANVERS, MA', sub:'Vocational-technical high school, IT Services track \u00b7 GPA 4.48 / 5.0.', link:'https://www.essextech.net', linkLabel:'VISIT \u25b8', tags:['IT Essentials','Networks & Cybersecurity','Routing & Switching','Linux Essentials','Robotics','AP CS Principles (5)','AP CS A (5)'], bullets:[
+        { name:'ESSEX .EDU', kind:'file', size:'2 304', date:'06.01.24', doc:D({ title:'Essex North Shore Agricultural & Technical School', meta:'INFORMATION TECHNOLOGY SERVICES \u00b7 2020 \u2013 2024 \u00b7 DANVERS, MA', sub:'Vocational-technical high school, IT Services track \u00b7 GPA 4.48 / 5.0.',  tags:['IT Essentials','Networks & Cybersecurity','Routing & Switching','Linux Essentials','Robotics','AP CS Principles (5)','AP CS A (5)'], bullets:[
           'Graduated with Academic High Honors; named MAVA Outstanding Vocational Technical Student for Essex Tech (2024).',
           'Completed 1,500+ hours of IT coursework spanning hardware, software, networking, Linux, cybersecurity, robotics, and data science.',
           'Self-studied and scored 5 on both AP Computer Science Principles and AP Computer Science A.',
@@ -285,8 +285,7 @@ snake:
         { name:'HIKING', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'06.28.26', children:[
           { name:'NOTABLE .TXT', kind:'file', size:'2 048', date:'06.28.26', doc:D({ viz:'ridge', vizLabel:'ELEVATION PROFILE \u00b7 SUMMITS', title:'Notable Hikes', meta:'NEW ENGLAND \u00b7 CATSKILLS', tags:['Monadnock','Devil\u2019s Path'], bullets:[
             'Mt. Monadnock (NH, 3,165 ft), my baseline mountain. Where I first hiked as a scout; climbed it many times, most recently June 2026.',
-            'Devil\u2019s Path (Catskills, NY), Summer 2025. ~24 mi point-to-point, ~9,000 ft of elevation gain over 6 peaks, with steep ledgy scrambles. Widely cited as one of the hardest day hikes in the Eastern US.',
-            'Monadnock keeps me honest; the Devil\u2019s Path proved I could go further than I thought.' ] }) },
+            'Devil\u2019s Path (Catskills, NY), Summer 2025. ~24 mi point-to-point, ~9,000 ft of elevation gain over 6 peaks, with steep ledgy scrambles. Widely cited as one of the hardest day hikes in the Eastern US. Planning to head back Fall of 2026 to do a full run through. By the start of the first day, my group and I were so tired that we opted for a 6-7 ish mile detour to skip Plateau mountain (about 3 miles)  and conserve energy.'] }) },
           { name:'FUTURE .TXT', kind:'file', size:'2 048', date:'06.28.26', doc:D({ viz:'ridge', vizLabel:'ROUTE PLAN \u00b7 PROGRESSION', title:'Future Hikes', meta:'THE TICK LIST', tags:['NH','MA','NY','ME','WA'], bullets:[
             'Mt. Chocorua (NH, 3,490 ft), Piper Trail ~8.8 mi round trip, ~2,600 ft gain; moderate, rocky open summit. A natural step up from Monadnock.',
             'Mt. Greylock (MA, 3,489 ft), highest point in MA. Cheshire Harbor Trail ~6.6 mi round trip, ~1,900 ft gain; moderate, longer day.',
