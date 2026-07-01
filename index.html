@@ -338,6 +338,31 @@
               <sc-for list="{{ d.tags }}" as="t" hint-placeholder-count="3"><span class="nc-tag">{{ t }}</span></sc-for>
             </div>
           </sc-if>
+          <sc-if value="{{ d.hasTimeline }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:18px;">
+              <div style="font-size:11px; color:#54fcfc; letter-spacing:0.08em; margin-bottom:10px;">PROJECT TIMELINE - KING PINES TRAIL</div>
+              <sc-for list="{{ d.timeline.intro }}" as="p" hint-placeholder-count="2">
+                <div style="font-size:13.5px; line-height:1.55; color:#c8d2e0; margin-bottom:9px;">{{ p }}</div>
+              </sc-for>
+              <div style="margin-top:8px;">
+                <sc-for list="{{ d.timeline.entries }}" as="e" hint-placeholder-count="8">
+                  <div style="position:relative; padding:0 0 18px 20px; border-left:2px solid #2f6fd0; margin-left:5px;">
+                    <span style="position:absolute; left:-8px; top:3px; width:12px; height:12px; background:#54fcfc; border:2px solid #001b6e; box-shadow:0 0 0 1px #2f6fd0;"></span>
+                    <div style="font-size:11px; color:#fcfc54; letter-spacing:0.05em;">{{ e.date }}</div>
+                    <div style="font-size:14px; color:#fff; margin:1px 0 4px;">{{ e.title }}</div>
+                    <div style="font-size:13px; line-height:1.5; color:#c8d2e0;">{{ e.desc }}</div>
+                    <div onClick="{{ e.onImgClick }}" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+                      <sc-for list="{{ e.imgs }}" as="im" hint-placeholder-count="2"><img src="{{ im }}" class="nc-tl-img" alt="King Pines Trail" style="height:100px; width:auto; border:1px solid #2f6fd0; cursor:zoom-in; image-rendering:pixelated; filter:brightness(1.05) contrast(1.04);" /></sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <sc-if value="{{ d.timeline.hasFooter }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:13px; color:#9fc0f0; margin-top:4px;">{{ d.timeline.footer.text }} <a class="nc-link" href="{{ d.timeline.footer.link }}" target="_blank" rel="noopener" style="color:#54fcfc;">{{ d.timeline.footer.linkLabel }}</a></div>
+                <div style="font-size:11px; color:#6f93d8; margin-top:2px;">{{ d.timeline.footer.note }}</div>
+              </sc-if>
+            </div>
+          </sc-if>
           <sc-if value="{{ d.dataviz }}" hint-placeholder-val="{{ false }}">
             <div style="margin-top:16px;">
               <div style="font-size:11px; color:#54fcfc; letter-spacing:0.08em; margin-bottom:8px;">DASHBOARDS - TABLEAU PUBLIC  ·  click to open in a window</div>
@@ -988,10 +1013,16 @@ class Component extends DCLogic {
       ]},
       { id:'right', label:'Right', items:[
         { label:'Show Info panel', act:()=>this.goRoot() },
+        { label:'\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500', sep:true },
+        { label:'EDUCATION', act:()=>this.openDirByName('EDUCATION') },
+        { label:'EXPERIENCE', act:()=>this.openDirByName('EXPERIENCE') },
         { label:'PROJECTS', act:()=>this.openDirByName('PROJECTS') },
+        { label:'SKILLS', act:()=>this.openDirByName('SKILLS') },
+        { label:'AWARDS', act:()=>this.openDirByName('AWARDS') },
         { label:'PROGRAMS', act:()=>this.openDirByName('PROGRAMS') },
         { label:'HOBBIES', act:()=>this.openDirByName('HOBBIES') },
         { label:'MY-FILES', act:()=>this.openDirByName('MY-FILES') },
+        { label:'\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500', sep:true },
         { label:'6502 CPU \u2192 launch VM', act:()=>this.openVM() },
       ]},
     ];
@@ -1754,6 +1785,8 @@ class Component extends DCLogic {
   openHelp(){ this.setState({ dialog:'help', activeMenu:null }); }
   openDash(which){ this.setState({ dialog:(which===2?'dash2':'dash1'), activeMenu:null }); }
   openResume(){ this.setState({ dialog:'resume', activeMenu:null }); }
+  // open an <img> element in the full-screen image viewer (used by timeline photos)
+  _imgOpen(img){ if(!img) return; const full=img.getAttribute('data-full')||img.getAttribute('src'); const name=(img.getAttribute('alt')||'IMAGE').toUpperCase(); const meta=img.getAttribute('data-full')?'SOURCE: original capture (filters off)':'SOURCE: '+full.split('/').pop(); this.setState({ imgView:{ src:full, name, meta } }); }
 
   // ===== 6502 virtual machine - faithful scalar-pipeline core (cpu6502.js) =====
   ensureVM(){
@@ -1871,15 +1904,23 @@ class Component extends DCLogic {
     this._stopViz();
     const gen = this._vizGens[type];
     if(!gen || !this._vizEl){ this._curViz=type; return; }
-    this._curViz=type; this._vizFrame=0;
+    this._curViz=type;
+    const clock=()=> (typeof performance!=='undefined' ? performance.now() : Date.now());
+    const start=clock(); let last=null;
+    // Drive with requestAnimationFrame on a TIME-BASED frame counter so
+    // continuous motion (rotations, waves) is smooth, while stepped art
+    // (Math.floor(f/…)) keeps its original cadence. Only touch the DOM when
+    // the rendered text actually changes, so stepped art stays efficient.
     const tick=()=>{
-      if(this._dead || !this._vizEl || this._curViz!==type) return;
-      try { this._vizEl.textContent = gen(this._vizFrame++); } catch(e){}
-      this._vizTimer=setTimeout(tick, 110);
+      if(this._dead || !this._vizEl || this._curViz!==type){ this._vizRaf=null; return; }
+      const f=(clock()-start)/110;          // was: integer +1 every 110ms
+      let s=''; try { s=gen(f); } catch(e){}
+      if(s!==last){ this._vizEl.textContent=s; last=s; }
+      this._vizRaf=requestAnimationFrame(tick);
     };
-    tick();
+    this._vizRaf=requestAnimationFrame(tick);
   }
-  _stopViz(){ if(this._vizTimer){ clearTimeout(this._vizTimer); this._vizTimer=null; } this._curViz=null; }
+  _stopViz(){ if(this._vizRaf){ cancelAnimationFrame(this._vizRaf); this._vizRaf=null; } if(this._vizTimer){ clearTimeout(this._vizTimer); this._vizTimer=null; } this._curViz=null; }
   _mkVizGens(){ return window.VIZ; }   // animations defined in animations.js
 
   // ===== text-mode 6502 monitor (strict CLI) =====
@@ -1982,6 +2023,10 @@ class Component extends DCLogic {
   }
 
   componentDidMount(){
+    // Hide any timeline photo that fails to load (e.g. before an image is added).
+    // 'error' doesn't bubble, so listen in the capture phase.
+    this._onImgErr = (e)=>{ const t=e.target; if(t && t.tagName==='IMG' && t.classList && t.classList.contains('nc-tl-img')){ t.style.display='none'; } };
+    document.addEventListener('error', this._onImgErr, true);
     this._onKey = (e)=>{
       this._bootSound();
       this.keyClick(e);
@@ -2046,7 +2091,7 @@ class Component extends DCLogic {
     }
   }
   finishBoot(){ clearTimeout(this._bootT); if(this.state.booting) this.setState({ booting:false }); }
-  componentWillUnmount(){ this._dead=true; window.removeEventListener('keydown', this._onKey); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); if(this._game) this._game.stop(); }
+  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); if(this._game) this._game.stop(); }
   componentDidUpdate(){ if(this.state.cliMode && this._termScroll){ this._termScroll.scrollTop = this._termScroll.scrollHeight; } }
   _twTick(){ /* tagline animation retired */ }
 
@@ -2075,17 +2120,27 @@ class Component extends DCLogic {
     const wantViz = (view==='doc' && sel && sel.doc && sel.doc.viz) ? sel.doc.viz : null;
     if(wantViz !== this._curViz){
       if(wantViz){ if(this._vizEl){ this._startViz(wantViz); } else { this._pendingViz=wantViz; this._curViz=wantViz; } }
-      else if(this._vizTimer){ this._stopViz(); }
+      else if(this._vizRaf || this._curViz){ this._stopViz(); }
     }
     const textBody = (sel && sel.user && sel.kind==='file') ? (sel.body||'') : ((sel && sel.doc && (sel.doc.kind==='text'||sel.doc.kind==='art')) ? sel.doc.body : '');
     const textEditable = !!(sel && sel.user && sel.kind==='file');
-    let d = { title:'', meta:'', sub:'', bullets:[], tags:[], link:'#', linkLabel:'', hasSub:false, hasBullets:false, hasTags:false };
+    const emptyTl = { intro:[], entries:[], footer:null, hasFooter:false };
+    let d = { title:'', meta:'', sub:'', bullets:[], tags:[], link:'#', linkLabel:'', hasSub:false, hasBullets:false, hasTags:false, timeline:emptyTl, hasTimeline:false };
     if(view==='doc'){
       const o=sel.doc;
+      const tl = o.timeline ? {
+        intro: o.timeline.intro||[],
+        entries: (o.timeline.entries||[]).map(e=>({ date:e.date, title:e.title, desc:e.desc,
+          imgs:(e.imgs||[]),
+          onImgClick:(ev)=>{ const t=ev&&ev.target; if(t&&t.tagName==='IMG') this._imgOpen(t); },
+          hasImgs:!!(e.imgs&&e.imgs.length) })),
+        footer: o.timeline.footer||null, hasFooter: !!o.timeline.footer,
+      } : emptyTl;
       d = { title:o.title, meta:o.meta||'', sub:o.sub||'', bullets:o.bullets||[], tags:o.tags||[], link:o.link||'#', linkLabel:o.linkLabel||'OPEN \u25b8',
             hasSub:!!o.sub, hasBullets:!!(o.bullets&&o.bullets.length), hasTags:!!(o.tags&&o.tags.length), dataviz:!!o.dataviz, demo:!!o.demo,
             art:o.art||'', hasArt:!!(o.art&&!o.imgSrc), imgSrc:o.imgSrc||'', hasImg:!!o.imgSrc,
-            viz:o.viz||'', hasViz:!!o.viz, vizLabel:o.vizLabel||'', hasLink:!!o.link, imgFilter:!!o.imgFilter };
+            viz:o.viz||'', hasViz:!!o.viz, vizLabel:o.vizLabel||'', hasLink:!!o.link, imgFilter:!!o.imgFilter,
+            timeline:tl, hasTimeline:!!(o.timeline&&o.timeline.entries&&o.timeline.entries.length) };
     }
     const base = dir.children||[];
     const fullPath = this.state.stack.map((n,i)=> i===0 ? n.path : n.name).join('\\');
@@ -2249,6 +2304,8 @@ class Component extends DCLogic {
       imgViewName: this.state.imgView ? this.state.imgView.name : '',
       imgViewMeta: this.state.imgView ? this.state.imgView.meta : '',
       viewImg:(e)=>{ const img=e&&e.currentTarget; if(!img) return; const full=img.getAttribute('data-full')||img.getAttribute('src'); const name=(img.getAttribute('alt')||'IMAGE').toUpperCase(); const meta=(img.getAttribute('data-full')?'SOURCE: original capture (filters off)':'SOURCE: '+full.split('/').pop()); this.setState({ imgView:{ src:full, name, meta } }); },
+      // Hide an image that fails to load (e.g. a timeline photo not added yet)
+      imgError:(e)=>{ const img=e&&e.currentTarget; if(img){ img.style.display='none'; } },
       closeImg:()=>this.setState({ imgView:null }),
       dialog: this.state.dialog,
       isConfig: this.state.dialog==='config',
