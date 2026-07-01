@@ -146,6 +146,12 @@
   .nc-stage.bub { opacity:0.45; }
   .nc-vsel { font-family:var(--mono); font-size:12px; color:var(--yellow); background:var(--dos-blue); border:1px solid var(--cyan); padding:2px 4px; outline:none; }
   .nc-mcell { font-size:11px; text-align:center; padding:1px 0; }
+  /* ---- CRT effect: drifting scanlines + a slow refresh sweep ---- */
+  @keyframes nc-crt-roll  { from { background-position:0 0; }  to { background-position:0 3px; } }
+  @keyframes nc-crt-sweep { from { transform:translateY(0); }  to { transform:translateY(150vh); } }
+  .nc-crt-lines { animation: nc-crt-roll 0.7s linear infinite; will-change:background-position; }
+  .nc-crt-sweep { animation: nc-crt-sweep 6.5s linear infinite; will-change:transform; }
+  @media (prefers-reduced-motion: reduce) { .nc-crt-lines, .nc-crt-sweep { animation:none; } }
 </style>
 </helmet>
 
@@ -628,8 +634,8 @@
                 </div>
               </sc-for>
               <div style="display:flex; gap:9px; align-items:center; margin-top:4px; opacity:{{ crtOpacity }};">
-                <span style="white-space:nowrap; width:128px;">CRT line intensity</span>
-                <span onMouseDown="{{ crtBar.down }}" onMouseMove="{{ crtBar.move }}" onMouseUp="{{ crtBar.up }}" onMouseLeave="{{ crtBar.up }}" style="display:flex; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;">
+                <span style="white-space:nowrap; width:148px; flex-shrink:0;">CRT line intensity</span>
+                <span onMouseDown="{{ crtBar.down }}" onMouseMove="{{ crtBar.move }}" onMouseUp="{{ crtBar.up }}" onMouseLeave="{{ crtBar.up }}" style="display:flex; flex-shrink:0; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;">
                   <sc-for list="{{ crtSegs }}" as="s" hint-placeholder-count="11"><span style="padding:0 0.5px; pointer-events:none;">{{ s.ch }}</span></sc-for>
                 </span>
                 <span style="color:#06457a; white-space:nowrap; font-size:12px;">{{ crtPct }}</span>
@@ -645,15 +651,15 @@
               <sc-if value="{{ kbAdv }}" hint-placeholder-val="{{ false }}">
                 <div style="margin:3px 0 2px 14px; opacity:{{ soundOpacity }};">
                   <div style="display:flex; gap:9px; align-items:center; margin-top:4px;">
-                    <span style="white-space:nowrap; width:70px;">Pitch</span>
-                    <span onMouseDown="{{ pitchBar.down }}" onMouseMove="{{ pitchBar.move }}" onMouseUp="{{ pitchBar.up }}" onMouseLeave="{{ pitchBar.up }}" style="display:flex; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;">
+                    <span style="white-space:nowrap; width:92px; flex-shrink:0;">Pitch</span>
+                    <span onMouseDown="{{ pitchBar.down }}" onMouseMove="{{ pitchBar.move }}" onMouseUp="{{ pitchBar.up }}" onMouseLeave="{{ pitchBar.up }}" style="display:flex; flex-shrink:0; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;">
                       <sc-for list="{{ pitchSegs }}" as="s" hint-placeholder-count="11"><span style="padding:0 0.5px; pointer-events:none;">{{ s.ch }}</span></sc-for>
                     </span>
                     <span style="color:#06457a; white-space:nowrap; font-size:12px;">{{ pitchLabel }}</span>
                   </div>
                   <div style="display:flex; gap:9px; align-items:center; margin-top:5px;">
-                    <span style="white-space:nowrap; width:70px;">Clickiness</span>
-                    <span onMouseDown="{{ clickBar.down }}" onMouseMove="{{ clickBar.move }}" onMouseUp="{{ clickBar.up }}" onMouseLeave="{{ clickBar.up }}" style="display:flex; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;">
+                    <span style="white-space:nowrap; width:92px; flex-shrink:0;">Clickiness</span>
+                    <span onMouseDown="{{ clickBar.down }}" onMouseMove="{{ clickBar.move }}" onMouseUp="{{ clickBar.up }}" onMouseLeave="{{ clickBar.up }}" style="display:flex; flex-shrink:0; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;">
                       <sc-for list="{{ clickSegs }}" as="s" hint-placeholder-count="11"><span style="padding:0 0.5px; pointer-events:none;">{{ s.ch }}</span></sc-for>
                     </span>
                     <span style="color:#06457a; white-space:nowrap; font-size:12px;">{{ clickLabel }}</span>
@@ -670,15 +676,15 @@
               <sc-if value="{{ mouseAdv }}" hint-placeholder-val="{{ false }}">
                 <div style="margin:3px 0 2px 14px;">
                   <div style="display:flex; gap:9px; align-items:center; margin-top:4px;">
-                    <span style="white-space:nowrap; width:70px;">Pitch</span>
-                    <span onMouseDown="{{ mPitchBar.down }}" onMouseMove="{{ mPitchBar.move }}" onMouseUp="{{ mPitchBar.up }}" onMouseLeave="{{ mPitchBar.up }}" style="display:flex; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;">
+                    <span style="white-space:nowrap; width:92px; flex-shrink:0;">Pitch</span>
+                    <span onMouseDown="{{ mPitchBar.down }}" onMouseMove="{{ mPitchBar.move }}" onMouseUp="{{ mPitchBar.up }}" onMouseLeave="{{ mPitchBar.up }}" style="display:flex; flex-shrink:0; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;">
                       <sc-for list="{{ mPitchSegs }}" as="s" hint-placeholder-count="11"><span style="padding:0 0.5px; pointer-events:none;">{{ s.ch }}</span></sc-for>
                     </span>
                     <span style="color:#06457a; white-space:nowrap; font-size:12px;">{{ mPitchLabel }}</span>
                   </div>
                   <div style="display:flex; gap:9px; align-items:center; margin-top:5px;">
-                    <span style="white-space:nowrap; width:70px;">Clickiness</span>
-                    <span onMouseDown="{{ mClickBar.down }}" onMouseMove="{{ mClickBar.move }}" onMouseUp="{{ mClickBar.up }}" onMouseLeave="{{ mClickBar.up }}" style="display:flex; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;">
+                    <span style="white-space:nowrap; width:92px; flex-shrink:0;">Clickiness</span>
+                    <span onMouseDown="{{ mClickBar.down }}" onMouseMove="{{ mClickBar.move }}" onMouseUp="{{ mClickBar.up }}" onMouseLeave="{{ mClickBar.up }}" style="display:flex; flex-shrink:0; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;">
                       <sc-for list="{{ mClickSegs }}" as="s" hint-placeholder-count="11"><span style="padding:0 0.5px; pointer-events:none;">{{ s.ch }}</span></sc-for>
                     </span>
                     <span style="color:#06457a; white-space:nowrap; font-size:12px;">{{ mClickLabel }}</span>
@@ -885,7 +891,8 @@
   </sc-if>
 
   <sc-if value="{{ crt }}" hint-placeholder-val="{{ false }}">
-    <div style="position:fixed; inset:0; z-index:9990; pointer-events:none; background:{{ crtScanBg }}; mix-blend-mode:multiply;"></div>
+    <div class="nc-crt-lines" style="position:fixed; inset:0; z-index:9990; pointer-events:none; background:{{ crtScanBg }}; mix-blend-mode:multiply;"></div>
+    <div class="nc-crt-sweep" style="position:fixed; top:-40vh; left:0; right:0; height:40vh; z-index:9991; pointer-events:none; background:linear-gradient(to bottom, transparent, rgba(150,210,255,0.06) 45%, rgba(150,210,255,0.06) 55%, transparent); mix-blend-mode:screen;"></div>
     <div style="position:fixed; inset:0; z-index:9990; pointer-events:none; background:radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,0.4) 100%);"></div>
   </sc-if>
 </div>
@@ -2229,7 +2236,9 @@ class Component extends DCLogic {
       crt: this.cfg.crt,
       // CRT scanline intensity: build the gradient from the saved alpha, plus
       // the slider bar/label that drives it.
-      crtScanBg: (()=>{ const a=(this.cfg.crtIntensity==null?0.22:this.cfg.crtIntensity); return 'repeating-linear-gradient(0deg, rgba(0,0,0,'+a+') 0px, rgba(0,0,0,'+a+') 1px, transparent 2px, transparent 3px)'; })(),
+      // softer line profile (small solid core + gradient falloff) reduces the
+      // shimmer/moiré that hard 1px lines cause; 3px period keeps the roll seamless
+      crtScanBg: (()=>{ const a=(this.cfg.crtIntensity==null?0.22:this.cfg.crtIntensity); return 'repeating-linear-gradient(0deg, rgba(0,0,0,'+a+') 0px, rgba(0,0,0,'+a+') 0.6px, rgba(0,0,0,0) 1.8px, rgba(0,0,0,0) 3px)'; })(),
       crtBar: this._mkSlider((v)=>this.setCrtIntensity(v), 0.06, 0.5),
       crtSegs: (()=>{ const min=0.06,max=0.5,n=10,step=(max-min)/n; const v=(this.cfg.crtIntensity==null?0.22:this.cfg.crtIntensity); const cur=Math.round((v-min)/step); const a=[]; for(let i=0;i<=n;i++){ a.push({ ch: i<=cur?'█':'░' }); } return a; })(),
       crtPct: Math.round(((this.cfg.crtIntensity==null?0.22:this.cfg.crtIntensity)-0.06)/(0.5-0.06)*100)+'%',
