@@ -1,48 +1,65 @@
-import { s } from '../util/style.js';
-
 // Contact form dialog (posts to contact.php via the engine) plus social links.
 export default function ContactDialog({ v }) {
   return (
-    <div onClick={v.stop} style={s("background:#b8b8b8; color:#000; box-shadow:6px 6px 0 rgba(0,0,0,0.45); width:480px; max-width:94vw; font-size:13.5px;")}>
-      <div style={s("background:#0000a8; color:#54fcfc; display:flex; align-items:center; padding:3px 8px; font-weight:700;")}>
-        <span style={s("flex:1;")}>Send a Message</span>
-        <span onClick={v.closeDialog} style={s("cursor:pointer; background:#a0a0a0; color:#000; box-shadow:inset -1px -1px 0 #000, inset 1px 1px 0 #fff; padding:0 7px; line-height:16px;")}>x</span>
+    <div
+      onClick={v.stop}
+      className="bg-[#b8b8b8] text-black w-[480px] max-w-[94vw] text-[13.5px]"
+      style={{ boxShadow: '6px 6px 0 rgba(0,0,0,0.45)' }}
+    >
+      <div className="bg-dos-blue text-cyan flex items-center px-2 py-[3px] font-bold">
+        <span className="flex-1">Send a Message</span>
+        <span onClick={v.closeDialog} className="nc-close">
+          x
+        </span>
       </div>
-      <div style={s("padding:14px 16px;")}>
+      <div className="px-4 py-3.5">
         {v.sent && (
-          <div style={s("border:2px solid #000; background:#0000a8; color:#54fcfc; padding:18px 14px; text-align:center; line-height:1.6;")}>
-            <div style={s("font-size:15px; font-weight:700;")}>✔ Message queued</div>
-            <div style={s("font-size:12.5px; color:#9fc0f0;")}>C:\ROHAN&gt; sendmail - your note has been written to the outbox. Rohan will write back soon.</div>
+          <div className="border-2 border-black bg-dos-blue text-cyan px-3.5 py-[18px] text-center leading-[1.6]">
+            <div className="text-[15px] font-bold">✔ Message queued</div>
+            <div className="text-[12.5px] text-muted">
+              C:\ROHAN&gt; sendmail - your note has been written to the outbox. Rohan will write back soon.
+            </div>
           </div>
         )}
         {v.notSent && (
           <>
-            <div style={s("display:grid; grid-template-columns:auto 1fr; gap:9px 10px; align-items:center;")}>
-              <label style={s("font-size:13px;")}>Name</label>
+            <div className="grid grid-cols-[auto_1fr] gap-x-2.5 gap-y-[9px] items-center">
+              <label className="text-[13px]">Name</label>
               <input type="text" className="nc-field" ref={v.cNameRef} placeholder="Your name" />
-              <label style={s("font-size:13px;")}>E-mail</label>
+              <label className="text-[13px]">E-mail</label>
               <input type="text" className="nc-field" ref={v.cEmailRef} placeholder="you@domain.com" />
-              <label style={s("font-size:13px; align-self:start; padding-top:4px;")}>Message</label>
-              <textarea rows="4" className="nc-field" ref={v.cMsgRef} style={s("resize:none;")} placeholder="Say hello …"></textarea>
+              <label className="text-[13px] self-start pt-1">Message</label>
+              <textarea rows="4" className="nc-field resize-none" ref={v.cMsgRef} placeholder="Say hello …"></textarea>
             </div>
-            {v.hasContactErr && (
-              <div style={s("color:#a80000; font-size:12px; margin-top:8px;")}>{v.contactErr}</div>
-            )}
-            <div style={s("display:flex; gap:12px; justify-content:flex-end; margin-top:14px;")}>
-              <span onClick={v.sendContact} className="nc-dlgbtn" style={s("cursor:pointer; background:#a0a0a0; box-shadow:inset -1px -1px 0 #000, inset 1px 1px 0 #fff; padding:4px 20px; font-weight:700;")}>Send</span>
-              <span onClick={v.closeDialog} className="nc-dlgbtn" style={s("cursor:pointer; background:#a0a0a0; box-shadow:inset -1px -1px 0 #000, inset 1px 1px 0 #fff; padding:4px 16px;")}>Cancel</span>
+            {v.hasContactErr && <div className="text-[#a80000] text-[12px] mt-2">{v.contactErr}</div>}
+            <div className="flex gap-3 justify-end mt-3.5">
+              <span onClick={v.sendContact} className="nc-dlgbtn px-5 py-1 font-bold">
+                Send
+              </span>
+              <span onClick={v.closeDialog} className="nc-dlgbtn px-4 py-1">
+                Cancel
+              </span>
             </div>
           </>
         )}
-        <div style={s("border-top:2px solid #8a8a8a; margin-top:14px; padding-top:12px;")}>
-          <div style={s("font-size:11px; color:#444; letter-spacing:0.08em; margin-bottom:8px;")}>OR FIND ME ON ───</div>
-          <div style={s("display:flex; gap:10px; flex-wrap:wrap;")}>
+        <div className="border-t-2 border-[#8a8a8a] mt-3.5 pt-3">
+          <div className="text-[11px] text-[#444] tracking-[0.08em] mb-2">OR FIND ME ON ───</div>
+          <div className="flex gap-2.5 flex-wrap">
             {v.socials.map((soc, i) => (
-              <a key={i} className="nc-social" href={soc.href} target="_blank" rel="noopener noreferrer" style={s("text-decoration:none; color:#0000a8; display:flex; align-items:center; gap:8px; border:2px solid #000; background:#0000a8; padding:4px 10px 4px 4px; box-shadow:2px 2px 0 #5a5a5a;")}>
-                <span style={s("width:26px; height:26px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:#54fcfc; color:#0000a8; border:1px solid #000; font-size:15px; font-weight:700;")}>{soc.glyph}</span>
-                <span style={s("display:flex; flex-direction:column; line-height:1.15;")}>
-                  <span style={s("color:#fff; font-size:12.5px; font-weight:700;")}>{soc.label}</span>
-                  <span style={s("color:#9fc0f0; font-size:10.5px;")}>{soc.handle}</span>
+              <a
+                key={i}
+                className="nc-social no-underline text-dos-blue flex items-center gap-2 border-2 border-black bg-dos-blue pl-1 pr-2.5 py-1"
+                href={soc.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ boxShadow: '2px 2px 0 #5a5a5a' }}
+              >
+                <span className="w-[26px] h-[26px] flex-none flex items-center justify-center bg-cyan text-dos-blue border border-black text-[15px] font-bold">
+                  {soc.glyph}
+                </span>
+                <span className="flex flex-col leading-[1.15]">
+                  <span className="text-white text-[12.5px] font-bold">{soc.label}</span>
+                  <span className="text-muted text-[10.5px]">{soc.handle}</span>
                 </span>
               </a>
             ))}
