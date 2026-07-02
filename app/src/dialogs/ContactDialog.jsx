@@ -32,14 +32,27 @@ export default function ContactDialog({ v }) {
               <textarea rows="4" className="nc-field resize-none" ref={v.cMsgRef} placeholder="Say hello …"></textarea>
             </div>
             {v.hasContactErr && <div className="text-[#a80000] text-[12px] mt-2">{v.contactErr}</div>}
-            <div className="flex gap-3 justify-end mt-3.5">
-              <span onClick={v.sendContact} className="nc-dlgbtn px-5 py-1 font-bold">
-                Send
-              </span>
-              <span onClick={v.closeDialog} className="nc-dlgbtn px-4 py-1">
-                Cancel
-              </span>
-            </div>
+            {v.sending ? (
+              <div className="mt-3.5">
+                <div className="flex items-baseline gap-2 mb-1.5">
+                  <span className="text-[12px] text-dos-blue font-bold">Sending…</span>
+                  <span className="flex-1"></span>
+                  <span className="text-[11px] text-[#555]">please wait — no need to click again</span>
+                </div>
+                <div className="nc-progress">
+                  <i />
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-3 justify-end mt-3.5">
+                <span onClick={v.sendContact} className="nc-dlgbtn px-5 py-1 font-bold">
+                  Send
+                </span>
+                <span onClick={v.closeDialog} className="nc-dlgbtn px-4 py-1">
+                  Cancel
+                </span>
+              </div>
+            )}
           </>
         )}
         <div className="border-t-2 border-[#8a8a8a] mt-3.5 pt-3">

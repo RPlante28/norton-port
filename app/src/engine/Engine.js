@@ -857,8 +857,9 @@ export default class Engine {
     const its=this.items();
     this.setState(s=>({ sel:Math.max(0, Math.min(its.length-1, s.sel+d)) }));
   }
-  openContact(){ this.setState({ dialog:'contact', sent:false, contactErr:'', activeMenu:null }); }
+  openContact(){ this.setState({ dialog:'contact', sent:false, sending:false, contactErr:'', activeMenu:null }); }
   sendContact(){
+    if(this.state.sending) return;   // ignore repeat clicks while a send is already in flight
     const val=(el)=>el?String(el.value||''):'';
     // client-side sanitize: strip control chars, collapse whitespace, trim, cap length
     const stripCtl=(s)=>s.replace(/[\u0000-\u001f\u007f]/g,' ');
@@ -874,10 +875,10 @@ export default class Engine {
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ this.setState({ contactErr:'Please enter a valid e-mail address.' }); return; }
     if(!message){ this.setState({ contactErr:'Please enter a message.' }); return; }
     if(message.length<2){ this.setState({ contactErr:'Your message is too short.' }); return; }
-    this.setState({ contactErr:'' });
+    this.setState({ contactErr:'', sending:true });
     this._postMail({ name, email, subject:'Portfolio contact from '+name, message }).then(res=>{
-      if(res&&res.ok){ this.setState({ sent:true, contactErr:'' }); }
-      else { this.setState({ contactErr: (res&&res.error==='network')
+      if(res&&res.ok){ this.setState({ sent:true, sending:false, contactErr:'' }); }
+      else { this.setState({ sending:false, contactErr: (res&&res.error==='network')
         ? 'Network error - please e-mail rohanplante@gmail.com directly.'
         : 'Could not send - please e-mail rohanplante@gmail.com directly.' }); }
     });
@@ -1452,7 +1453,7 @@ export default class Engine {
       dashSrc: this.state.dialog==='dash2' ? 'https://public.tableau.com/views/MaristEventCalendar/Dashboard1?:showVizHome=no&:embed=true&:toolbar=yes&:display_count=no' : 'https://public.tableau.com/views/automation_jobloss/AutomationJobThreatOverview?:showVizHome=no&:embed=true&:toolbar=yes&:display_count=no',
       openDash1: ()=>this.openDash(1), openDash2: ()=>this.openDash(2), openHelp: ()=>this.openHelp(),
       isResume: this.state.dialog==='resume', openResume: ()=>this.openResume(),
-      sent: this.state.sent, notSent: !this.state.sent,
+      sent: this.state.sent, notSent: !this.state.sent, sending: !!this.state.sending,
       contactErr: this.state.contactErr||'', hasContactErr: !!this.state.contactErr,
       cNameRef:(el)=>{ this._cName=el; }, cEmailRef:(el)=>{ this._cEmail=el; }, cMsgRef:(el)=>{ this._cMsg=el; },
       openContact: ()=>this.openContact(),
