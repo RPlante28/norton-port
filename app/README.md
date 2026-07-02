@@ -35,7 +35,6 @@ so the contact form keeps working same-origin (no CORS, no backend to host).
 | `src/features/` | Right-pane content views: `RightPane` (switch) + `InfoCard`, `DirPreview`, `DocView`, `EduView`, `ContactView`, `TextView`, `Vm6502`. |
 | `src/dialogs/` | Modal layer: `Dialogs` (switch) + `Config`, `About`, `Contact`, `Help`, `Dash`, `Resume`. |
 | `src/engine/Engine.js` | All app logic — file browser, CLI, editor, 6502 VM, audio, dialogs. Ported verbatim from the original; the only change is a small subscribe/`setState`/`forceUpdate` store that replaces the old runtime base class. React drives it via `useSyncExternalStore` + effects. |
-| `src/util/style.js` | `s("css:string")` → React style object, used to carry the remaining DOS inline styles over 1:1. |
 | `src/index.css` | Tailwind directives + the DOS design tokens (`:root`) + the `.nc-*` component classes and scrollbars/keyframes. |
 | `public/content.js` | **All portfolio text & projects.** Edit this to change what the site says. |
 | `public/animations.js` | **All ASCII animations.** |
@@ -59,11 +58,10 @@ Done:
 
 - Modularized: `App.jsx` is a small composition; every view/dialog is its own
   file under `components/`, `features/`, `dialogs/`.
-- The app shell (root, panels, menu bar, file panel, command line, function keys)
-  is written in **Tailwind** utilities; the DOS palette lives in the Tailwind
-  theme + CSS `:root`.
-- **ESLint** (`npm run lint`) and **Prettier** (`npm run format`) configured.
-
-Remaining polish (no behaviour/content change): the dense content views still
-carry their precise inline styles via `s()`; these can be converted to Tailwind
-classes incrementally.
+- **Fully Tailwind**: every component is written in Tailwind utility classes with
+  the DOS palette as theme tokens (`text-cyan`, `border-edge-dim`, …). The few
+  genuinely complex one-offs (filters, keyframe shorthands, multi-part shadows,
+  gradients) stay as small inline `style` objects, which is the idiomatic norm.
+  Repeated chrome lives in `.nc-*` component classes in `index.css`.
+- **ESLint** (`npm run lint`) and **Prettier** (`npm run format`) configured; lint
+  is clean.
