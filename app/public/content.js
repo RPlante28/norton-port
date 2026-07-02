@@ -189,10 +189,14 @@ snake:
             'Built a backend largely in PHP, kept WordPress-compatible so it slots cleanly into the existing stack.',
             'Structured the theme and admin so the site owner can manage and update content easily, without touching code.',
             'Modernized the layout, typography, and responsiveness while preserving the society\u2019s identity.' ] }) },
-          { name:'NORTON .PRJ', kind:'file', size:'14 336', date:'06.26.26', doc:D({ viz:'boot', vizLabel:'NORTON COMMANDER \u00b7 BOOT SEQUENCE', title:'This Portfolio', meta:'HTML · CANVAS · 2026', sub:'A DOS-era interface that boots, runs real programs, and showcases my work.', link:'#', linkLabel:'- YOU ARE HERE -', tags:['Design','Canvas','6502 VM','DOS UI'], bullets:[
-            'Designed and built this portfolio as a faithful Norton Commander / DOS text-mode interface, block mouse cursor, function-key bar, dithered scrollbars, and a boot/POST sequence.',
-            'Wrote an in-page file system with a vim-style editor, a working command line, folder management, and a contact composer.',
-            'Embedded a live scalar-pipeline 6502 emulator and opens two interactive Tableau dashboards in popup windows.' ] }) },
+          { name:'NORTON .PRJ', kind:'file', size:'14 336', date:'06.26.26', doc:D({ viz:'boot', vizLabel:'NORTON COMMANDER \u00b7 BOOT SEQUENCE', title:'This Portfolio', meta:'REACT · VITE · TAILWIND · 2026', sub:'A DOS-era interface that boots, runs real programs, and showcases my work.', link:'#', linkLabel:'- YOU ARE HERE -', tags:['React','Vite','Tailwind','6502 Emulator','DOS UI','Static Deploy'], bullets:[
+            'Built as a faithful Norton Commander / DOS text-mode interface: a boot / POST sequence, a two-pane file browser, a block mouse cursor, dithered scrollbars, a function-key bar, and an optional CRT scanline effect.',
+            'The front end is React 18 with Vite and Tailwind CSS, organized into small single-purpose components (the shell, the content views, and the dialogs) so it stays easy to maintain and extend.',
+            'All the behavior lives in a framework-agnostic engine that React subscribes to and renders, which keeps the logic and the interface cleanly separated.',
+            'Runs a small in-page operating system: a virtual file system, a vim-style editor, a command line with its own parser (cd, ls, cat, tree, grep, and more), folder management saved to local storage, and an email composer.',
+            'Embeds a live scalar-pipeline 6502 CPU emulator you can step through one instruction at a time, and opens interactive Tableau dashboards in popup windows.',
+            'Content, the ASCII animations, and the CPU core each live in their own plain files, so the site can be updated without touching the app code.',
+            'Compiles to a fully static bundle with Vite and deploys to GoDaddy with no server; the only backend is a small PHP script that powers the contact form. Linted and formatted with ESLint and Prettier.' ] }) },
         ]},
         { name:'FULL-STACK', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'06.26.26', children:[
           { name:'MARISTMAPS.PRJ', kind:'file', size:'12 480', date:'04.20.26', doc:D({ viz:'route', vizLabel:'INDOOR / OUTDOOR ROUTE SOLVER', title:'MaristMaps', meta:'BEST OVERALL · APR 2026', sub:'A campus navigation platform with a voice-enabled AI agent, built with a team.', link:'https://github.com/RPlante28/MaristMaps', linkLabel:'OPEN REPO \u25b8', tags:['Flask','MapLibre GL','PostGIS','NetworkX','LangChain'], bullets:[
