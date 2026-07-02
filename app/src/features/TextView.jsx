@@ -1,16 +1,18 @@
-import { s } from '../util/style.js';
-
 // Plain text / ASCII-art viewer for user files and read-only program text.
 export default function TextView({ v }) {
   return (
-    <div style={s("padding:14px 16px;")}>
-      <div style={s("display:flex; align-items:center; gap:10px; margin-bottom:10px;")}>
-        <span style={s("font-size:12px; color:#fcfc54;")}>{v.rightTitle}</span>
-        <span style={s("flex:1;")}></span>
-        {v.textEditable && (<span className="nc-vbtn" onClick={v.editSelected}>edit (e)</span>)}
-        {v.textReadonly && (<span style={s("font-size:11px; color:#6f93d8;")}>read-only</span>)}
+    <div className="px-4 py-3.5">
+      <div className="flex items-center gap-2.5 mb-2.5">
+        <span className="text-[12px] text-yellow">{v.rightTitle}</span>
+        <span className="flex-1"></span>
+        {v.textEditable && (
+          <span className="nc-vbtn" onClick={v.editSelected}>
+            edit (e)
+          </span>
+        )}
+        {v.textReadonly && <span className="text-[11px] text-dim">read-only</span>}
       </div>
-      <pre style={s("margin:0; white-space:pre; overflow:auto; color:#d4d8dc; font-size:13px; line-height:1.32;")}>{v.textBody}</pre>
+      <pre className="m-0 whitespace-pre overflow-auto text-ink text-[13px] leading-[1.32]">{v.textBody}</pre>
     </div>
   );
 }
