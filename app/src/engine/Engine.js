@@ -1165,7 +1165,13 @@ export default class Engine {
     window.addEventListener('pointerdown', this._onPointer);
     // DOS block mouse cursor: a character-cell block that inverts what's under it
     document.documentElement.classList.add('nc-blockcur');
-    this._onMouseMove = (e)=>{ const m=this._mouse; if(!m) return; m.style.display='block'; m.style.transform='translate('+e.clientX+'px,'+(e.clientY-2)+'px)'; };
+    // Coalesce mouse moves into one transform write per animation frame (mice
+    // poll far faster than 60Hz, and the mix-blend cursor repaints on every
+    // write — one paint per event makes it visibly drag). translate3d keeps it
+    // on its own layer.
+    this._mouseXY = null;
+    this._drawCursor = ()=>{ this._cursorRaf=0; const m=this._mouse, p=this._mouseXY; if(!m||!p) return; m.style.display='block'; m.style.transform='translate3d('+p.x+'px,'+(p.y-2)+'px,0)'; };
+    this._onMouseMove = (e)=>{ this._mouseXY={ x:e.clientX, y:e.clientY }; if(!this._cursorRaf) this._cursorRaf=requestAnimationFrame(this._drawCursor); };
     this._onMouseOut = (e)=>{ if(!e.relatedTarget && !e.toElement && this._mouse){ this._mouse.style.display='none'; } };
     this._onWinBlur = ()=>{ if(this._mouse) this._mouse.style.display='none'; };
     window.addEventListener('mousemove', this._onMouseMove);
@@ -1195,7 +1201,7 @@ export default class Engine {
     }
   }
   finishBoot(){ clearTimeout(this._bootT); if(this.state.booting) this.setState({ booting:false }); }
-  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); if(this._game) this._game.stop(); }
+  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._cursorRaf) cancelAnimationFrame(this._cursorRaf); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); if(this._game) this._game.stop(); }
   componentDidUpdate(){ if(this.state.cliMode && this._termScroll){ this._termScroll.scrollTop = this._termScroll.scrollHeight; } }
   _twTick(){ /* tagline animation retired */ }
 
