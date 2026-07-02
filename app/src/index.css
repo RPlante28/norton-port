@@ -116,6 +116,12 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 .nc-social:hover { background: var(--shadow) !important; box-shadow: 3px 3px 0 #303030 !important; }
 .nc-social:hover span:first-child { background: var(--yellow) !important; }
 
+/* indeterminate "sending…" progress bar for the contact form */
+@keyframes nc-bar { 0% { left: -42%; } 100% { left: 100%; } }
+.nc-progress { position: relative; height: 16px; overflow: hidden; background: #fff; box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff; }
+.nc-progress > i { position: absolute; top: 0; bottom: 0; width: 42%; background: repeating-linear-gradient(90deg, var(--dos-blue) 0, var(--dos-blue) 6px, var(--border) 6px, var(--border) 11px); animation: nc-bar 1.05s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .nc-progress > i { animation-duration: 2.4s; } }
+
 /* ---- editor ------------------------------------------------------- */
 .nc-ed { width: 100%; flex: 1 1 auto; min-height: 0; resize: none; border: none; outline: none; background: var(--dos-blue); color: var(--ink); font-family: var(--mono); font-size: 13.5px; line-height: 1.5; padding: var(--sp-2) 10px; caret-color: var(--yellow); }
 .nc-ed[readonly] { color: var(--muted); }
