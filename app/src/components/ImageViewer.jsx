@@ -1,22 +1,27 @@
-import { s } from '../util/style.js';
-
 // Full-screen image viewer (shows the untouched colour original of a dithered
 // thumbnail); click anywhere or Esc to close.
 export default function ImageViewer({ v }) {
   return (
-    <div onClick={v.closeImg} style={s("position:fixed; inset:0; z-index:9500; background:rgba(0,0,42,0.86); display:flex; align-items:center; justify-content:center; cursor:zoom-out;")}>
-      <div style={s("position:relative; max-width:90vw; max-height:88vh; display:flex; flex-direction:column; border:2px solid #54fcfc; box-shadow:0 0 0 1px #0000a8, 8px 8px 0 rgba(0,0,0,0.5);")}>
-        <div style={s("display:flex; align-items:center; justify-content:space-between; gap:18px; background:#0000a8; color:#fff; padding:4px 10px; font-size:13px; letter-spacing:0.04em;")}>
-          <span style={s("color:#54fcfc;")}>IMAGE VIEWER</span>
-          <span style={s("color:#fcfc54;")}>{v.imgViewName}</span>
-          <span onClick={v.closeImg} style={s("cursor:pointer; color:#fff; padding:0 4px;")}>[X]</span>
+    <div
+      onClick={v.closeImg}
+      className="fixed inset-0 z-[9500] flex items-center justify-center cursor-zoom-out"
+      style={{ background: 'rgba(0,0,42,0.86)' }}
+    >
+      <div
+        className="relative max-w-[90vw] max-h-[88vh] flex flex-col border-2 border-cyan"
+        style={{ boxShadow: '0 0 0 1px #0000a8, 8px 8px 0 rgba(0,0,0,0.5)' }}
+      >
+        <div className="flex items-center justify-between gap-[18px] bg-dos-blue text-white px-2.5 py-1 text-[13px] tracking-[0.04em]">
+          <span className="text-cyan">IMAGE VIEWER</span>
+          <span className="text-yellow">{v.imgViewName}</span>
+          <span onClick={v.closeImg} className="cursor-pointer text-white px-1">
+            [X]
+          </span>
         </div>
-        <div style={s("background:#000; padding:10px; display:flex; align-items:center; justify-content:center; overflow:hidden;")}>
-          {v.imgViewNode}
-        </div>
-        <div style={s("background:#0000a8; color:#a8d4ff; padding:3px 10px; font-size:11px; letter-spacing:0.05em; display:flex; justify-content:space-between; gap:18px;")}>
+        <div className="bg-black p-2.5 flex items-center justify-center overflow-hidden">{v.imgViewNode}</div>
+        <div className="bg-dos-blue text-[#a8d4ff] px-2.5 py-[3px] text-[11px] tracking-[0.05em] flex justify-between gap-[18px]">
           <span>{v.imgViewMeta}</span>
-          <span style={s("color:#9fc0f0;")}>click anywhere or press Esc to close</span>
+          <span className="text-muted">click anywhere or press Esc to close</span>
         </div>
       </div>
     </div>
