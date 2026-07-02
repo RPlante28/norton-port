@@ -1,83 +1,174 @@
-import { s } from '../util/style.js';
-
 // Configuration dialog: panel toggles, CRT-intensity slider, and the keyboard /
-// mouse sound "jumper" tuning bars.
+// mouse sound "jumper" tuning bars. Dynamic per-state values (opacity, chosen
+// colors/weights) stay inline; everything structural is Tailwind.
 export default function ConfigDialog({ v }) {
+  const bar = 'flex shrink-0 cursor-ew-resize select-none text-dos-blue text-[15px] leading-none';
+  const seg = 'px-[0.5px] pointer-events-none';
+  const val = 'text-[#06457a] whitespace-nowrap text-[12px]';
+
   return (
-    <div onClick={v.stop} style={s("background:#b8b8b8; color:#000; box-shadow:6px 6px 0 rgba(0,0,0,0.45); width:420px; font-size:13.5px;")}>
-      <div style={s("background:#0000a8; color:#54fcfc; text-align:center; padding:3px; font-weight:700;")}>Configuration</div>
-      <div style={s("border:2px solid #000; margin:10px; padding:0;")}>
-        <div style={s("background:#0000a8; color:#54fcfc; text-align:center; font-size:12px; padding:1px;")}>Panel Options</div>
-        <div style={s("padding:12px 16px;")}>
+    <div
+      onClick={v.stop}
+      className="bg-[#b8b8b8] text-black w-[420px] text-[13.5px]"
+      style={{ boxShadow: '6px 6px 0 rgba(0,0,0,0.45)' }}
+    >
+      <div className="bg-dos-blue text-cyan text-center p-[3px] font-bold">Configuration</div>
+      <div className="border-2 border-black m-2.5">
+        <div className="bg-dos-blue text-cyan text-center text-[12px] p-px">Panel Options</div>
+        <div className="px-4 py-3">
           {v.cfgRows.map((c, i) => (
-            <div key={i} onClick={c.onClick} className="nc-cfg" style={s("cursor:pointer; padding:2px 0; display:flex; gap:10px; align-items:baseline;")}>
-              <span style={{ ...s("font-weight:700;"), color: c.boxColor }}>{c.box}</span>
+            <div key={i} onClick={c.onClick} className="nc-cfg cursor-pointer py-0.5 flex gap-2.5 items-baseline">
+              <span className="font-bold" style={{ color: c.boxColor }}>
+                {c.box}
+              </span>
               <span>{c.label}</span>
             </div>
           ))}
-          <div style={{ ...s("display:flex; gap:9px; align-items:center; margin-top:4px;"), opacity: v.crtOpacity }}>
-            <span style={s("white-space:nowrap; width:148px; flex-shrink:0;")}>CRT line intensity</span>
-            <span onMouseDown={v.crtBar.down} onMouseMove={v.crtBar.move} onMouseUp={v.crtBar.up} onMouseLeave={v.crtBar.up} style={s("display:flex; flex-shrink:0; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;")}>
-              {v.crtSegs.map((seg, i) => (<span key={i} style={s("padding:0 0.5px; pointer-events:none;")}>{seg.ch}</span>))}
+          <div className="flex gap-[9px] items-center mt-1" style={{ opacity: v.crtOpacity }}>
+            <span className="whitespace-nowrap w-[148px] shrink-0">CRT line intensity</span>
+            <span
+              className={bar}
+              onMouseDown={v.crtBar.down}
+              onMouseMove={v.crtBar.move}
+              onMouseUp={v.crtBar.up}
+              onMouseLeave={v.crtBar.up}
+            >
+              {v.crtSegs.map((s, i) => (
+                <span key={i} className={seg}>
+                  {s.ch}
+                </span>
+              ))}
             </span>
-            <span style={s("color:#06457a; white-space:nowrap; font-size:12px;")}>{v.crtPct}</span>
+            <span className={val}>{v.crtPct}</span>
           </div>
-          <div style={s("border-top:1px solid #8a8a8a; margin:9px 0 7px;")}></div>
-          <div style={{ ...s("display:flex; gap:7px 11px; align-items:baseline; flex-wrap:wrap;"), opacity: v.soundOpacity }}>
-            <span style={s("white-space:nowrap;")}>Key sound profile:</span>
+          <div className="border-t border-[#8a8a8a] mt-[9px] mb-[7px]"></div>
+          <div className="flex gap-x-[11px] gap-y-[7px] items-baseline flex-wrap" style={{ opacity: v.soundOpacity }}>
+            <span className="whitespace-nowrap">Key sound profile:</span>
             {v.soundProfiles.map((p, i) => (
-              <span key={i} onClick={p.onClick} className="nc-cfg" style={{ ...s("cursor:pointer; white-space:nowrap;"), color: p.color, fontWeight: p.weight }}>{p.mark}{p.name}</span>
+              <span
+                key={i}
+                onClick={p.onClick}
+                className="nc-cfg cursor-pointer whitespace-nowrap"
+                style={{ color: p.color, fontWeight: p.weight }}
+              >
+                {p.mark}
+                {p.name}
+              </span>
             ))}
           </div>
-          <div onClick={v.kbAdvToggle} className="nc-cfg" style={s("cursor:pointer; margin-top:5px; color:#06457a; font-size:12px;")} title="fine-tune like setting jumpers on a sound card">{v.kbAdvCaret} Jumpers (keyboard tuning)</div>
+          <div
+            onClick={v.kbAdvToggle}
+            className="nc-cfg cursor-pointer mt-[5px] text-[#06457a] text-[12px]"
+            title="fine-tune like setting jumpers on a sound card"
+          >
+            {v.kbAdvCaret} Jumpers (keyboard tuning)
+          </div>
           {v.kbAdv && (
-            <div style={{ ...s("margin:3px 0 2px 14px;"), opacity: v.soundOpacity }}>
-              <div style={s("display:flex; gap:9px; align-items:center; margin-top:4px;")}>
-                <span style={s("white-space:nowrap; width:92px; flex-shrink:0;")}>Pitch</span>
-                <span onMouseDown={v.pitchBar.down} onMouseMove={v.pitchBar.move} onMouseUp={v.pitchBar.up} onMouseLeave={v.pitchBar.up} style={s("display:flex; flex-shrink:0; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;")}>
-                  {v.pitchSegs.map((seg, i) => (<span key={i} style={s("padding:0 0.5px; pointer-events:none;")}>{seg.ch}</span>))}
+            <div className="mt-[3px] mb-0.5 ml-3.5" style={{ opacity: v.soundOpacity }}>
+              <div className="flex gap-[9px] items-center mt-1">
+                <span className="whitespace-nowrap w-[92px] shrink-0">Pitch</span>
+                <span
+                  className={bar}
+                  onMouseDown={v.pitchBar.down}
+                  onMouseMove={v.pitchBar.move}
+                  onMouseUp={v.pitchBar.up}
+                  onMouseLeave={v.pitchBar.up}
+                >
+                  {v.pitchSegs.map((s, i) => (
+                    <span key={i} className={seg}>
+                      {s.ch}
+                    </span>
+                  ))}
                 </span>
-                <span style={s("color:#06457a; white-space:nowrap; font-size:12px;")}>{v.pitchLabel}</span>
+                <span className={val}>{v.pitchLabel}</span>
               </div>
-              <div style={s("display:flex; gap:9px; align-items:center; margin-top:5px;")}>
-                <span style={s("white-space:nowrap; width:92px; flex-shrink:0;")}>Clickiness</span>
-                <span onMouseDown={v.clickBar.down} onMouseMove={v.clickBar.move} onMouseUp={v.clickBar.up} onMouseLeave={v.clickBar.up} style={s("display:flex; flex-shrink:0; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;")}>
-                  {v.clickSegs.map((seg, i) => (<span key={i} style={s("padding:0 0.5px; pointer-events:none;")}>{seg.ch}</span>))}
+              <div className="flex gap-[9px] items-center mt-[5px]">
+                <span className="whitespace-nowrap w-[92px] shrink-0">Clickiness</span>
+                <span
+                  className={bar}
+                  onMouseDown={v.clickBar.down}
+                  onMouseMove={v.clickBar.move}
+                  onMouseUp={v.clickBar.up}
+                  onMouseLeave={v.clickBar.up}
+                >
+                  {v.clickSegs.map((s, i) => (
+                    <span key={i} className={seg}>
+                      {s.ch}
+                    </span>
+                  ))}
                 </span>
-                <span style={s("color:#06457a; white-space:nowrap; font-size:12px;")}>{v.clickLabel}</span>
+                <span className={val}>{v.clickLabel}</span>
               </div>
             </div>
           )}
-          <div style={s("display:flex; gap:7px 11px; align-items:baseline; flex-wrap:wrap; margin-top:9px;")}>
-            <span style={s("white-space:nowrap;")}>Mouse click:</span>
+          <div className="flex gap-x-[11px] gap-y-[7px] items-baseline flex-wrap mt-[9px]">
+            <span className="whitespace-nowrap">Mouse click:</span>
             {v.clickProfiles.map((p, i) => (
-              <span key={i} onClick={p.onClick} className="nc-cfg" style={{ ...s("cursor:pointer; white-space:nowrap;"), color: p.color, fontWeight: p.weight }}>{p.mark}{p.name}</span>
+              <span
+                key={i}
+                onClick={p.onClick}
+                className="nc-cfg cursor-pointer whitespace-nowrap"
+                style={{ color: p.color, fontWeight: p.weight }}
+              >
+                {p.mark}
+                {p.name}
+              </span>
             ))}
           </div>
-          <div onClick={v.mouseAdvToggle} className="nc-cfg" style={s("cursor:pointer; margin-top:5px; color:#06457a; font-size:12px;")} title="fine-tune like setting jumpers on a sound card">{v.mouseAdvCaret} Jumpers (mouse tuning)</div>
+          <div
+            onClick={v.mouseAdvToggle}
+            className="nc-cfg cursor-pointer mt-[5px] text-[#06457a] text-[12px]"
+            title="fine-tune like setting jumpers on a sound card"
+          >
+            {v.mouseAdvCaret} Jumpers (mouse tuning)
+          </div>
           {v.mouseAdv && (
-            <div style={s("margin:3px 0 2px 14px;")}>
-              <div style={s("display:flex; gap:9px; align-items:center; margin-top:4px;")}>
-                <span style={s("white-space:nowrap; width:92px; flex-shrink:0;")}>Pitch</span>
-                <span onMouseDown={v.mPitchBar.down} onMouseMove={v.mPitchBar.move} onMouseUp={v.mPitchBar.up} onMouseLeave={v.mPitchBar.up} style={s("display:flex; flex-shrink:0; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;")}>
-                  {v.mPitchSegs.map((seg, i) => (<span key={i} style={s("padding:0 0.5px; pointer-events:none;")}>{seg.ch}</span>))}
+            <div className="mt-[3px] mb-0.5 ml-3.5">
+              <div className="flex gap-[9px] items-center mt-1">
+                <span className="whitespace-nowrap w-[92px] shrink-0">Pitch</span>
+                <span
+                  className={bar}
+                  onMouseDown={v.mPitchBar.down}
+                  onMouseMove={v.mPitchBar.move}
+                  onMouseUp={v.mPitchBar.up}
+                  onMouseLeave={v.mPitchBar.up}
+                >
+                  {v.mPitchSegs.map((s, i) => (
+                    <span key={i} className={seg}>
+                      {s.ch}
+                    </span>
+                  ))}
                 </span>
-                <span style={s("color:#06457a; white-space:nowrap; font-size:12px;")}>{v.mPitchLabel}</span>
+                <span className={val}>{v.mPitchLabel}</span>
               </div>
-              <div style={s("display:flex; gap:9px; align-items:center; margin-top:5px;")}>
-                <span style={s("white-space:nowrap; width:92px; flex-shrink:0;")}>Clickiness</span>
-                <span onMouseDown={v.mClickBar.down} onMouseMove={v.mClickBar.move} onMouseUp={v.mClickBar.up} onMouseLeave={v.mClickBar.up} style={s("display:flex; flex-shrink:0; cursor:ew-resize; user-select:none; color:#0000a8; font-size:15px; line-height:1;")}>
-                  {v.mClickSegs.map((seg, i) => (<span key={i} style={s("padding:0 0.5px; pointer-events:none;")}>{seg.ch}</span>))}
+              <div className="flex gap-[9px] items-center mt-[5px]">
+                <span className="whitespace-nowrap w-[92px] shrink-0">Clickiness</span>
+                <span
+                  className={bar}
+                  onMouseDown={v.mClickBar.down}
+                  onMouseMove={v.mClickBar.move}
+                  onMouseUp={v.mClickBar.up}
+                  onMouseLeave={v.mClickBar.up}
+                >
+                  {v.mClickSegs.map((s, i) => (
+                    <span key={i} className={seg}>
+                      {s.ch}
+                    </span>
+                  ))}
                 </span>
-                <span style={s("color:#06457a; white-space:nowrap; font-size:12px;")}>{v.mClickLabel}</span>
+                <span className={val}>{v.mClickLabel}</span>
               </div>
             </div>
           )}
         </div>
       </div>
-      <div style={s("display:flex; gap:14px; justify-content:center; padding:0 0 14px;")}>
-        <span onClick={v.closeDialog} className="nc-dlgbtn" style={s("cursor:pointer; background:#a0a0a0; box-shadow:inset -1px -1px 0 #000, inset 1px 1px 0 #fff; padding:3px 22px;")}>&nbsp;Ok&nbsp;</span>
-        <span onClick={v.closeDialog} className="nc-dlgbtn" style={s("cursor:pointer; background:#a0a0a0; box-shadow:inset -1px -1px 0 #000, inset 1px 1px 0 #fff; padding:3px 16px;")}>Cancel</span>
+      <div className="flex gap-3.5 justify-center pb-3.5">
+        <span onClick={v.closeDialog} className="nc-dlgbtn px-[22px] py-[3px]">
+          &nbsp;Ok&nbsp;
+        </span>
+        <span onClick={v.closeDialog} className="nc-dlgbtn px-4 py-[3px]">
+          Cancel
+        </span>
       </div>
     </div>
   );
