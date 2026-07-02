@@ -33,12 +33,12 @@ export default function InfoCard({ v }) {
       <div style={s("border-top:1px solid #2746b8; margin-bottom:12px;")}></div>
 
       <div style={s("font-size:13px; line-height:1.62; color:#d4d8dc; max-width:56ch; margin-bottom:12px;")}>
-        I'm a Computer Science student at Marist University who likes building real, working systems, the kind with moving parts you can actually watch run. I've built a <a className="nc-link" href="https://github.com/RPlante28/MaristMaps" target="_blank" rel="noopener">campus navigator</a> with a voice-enabled AI agent, rebuilt a <a className="nc-link" href="https://github.com/RPlante28/6502-emulator" target="_blank" rel="noopener">6502 CPU</a> one pipeline stage at a time, and shipped full-stack apps, data pipelines, and interactive maps. This whole <a className="nc-link" href="#" style={s("color:#54fcfc;")}>portfolio</a> is one of those projects, a DOS-era interface you're exploring right now. I'm looking for software and data internships where I can build things that matter.
+        I'm a Computer Science student at Marist University who likes building real, working systems, the kind with moving parts you can actually watch run. I've built a <a className="nc-link" href="https://github.com/RPlante28/MaristMaps" target="_blank" rel="noopener noreferrer">campus navigator</a> with a voice-enabled AI agent, rebuilt a <a className="nc-link" href="https://github.com/RPlante28/6502-emulator" target="_blank" rel="noopener noreferrer">6502 CPU</a> one pipeline stage at a time, and shipped full-stack apps, data pipelines, and interactive maps. This whole <a className="nc-link" href="#" style={s("color:#54fcfc;")}>portfolio</a> is one of those projects, a DOS-era interface you're exploring right now. I'm looking for software and data internships where I can build things that matter.
       </div>
 
       <div style={s("display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;")}>
-        <a className="nc-btn" href="https://github.com/RPlante28" target="_blank" rel="noopener" style={s("text-decoration:none;")}>GitHub ▸</a>
-        <a className="nc-btn" href="https://linkedin.com/in/rohan-plante" target="_blank" rel="noopener" style={s("text-decoration:none;")}>LinkedIn ▸</a>
+        <a className="nc-btn" href="https://github.com/RPlante28" target="_blank" rel="noopener noreferrer" style={s("text-decoration:none;")}>GitHub ▸</a>
+        <a className="nc-btn" href="https://linkedin.com/in/rohan-plante" target="_blank" rel="noopener noreferrer" style={s("text-decoration:none;")}>LinkedIn ▸</a>
         <a className="nc-btn" href="mailto:rohanplante@gmail.com" style={s("text-decoration:none;")}>E-mail ▸</a>
         <span className="nc-btn" onClick={v.openResume} style={s("cursor:pointer;")}>Resume ▸</span>
       </div>
