@@ -237,8 +237,10 @@ export default class Engine {
   // teletype tick - a soft click as each boot character scans onto the screen
   _bootClick(){
     if(!this.cfg.bootSound) return;
-    const ac=this._audio(); if(!ac) return;
-    if(ac.state==='suspended'){ ac.resume(); return; }
+    // Only tick if audio is already unlocked by a real user gesture; never
+    // create or resume the AudioContext here (doing so before a gesture spams
+    // the "AudioContext was not allowed to start" console warning).
+    const ac=this._ac; if(!ac || ac.state!=='running') return;
     const now=ac.currentTime;
     const src=ac.createBufferSource(); src.buffer=this._noise;
     const bp=ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=2100+Math.random()*700; bp.Q.value=1.1;
@@ -1004,15 +1006,19 @@ export default class Engine {
     if(!gen || !this._vizEl){ this._curViz=type; return; }
     this._curViz=type;
     const clock=()=> (typeof performance!=='undefined' ? performance.now() : Date.now());
-    const start=clock(); let last=null;
+    const start=clock(); let last=null, lastF=-1;
     // Drive with requestAnimationFrame but hand the generators an INTEGER frame
-    // (they're all written for integer steps). A ~70ms step is smoother than the
-    // old 110ms, and we only touch the DOM when the rendered text changes.
+    // (they're all written for integer steps) that only advances ~14x/sec. We
+    // recompute the art only when that frame number changes — not on every paint
+    // — so the main thread stays free and the block cursor / UI stay smooth.
     const tick=()=>{
       if(this._dead || !this._vizEl || this._curViz!==type){ this._vizRaf=null; return; }
-      const f=Math.floor((clock()-start)/70);   // was: +1 every 110ms
-      let s=''; try { s=gen(f); } catch(e){}
-      if(s!==last){ this._vizEl.textContent=s; last=s; }
+      const f=Math.floor((clock()-start)/70);
+      if(f!==lastF){
+        lastF=f;
+        let s=''; try { s=gen(f); } catch(e){}
+        if(s!==last){ this._vizEl.textContent=s; last=s; }
+      }
       this._vizRaf=requestAnimationFrame(tick);
     };
     this._vizRaf=requestAnimationFrame(tick);
@@ -1167,7 +1173,8 @@ export default class Engine {
     window.addEventListener('blur', this._onWinBlur);
     this.tw = { p:0, c:0, del:false };
     this._twTick();
-    this._bootSound();   // attempt POST chime on load (falls back to first gesture if autoplay-blocked)
+    // Audio stays locked until the first real user gesture: the keydown/pointer
+    // handlers call _bootSound() to resume it then. (Browser autoplay policy.)
     this._bootStep();
   }
   _bootStep(){
