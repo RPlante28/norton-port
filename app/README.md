@@ -30,9 +30,12 @@ so the contact form keeps working same-origin (no CORS, no backend to host).
 |------|-----------|
 | `index.html` | Loads the data scripts + the React entry. |
 | `src/main.jsx` | Mounts `<App/>`. |
-| `src/components/App.jsx` | The whole DOS screen (faithful JSX port of the original template). |
+| `src/components/App.jsx` | ~75-line composition of the shell + feature/dialog components. |
+| `src/components/` | Shell chrome: `MenuBar`, `FilePanel`, `CommandLine`, `FunctionKeyBar`, `BootScreen`, `EditorOverlay`, `CliFullScreen`, `BossMode`, `ImageViewer`, `CrtOverlay`. |
+| `src/features/` | Right-pane content views: `RightPane` (switch) + `InfoCard`, `DirPreview`, `DocView`, `EduView`, `ContactView`, `TextView`, `Vm6502`. |
+| `src/dialogs/` | Modal layer: `Dialogs` (switch) + `Config`, `About`, `Contact`, `Help`, `Dash`, `Resume`. |
 | `src/engine/Engine.js` | All app logic — file browser, CLI, editor, 6502 VM, audio, dialogs. Ported verbatim from the original; the only change is a small subscribe/`setState`/`forceUpdate` store that replaces the old runtime base class. React drives it via `useSyncExternalStore` + effects. |
-| `src/util/style.js` | `s("css:string")` → React style object, used to carry the DOS inline styles over 1:1. |
+| `src/util/style.js` | `s("css:string")` → React style object, used to carry the remaining DOS inline styles over 1:1. |
 | `src/index.css` | Tailwind directives + the DOS design tokens (`:root`) + the `.nc-*` component classes and scrollbars/keyframes. |
 | `public/content.js` | **All portfolio text & projects.** Edit this to change what the site says. |
 | `public/animations.js` | **All ASCII animations.** |
@@ -45,13 +48,22 @@ classic scripts and expose `window.PORTFOLIO` / `window.VIZ` / `window.CPU6502`,
 so the "edit one file to change the content" workflow is exactly as it was, and
 they're copied verbatim into `dist/` (still editable after a build).
 
-## Status: fidelity-first pass
+## Status
 
-This pass reproduces the original **exactly** (verified: boot, both panels, the
-info card, every doc/timeline view, dithered photos, the animated ASCII heroes,
-the 6502 VM, and full CLI mode — building to a static `dist/` with no runtime
-errors). Inline styles were carried over via `s()` to guarantee the look.
+Reproduces the original **exactly** (verified: boot, both panels, the info card,
+every doc/timeline view, dithered photos, the animated ASCII heroes, the 6502 VM,
+CLI mode, the editor, and the config/contact dialogs — building to a static
+`dist/` with no runtime errors).
 
-**Next pass** (per the agreed plan): progressively convert the high-traffic
-inline styles to Tailwind classes, split `App.jsx` into `components/` + `features/`,
-and add ESLint/Prettier — without changing any behaviour or content.
+Done:
+
+- Modularized: `App.jsx` is a small composition; every view/dialog is its own
+  file under `components/`, `features/`, `dialogs/`.
+- The app shell (root, panels, menu bar, file panel, command line, function keys)
+  is written in **Tailwind** utilities; the DOS palette lives in the Tailwind
+  theme + CSS `:root`.
+- **ESLint** (`npm run lint`) and **Prettier** (`npm run format`) configured.
+
+Remaining polish (no behaviour/content change): the dense content views still
+carry their precise inline styles via `s()`; these can be converted to Tailwind
+classes incrementally.

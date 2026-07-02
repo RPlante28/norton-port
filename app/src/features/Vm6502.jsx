@@ -91,7 +91,7 @@ export default function Vm6502({ v }) {
         <span style={s("color:#fcfc54; font-size:11px;")}>{v.vm.haltMsg}</span>
       </div>
       <div style={s("color:#8fb0e8; font-size:11px; margin-top:8px; line-height:1.5;")}>{v.vm.loadMsg}</div>
-      <div style={s("color:#6f93d8; font-size:11px; margin-top:4px; line-height:1.5;")}>Faithful port of my <a className="nc-link" href="https://github.com/RPlante28/422-tsiraM/tree/scalar-pipeline" target="_blank" rel="noopener">tsiraM-6502</a> scalar pipeline (fetch→decode→execute→writeback→interrupt, with fetch / INC / branch hazard stalls). Pick a sample, Step through it, or write your own in hex or assembly with <b>+ New program</b>.</div>
+      <div style={s("color:#6f93d8; font-size:11px; margin-top:4px; line-height:1.5;")}>Faithful port of my <a className="nc-link" href="https://github.com/RPlante28/422-tsiraM/tree/scalar-pipeline" target="_blank" rel="noopener noreferrer">tsiraM-6502</a> scalar pipeline (fetch→decode→execute→writeback→interrupt, with fetch / INC / branch hazard stalls). Pick a sample, Step through it, or write your own in hex or assembly with <b>+ New program</b>.</div>
     </div>
   );
 }

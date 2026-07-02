@@ -4,7 +4,7 @@ import { s } from '../util/style.js';
 export default function EduView({ v }) {
   return (
     <div style={s("padding:16px 18px;")}>
-      <div style={s("font-size:19px; color:#fff;")}><a className="nc-link" href="https://www.marist.edu" target="_blank" rel="noopener" style={s("color:#fff;")}>{v.edu.school}</a></div>
+      <div style={s("font-size:19px; color:#fff;")}><a className="nc-link" href="https://www.marist.edu" target="_blank" rel="noopener noreferrer" style={s("color:#fff;")}>{v.edu.school}</a></div>
       <div style={s("font-size:12px; color:#fcfc54; margin:3px 0 8px; letter-spacing:0.04em;")}>{v.edu.meta}</div>
       <div style={s("font-style:italic; color:#9fc0f0; font-size:13.5px; margin-bottom:12px;")}>{v.edu.sub}</div>
       {v.edu.notes.map((n, i) => (

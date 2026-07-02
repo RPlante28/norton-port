@@ -38,7 +38,7 @@ export default function ContactDialog({ v }) {
           <div style={s("font-size:11px; color:#444; letter-spacing:0.08em; margin-bottom:8px;")}>OR FIND ME ON ───</div>
           <div style={s("display:flex; gap:10px; flex-wrap:wrap;")}>
             {v.socials.map((soc, i) => (
-              <a key={i} className="nc-social" href={soc.href} target="_blank" rel="noopener" style={s("text-decoration:none; color:#0000a8; display:flex; align-items:center; gap:8px; border:2px solid #000; background:#0000a8; padding:4px 10px 4px 4px; box-shadow:2px 2px 0 #5a5a5a;")}>
+              <a key={i} className="nc-social" href={soc.href} target="_blank" rel="noopener noreferrer" style={s("text-decoration:none; color:#0000a8; display:flex; align-items:center; gap:8px; border:2px solid #000; background:#0000a8; padding:4px 10px 4px 4px; box-shadow:2px 2px 0 #5a5a5a;")}>
                 <span style={s("width:26px; height:26px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:#54fcfc; color:#0000a8; border:1px solid #000; font-size:15px; font-weight:700;")}>{soc.glyph}</span>
                 <span style={s("display:flex; flex-direction:column; line-height:1.15;")}>
                   <span style={s("color:#fff; font-size:12.5px; font-weight:700;")}>{soc.label}</span>

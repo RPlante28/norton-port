@@ -8,7 +8,7 @@ function FKey({ n, label, onClick, href, grow, first }) {
   );
   if (href) {
     return (
-      <a className="nc-fkey" href={href} target="_blank" rel="noopener">
+      <a className="nc-fkey" href={href} target="_blank" rel="noopener noreferrer">
         {num}
         {lbl}
       </a>

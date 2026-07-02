@@ -27,7 +27,7 @@ export default function DocView({ v }) {
       {v.isMCWImg && (
         <img src={v.docImgSrc} data-full={v.docImgFull} alt="project image" className="nc-photo" onClick={v.viewImg} style={s("max-height:250px; width:auto; max-width:100%; display:block; margin-bottom:12px; cursor:zoom-in; border:1px solid #2f6fd0;")} />
       )}
-      <div style={s("font-size:19px; color:#fff;")}><a className="nc-link" href={d.link} target="_blank" rel="noopener" style={s("color:#fff;")}>{d.title}</a></div>
+      <div style={s("font-size:19px; color:#fff;")}><a className="nc-link" href={d.link} target="_blank" rel="noopener noreferrer" style={s("color:#fff;")}>{d.title}</a></div>
       <div style={s("font-size:12px; color:#fcfc54; margin:3px 0 8px; letter-spacing:0.04em;")}>{d.meta}</div>
       {d.hasSub && (
         <div style={s("font-style:italic; color:#9fc0f0; font-size:13.5px; margin-bottom:12px;")}>{d.sub}</div>
@@ -65,7 +65,7 @@ export default function DocView({ v }) {
           </div>
           {d.timeline.hasFooter && (
             <>
-              <div style={s("font-size:13px; color:#9fc0f0; margin-top:4px;")}>{d.timeline.footer.text} <a className="nc-link" href={d.timeline.footer.link} target="_blank" rel="noopener" style={s("color:#54fcfc;")}>{d.timeline.footer.linkLabel}</a></div>
+              <div style={s("font-size:13px; color:#9fc0f0; margin-top:4px;")}>{d.timeline.footer.text} <a className="nc-link" href={d.timeline.footer.link} target="_blank" rel="noopener noreferrer" style={s("color:#54fcfc;")}>{d.timeline.footer.linkLabel}</a></div>
               <div style={s("font-size:11px; color:#6f93d8; margin-top:2px;")}>{d.timeline.footer.note}</div>
             </>
           )}
@@ -81,7 +81,7 @@ export default function DocView({ v }) {
         </div>
       )}
       <div style={s("margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;")}>
-        {d.hasLink && (<a className="nc-btn" href={d.link} target="_blank" rel="noopener">{d.linkLabel}</a>)}
+        {d.hasLink && (<a className="nc-btn" href={d.link} target="_blank" rel="noopener noreferrer">{d.linkLabel}</a>)}
         {d.hasGoto && (<span className="nc-btn" onClick={v.gotoFile} style={s("cursor:pointer;")}>{d.gotoLabel}</span>)}
         {d.hasGoto2 && (<span className="nc-btn" onClick={v.gotoFile2} style={s("cursor:pointer;")}>{d.gotoLabel2}</span>)}
         {d.demo && (<span className="nc-btn" onClick={v.openVM} style={s("cursor:pointer;")}>▶ RUN THE LIVE DEMO ▸</span>)}
