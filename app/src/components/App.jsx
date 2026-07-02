@@ -3,6 +3,9 @@ import Engine from '../engine/Engine.js';
 import { s } from '../util/style.js';
 import MenuBar from './MenuBar.jsx';
 import FunctionKeyBar from './FunctionKeyBar.jsx';
+import FilePanel from './FilePanel.jsx';
+import CommandLine from './CommandLine.jsx';
+import CrtOverlay from './CrtOverlay.jsx';
 
 // The whole ROHAN-DOS screen. This is a faithful JSX port of the original
 // x-dc template: it reads the single `vals` object produced by Engine.renderVals()
@@ -26,7 +29,7 @@ export default function App() {
   const d = v.d;
 
   return (
-    <div style={s("height:100%; display:flex; flex-direction:column; padding:5px 8px 4px; gap:4px; font-size:14px; overflow:hidden;")}>
+    <div className="h-full flex flex-col gap-1 text-[14px] overflow-hidden pt-[5px] px-2 pb-1">
 
       {/* ===== BOOT / POST SCREEN ===== */}
       {v.booting && (
@@ -45,41 +48,17 @@ export default function App() {
       <MenuBar menus={v.menus} anyMenuOpen={v.anyMenuOpen} closeMenu={v.closeMenu} />
 
       {/* ===== TWO PANELS ===== */}
-      <div style={s("flex:1 1 auto; min-height:0; margin-top:7px; display:grid; grid-template-columns:1fr 1fr; gap:8px;")}>
+      <div className="flex-auto min-h-0 mt-[7px] grid grid-cols-2 gap-2">
 
         {/* LEFT: FILE PANEL */}
-        <div style={s("position:relative; border:3px double #54fcfc; display:flex; flex-direction:column; min-height:0;")}>
-          <div style={s("position:absolute; top:-11px; left:0; right:0; text-align:center; pointer-events:none;")}>
-            <span style={s("background:#0000a8; padding:0 12px; color:#54fcfc; font-size:13px;")}>{v.leftTitle}</span>
-          </div>
-          <div style={s("display:grid; grid-template-columns:1fr 104px 92px; color:#54fcfc; font-size:13px; padding:8px 0 3px; border-bottom:1px solid #2746b8;")}>
-            <span style={s("padding:0 6px; text-align:center;")}>Name</span>
-            <span style={s("padding:0 6px; text-align:center; border-left:1px solid #2746b8;")}>Size</span>
-            <span style={s("padding:0 6px; text-align:center; border-left:1px solid #2746b8;")}>Date</span>
-          </div>
-          <div style={s("flex:1 1 auto; overflow:auto; padding-top:2px;")}>
-            {v.rows.map((r, ri) => (
-              <div key={ri} className={r.cls} onClick={r.onClick}>
-                <span style={{ color: r.nameColor }}>{r.name}</span>
-                <span>{r.size}</span>
-                <span>{r.date}</span>
-              </div>
-            ))}
-          </div>
-          {v.showStatus && (
-            <>
-              <div style={s("border-top:1px solid #54fcfc; text-align:center; font-size:13px; padding:3px; color:#fff;")}>{v.selName} &nbsp; {v.selDate} &nbsp; 21:38</div>
-              <div style={s("text-align:center; font-size:12px; color:#9fc0f0; padding:0 0 4px;")}>{v.fileCount} file(s) · {v.dirCount} dir(s)</div>
-            </>
-          )}
-        </div>
+        <FilePanel v={v} />
 
         {/* RIGHT: INFO / VIEWER */}
-        <div style={s("position:relative; border:3px double #54fcfc; min-height:0; display:flex; flex-direction:column;")}>
-          <div style={s("position:absolute; top:-11px; left:0; right:0; text-align:center; pointer-events:none; z-index:2;")}>
-            <span style={s("background:#0000a8; padding:0 12px; color:#fff; font-size:13px;")}>{v.rightTitle}</span>
+        <div className="relative flex flex-col min-h-0 border-[3px] border-double border-cyan">
+          <div className="absolute -top-[11px] left-0 right-0 text-center pointer-events-none z-[2]">
+            <span className="bg-dos-blue px-3 text-white text-[13px]">{v.rightTitle}</span>
           </div>
-          <div style={s("flex:1 1 auto; min-height:0; overflow:auto;")}>
+          <div className="flex-auto min-h-0 overflow-auto">
 
             {/* INFO (default) */}
             {v.isInfo && (
@@ -464,18 +443,7 @@ export default function App() {
       )}
 
       {/* ===== COMMAND LINE ===== */}
-      <div style={s("flex:0 0 auto; padding:1px 2px;")}>
-        <div style={s("display:flex; align-items:center; font-size:13.5px; color:#d4d8dc;")}>
-          <span style={s("white-space:nowrap; color:#d4d8dc;")}>{v.pathLine}&gt;&nbsp;</span>
-          <span style={s("position:relative; flex:1; display:flex; align-items:center;")}>
-            <input className="nc-cmd nc-cmd-bc" ref={v.cmdRef} onKeyDown={v.onCmdKey} onKeyUp={v.onCmdCaret} onClick={v.onCmdCaret} onFocus={v.onCmdCaret} type="text" spellCheck="false" autoComplete="off" placeholder="type a command  (help, cd projects, open maps, go github, mail) and press Enter" style={s("width:100%;")} />
-            <span className="nc-curs" ref={v.cmdCursRef} style={s("left:0;")}>&nbsp;</span>
-          </span>
-        </div>
-        {v.hasCmdMsg && (
-          <div style={s("font-size:12px; color:#fcfc54; padding:1px 2px 0;")}>{v.cmdMsg}</div>
-        )}
-      </div>
+      <CommandLine v={v} />
 
       {/* ===== FUNCTION KEY BAR ===== */}
       <FunctionKeyBar v={v} />
@@ -753,13 +721,7 @@ export default function App() {
       )}
 
       {/* ===== CRT OVERLAY ===== */}
-      {v.crt && (
-        <>
-          <div className="nc-crt-lines" style={{ ...s("position:fixed; inset:0; z-index:9990; pointer-events:none; mix-blend-mode:multiply;"), background: v.crtScanBg }}></div>
-          <div className="nc-crt-sweep" style={s("position:fixed; top:-40vh; left:0; right:0; height:40vh; z-index:9991; pointer-events:none; background:linear-gradient(to bottom, transparent, rgba(150,210,255,0.06) 45%, rgba(150,210,255,0.06) 55%, transparent); mix-blend-mode:screen;")}></div>
-          <div style={s("position:fixed; inset:0; z-index:9990; pointer-events:none; background:radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,0.4) 100%);")}></div>
-        </>
-      )}
+      <CrtOverlay crt={v.crt} scanBg={v.crtScanBg} />
     </div>
   );
 }
