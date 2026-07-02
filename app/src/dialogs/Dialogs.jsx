@@ -1,4 +1,3 @@
-import { s } from '../util/style.js';
 import ConfigDialog from './ConfigDialog.jsx';
 import AboutDialog from './AboutDialog.jsx';
 import ContactDialog from './ContactDialog.jsx';
@@ -10,7 +9,10 @@ import ResumeDialog from './ResumeDialog.jsx';
 export default function Dialogs({ v }) {
   if (!v.dialog) return null;
   return (
-    <div onClick={v.closeDialog} style={s("position:fixed; inset:0; z-index:80; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center;")}>
+    <div
+      onClick={v.closeDialog}
+      className="fixed inset-0 z-[80] bg-black/35 flex items-center justify-center"
+    >
       {v.isConfig && <ConfigDialog v={v} />}
       {v.isAbout && <AboutDialog v={v} />}
       {v.isContactDlg && <ContactDialog v={v} />}

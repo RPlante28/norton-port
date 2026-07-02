@@ -1,20 +1,42 @@
-import { s } from '../util/style.js';
 import EditorOverlay from './EditorOverlay.jsx';
 
 // Full-screen CLI-only mode: scrollback terminal + prompt, or the editor when a
 // file is open in the terminal.
 export default function CliFullScreen({ v }) {
   return (
-    <div style={s("position:fixed; inset:0; z-index:70; background:#0000a8; display:flex; flex-direction:column; padding:10px 12px;")}>
+    <div className="fixed inset-0 z-[70] bg-dos-blue flex flex-col px-3 py-2.5">
       {v.cliTermView && (
         <>
-          <div style={s("flex:0 0 auto; color:#fcfc54; font-size:12px; border-bottom:1px solid #2746b8; padding-bottom:4px; margin-bottom:6px;")}>ROHAN-DOS - CLI mode - type  help  for commands,  gui  to return</div>
-          <div style={s("flex:1 1 auto; min-height:0; overflow:auto; white-space:pre-wrap; color:#d4d8dc; font-size:13.5px; line-height:1.45;")} ref={v.termScrollRef} onClick={v.focusCli}>{v.termText}</div>
-          <div style={s("flex:0 0 auto; display:flex; align-items:center; font-size:13.5px; color:#d4d8dc; border-top:1px solid #2746b8; margin-top:4px; padding-top:4px;")}>
-            <span style={{ ...s("white-space:nowrap;"), color: v.cliPromptColor }}>{v.cliPrompt}&nbsp;</span>
-            <span style={s("position:relative; flex:1; display:flex; align-items:center;")}>
-              <input className="nc-cmd nc-cmd-bc" ref={v.cliRef} onKeyDown={v.onCliKey} onKeyUp={v.onCliCaret} onClick={v.onCliCaret} onFocus={v.onCliCaret} type={v.cliInputType} spellCheck="false" autoComplete="off" placeholder={v.cliPlaceholder} style={s("width:100%;")} />
-              <span className="nc-curs" ref={v.cliCursRef} style={s("left:0;")}>&nbsp;</span>
+          <div className="flex-none text-yellow text-[12px] border-b border-edge-dim pb-1 mb-1.5">
+            ROHAN-DOS - CLI mode - type  help  for commands,  gui  to return
+          </div>
+          <div
+            className="flex-auto min-h-0 overflow-auto whitespace-pre-wrap text-ink text-[13.5px] leading-[1.45]"
+            ref={v.termScrollRef}
+            onClick={v.focusCli}
+          >
+            {v.termText}
+          </div>
+          <div className="flex-none flex items-center text-[13.5px] text-ink border-t border-edge-dim mt-1 pt-1">
+            <span className="whitespace-nowrap" style={{ color: v.cliPromptColor }}>
+              {v.cliPrompt}&nbsp;
+            </span>
+            <span className="relative flex-1 flex items-center">
+              <input
+                className="nc-cmd nc-cmd-bc w-full"
+                ref={v.cliRef}
+                onKeyDown={v.onCliKey}
+                onKeyUp={v.onCliCaret}
+                onClick={v.onCliCaret}
+                onFocus={v.onCliCaret}
+                type={v.cliInputType}
+                spellCheck="false"
+                autoComplete="off"
+                placeholder={v.cliPlaceholder}
+              />
+              <span className="nc-curs left-0" ref={v.cliCursRef}>
+                &nbsp;
+              </span>
             </span>
           </div>
         </>

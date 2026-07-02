@@ -1,5 +1,3 @@
-import { s } from '../util/style.js';
-
 // The vim-style editor chrome (header + textarea + block cursor + status/command
 // line). Shared by the right-panel overlay and the CLI full-screen; `cli` just
 // bumps a few sizes to match the original.
@@ -7,20 +5,20 @@ export default function EditorOverlay({ v, cli }) {
   return (
     <>
       <div
-        style={s(
-          cli
-            ? 'flex:0 0 auto; background:#000060; color:#54fcfc; font-size:13px; padding:4px 8px; display:flex; align-items:center; gap:8px;'
-            : 'flex:0 0 auto; background:#000060; color:#54fcfc; font-size:12px; padding:3px 8px; display:flex; align-items:center; gap:8px;',
-        )}
+        className={`flex-none bg-[#000060] text-cyan flex items-center gap-2 px-2 ${cli ? 'text-[13px] py-1' : 'text-[12px] py-[3px]'}`}
       >
-        <span style={s("font-weight:700;")}>VIM</span>
+        <span className="font-bold">VIM</span>
         <span>{v.edName}</span>
-        <span style={s("flex:1;")}></span>
-        <span className="nc-vbtn" onClick={v.saveEditor}>:w save</span>
-        <span className="nc-vbtn" onClick={v.closeEditor}>:q quit</span>
+        <span className="flex-1"></span>
+        <span className="nc-vbtn" onClick={v.saveEditor}>
+          :w save
+        </span>
+        <span className="nc-vbtn" onClick={v.closeEditor}>
+          :q quit
+        </span>
       </div>
       <textarea
-        className="nc-ed"
+        className={`nc-ed ${cli ? 'flex-auto' : ''}`}
         ref={v.edRef}
         onKeyDown={v.onEdKey}
         onKeyUp={v.onEdCaret}
@@ -28,29 +26,23 @@ export default function EditorOverlay({ v, cli }) {
         onScroll={v.onEdCaret}
         spellCheck="false"
         readOnly={v.edRo}
-        style={cli ? s('flex:1 1 auto;') : undefined}
       ></textarea>
       <div className="nc-edcurs" ref={v.edCursRef}></div>
       <div
-        style={s(
-          cli
-            ? 'flex:0 0 auto; background:#000060; color:#d4d8dc; font-size:13px; padding:3px 8px; display:flex; align-items:center; gap:8px;'
-            : 'flex:0 0 auto; background:#000060; color:#d4d8dc; font-size:12px; padding:2px 8px; display:flex; align-items:center; gap:8px;',
-        )}
+        className={`flex-none bg-[#000060] text-ink flex items-center gap-2 px-2 ${cli ? 'text-[13px] py-[3px]' : 'text-[12px] py-0.5'}`}
       >
-        <span style={s("color:#fcfc54;")}>{v.edMode}</span>
-        <span style={s("color:#54fcfc; font-size:11px;")}>{v.edCursor}</span>
-        <span style={s("color:#8fb0e8;")}>{v.edStatus}</span>
-        <span style={s("flex:1;")}></span>
-        <span style={s("color:#8fb0e8; font-size:11px;")}>{v.edHint}</span>
+        <span className="text-yellow">{v.edMode}</span>
+        <span className="text-cyan text-[11px]">{v.edCursor}</span>
+        <span className="text-[#8fb0e8]">{v.edStatus}</span>
+        <span className="flex-1"></span>
+        <span className="text-[#8fb0e8] text-[11px]">{v.edHint}</span>
         <input
-          className="nc-edcmd"
+          className={`nc-edcmd ${cli ? 'max-w-[160px]' : 'max-w-[140px]'}`}
           ref={v.edCmdRef}
           onKeyDown={v.onEdCmdKey}
           type="text"
           spellCheck="false"
           placeholder="w  q  wq  q!"
-          style={s(cli ? 'max-width:160px;' : 'max-width:140px;')}
         />
       </div>
     </>
