@@ -47,4 +47,9 @@ export default [
       'no-prototype-builtins': 'off',
     },
   },
+  {
+    // build/deploy scripts run under Node.
+    files: ['scripts/**', '**/*.mjs'],
+    languageOptions: { sourceType: 'module', globals: { ...globals.node } },
+  },
 ];
