@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useSyncExternalStore } from 'react';
 import Engine from '../engine/Engine.js';
 import { s } from '../util/style.js';
+import MenuBar from './MenuBar.jsx';
+import FunctionKeyBar from './FunctionKeyBar.jsx';
 
 // The whole ROHAN-DOS screen. This is a faithful JSX port of the original
 // x-dc template: it reads the single `vals` object produced by Engine.renderVals()
@@ -40,25 +42,7 @@ export default function App() {
       )}
 
       {/* ===== TOP MENU BAR ===== */}
-      <div style={s("position:relative; z-index:60; background:#54fcfc; color:#0000a8; display:flex; align-items:center; height:22px; font-size:13px; padding:0 4px; flex:0 0 auto;")}>
-        {v.menus.map((m) => (
-          <div key={m.id} style={s("position:relative;")} onMouseEnter={m.onEnter}>
-            <span onClick={m.onClick} className="nc-mtab" style={{ ...s("display:inline-block; padding:1px 12px; cursor:pointer;"), background: m.tabBg, color: m.tabFg }}>{m.label}</span>
-            {m.isOpen && (
-              <div style={s("position:absolute; top:21px; left:0; min-width:230px; background:#54fcfc; color:#0000a8; border:1px solid #0000a8; box-shadow:3px 3px 0 #000050; padding:2px 0;")}>
-                {m.items.map((it, ii) => (
-                  <div key={ii} onClick={it.onClick} className="nc-mitem" style={{ ...s("padding:2px 14px; white-space:nowrap; cursor:pointer;"), color: it.color }}>{it.label}</div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-        <span style={s("flex:1;")}></span>
-        <span style={s("padding:0 6px;")}>ROHAN-DOS</span>
-      </div>
-      {v.anyMenuOpen && (
-        <div onClick={v.closeMenu} style={s("position:fixed; inset:0; z-index:55;")}></div>
-      )}
+      <MenuBar menus={v.menus} anyMenuOpen={v.anyMenuOpen} closeMenu={v.closeMenu} />
 
       {/* ===== TWO PANELS ===== */}
       <div style={s("flex:1 1 auto; min-height:0; margin-top:7px; display:grid; grid-template-columns:1fr 1fr; gap:8px;")}>
@@ -494,18 +478,7 @@ export default function App() {
       </div>
 
       {/* ===== FUNCTION KEY BAR ===== */}
-      <div style={s("flex:0 0 auto; display:flex; font-size:12.5px; gap:0;")}>
-        <span className="nc-fkey" onClick={v.fHelp}><span style={s("color:#d4d8dc; padding:3px 2px 3px 4px;")}>1</span><span style={s("background:#54fcfc; color:#0000a8; padding:3px 8px;")}>Help</span></span>
-        <span className="nc-fkey" onClick={v.fMenu}><span style={s("color:#d4d8dc; padding:3px 2px 3px 6px;")}>2</span><span style={s("background:#54fcfc; color:#0000a8; padding:3px 8px;")}>Menu</span></span>
-        <span className="nc-fkey" onClick={v.fEdit}><span style={s("color:#d4d8dc; padding:3px 2px 3px 6px;")}>3</span><span style={s("background:#54fcfc; color:#0000a8; padding:3px 8px;")}>Edit</span></span>
-        <span className="nc-fkey" onClick={v.openResume} style={s("cursor:pointer;")}><span style={s("color:#d4d8dc; padding:3px 2px 3px 6px;")}>4</span><span style={s("background:#54fcfc; color:#0000a8; padding:3px 8px;")}>Resume</span></span>
-        <span className="nc-fkey" onClick={v.fConfig}><span style={s("color:#d4d8dc; padding:3px 2px 3px 6px;")}>5</span><span style={s("background:#54fcfc; color:#0000a8; padding:3px 8px;")}>Config</span></span>
-        <span className="nc-fkey" onClick={v.openContact}><span style={s("color:#d4d8dc; padding:3px 2px 3px 6px;")}>6</span><span style={s("background:#54fcfc; color:#0000a8; padding:3px 8px;")}>Contact</span></span>
-        <span className="nc-fkey" onClick={v.fCli}><span style={s("color:#d4d8dc; padding:3px 2px 3px 6px;")}>7</span><span style={s("background:#54fcfc; color:#0000a8; padding:3px 8px;")}>CLI</span></span>
-        <a className="nc-fkey" href="https://github.com/RPlante28" target="_blank" rel="noopener"><span style={s("color:#d4d8dc; padding:3px 2px 3px 6px;")}>8</span><span style={s("background:#54fcfc; color:#0000a8; padding:3px 8px;")}>GitHub</span></a>
-        <span className="nc-fkey" onClick={v.goRoot}><span style={s("color:#d4d8dc; padding:3px 2px 3px 6px;")}>9</span><span style={s("background:#54fcfc; color:#0000a8; padding:3px 8px;")}>Home</span></span>
-        <span className="nc-fkey" onClick={v.goRoot} style={s("flex:1;")}><span style={s("color:#d4d8dc; padding:3px 2px 3px 6px;")}>10</span><span style={s("background:#54fcfc; color:#0000a8; padding:3px 8px; flex:1;")}>Quit</span></span>
-      </div>
+      <FunctionKeyBar v={v} />
 
       {/* ===== DOS BLOCK MOUSE CURSOR ===== */}
       <div className="nc-mouse" ref={v.mouseRef}></div>
