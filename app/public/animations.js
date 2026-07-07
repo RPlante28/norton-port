@@ -170,34 +170,22 @@ window.VIZ = (function () {
         for(let i=0;i<3;i++) put(wcx-2,(f+i)%4+2,'\u2502');
         const wt=(f%2)?'\u2248':'~'; for(let x=2;x<16;x++) put(x,H-1,wt);
 
-        // ---- SHAFT across the top to the trip-hammer cam (far right) ----
-        for(let x=wcx+1;x<=41;x++) put(x,2,'\u2500');
-        const camUp=(Math.sin(ang*3)>0.3), hy=camUp?4:6, strike=!camUp&&(Math.floor(f)%2===0), hax=42;
-        put(hax,hy-1,'\u2566'); put(hax,hy,'\u2551');
-        put(hax-1,hy+1,'['); put(hax,hy+1,'\u2588'); put(hax+1,hy+1,']');
-        put(hax-1,10,'/'); put(hax,10,'\u2588'); put(hax+1,10,'\u2588'); put(hax+2,10,'\\');
-        put(hax,9, strike?'\u2593':'\u2588');
-        if(strike){ put(hax-2,8,'\u2736'); put(hax+2,8,'\u2737'); }
-
-        // ---- CRANK on the wheel -> BELLOWS (set apart, clearly accordion) ----
+        // ---- CRANK on the wheel -> BELLOWS (simple triangular bellows) ----
         const crankR=R-1;
         const pinx=Math.round(wcx+Math.cos(ang)*crankR*2), piny=Math.round(wcy+Math.sin(ang)*crankR);
         const blowing=(Math.sin(ang)>0);
-        const backX=20, nozX=30, cy=7;
-        const topY=blowing?6:4, botY=blowing?8:10, leverY=topY-2;
-        // connecting rod from the wheel crank down to the bellows lever
-        put(backX,leverY,'\u25e2');
+        const backX=21, nozX=30, cy=7;
+        const open=blowing?1:3, topY=cy-open, botY=cy+open, leverY=topY-2;
+        // connecting rod from the wheel crank to the bellows lever
         ln(pinx,piny,backX,leverY,'\u00b7');
-        // rounded back cap
+        put(backX,leverY,'\u25cb');
+        // straight back plate
         for(let y=topY;y<=botY;y++) put(backX,y,'\u2502');
-        put(backX,topY,'\u256d'); put(backX,botY,'\u2570');
-        // top + bottom boards converging to the nozzle
-        ln(backX+1,topY,nozX-1,cy,'_');
-        ln(backX+1,botY,nozX-1,cy,'\u203e');
-        // accordion pleats inside the chamber
-        for(let px=backX+2; px<nozX-1; px+=2){ const tt=Math.round(topY+(px-backX)/(nozX-backX)*(cy-topY)); const bb=Math.round(botY+(px-backX)/(nozX-backX)*(cy-botY)); for(let y=tt+1;y<bb;y++) put(px,y, (y%2)?'\u2039':'\u203a'); }
+        // top + bottom boards converging cleanly to the nozzle
+        ln(backX+1,topY,nozX-1,cy,'\\');
+        ln(backX+1,botY,nozX-1,cy,'/');
         put(nozX,cy,'\u25b8');                                 // nozzle into the fire
-        if(blowing){ const px=nozX+1+(f%3); put(px,cy,'\u00bb'); put(px+1,cy,'\u00b7'); }
+        if(blowing){ put(nozX+1,cy,'\u00bb'); put(nozX+2,cy,'\u00b7'); }
 
         // ---- FORGE HEARTH to the right of the bellows, reacting to airflow ----
         const hx=34, fireH=blowing?4:2, flame=['\u2593','\u2592','\u2591'];
@@ -423,37 +411,39 @@ window.VIZ = (function () {
         L.push(' Indian \u00b7 Asian \u00b7 Greek \u00b7 Mexican \u00b7 fusion');
         return L.join('\n');
       },
-      // INTERNSHIP - a personnel dossier redacting itself field by field
+      // INTERNSHIP - a case file getting stamped CLASSIFIED
       classified:(f)=>{
-        const IW=38;
-        const fields=[
-          { l:'NAME',     n:18, keep:'' },
-          { l:'EMPLOYER', n:20, keep:'' },
-          { l:'ROLE',     n:9,  keep:' INTERN' },
-          { l:'LOCATION', n:12, keep:'' },
-          { l:'TASKING',  n:22, keep:'' },
-        ];
-        const step=Math.floor(f/4);
-        const cur=step%(fields.length+4);          // sweep index, with a pause at the end
-        const done=Math.min(cur,fields.length);
-        const pct=Math.round(done/fields.length*100);
-        const blink=(Math.floor(f/5)%2)===0;
-        const bar=(r,i)=>{
-          if(i<cur) return '\u2588'.repeat(r.n);                                    // redacted
-          if(i===cur){ const p=1+(f%r.n); return '\u2593'.repeat(Math.min(p,r.n))+'\u2591'.repeat(Math.max(0,r.n-p)); }
-          return '\u2591'.repeat(r.n);                                              // pending
-        };
+        const IW=36;
         const line=(s)=>' \u2502 '+s.padEnd(IW).slice(0,IW)+' \u2502';
-        const stamp='[ '+(blink?'RESTRICTED':'\u00b7'.repeat(10))+' ]';
-        const hdr='PERSONNEL FILE';
-        const L=[' \u256d'+'\u2500'.repeat(IW+2)+'\u256e'];
-        L.push(line(hdr+' '.repeat(Math.max(1,IW-hdr.length-stamp.length))+stamp));
-        L.push(line('\u2500'.repeat(IW)));
-        fields.forEach((r,i)=>{ L.push(line(r.l.padEnd(9)+': '+bar(r,i)+r.keep)); });
-        L.push(line('STATUS'.padEnd(9)+': ACTIVE '+(blink?'\u25cf':'\u25cb')+'  2026 - PRESENT'));
-        L.push(' \u2570'+'\u2500'.repeat(IW+2)+'\u256f');
-        const fill=Math.round(pct/100*18);
-        L.push('   REDACTING ['+'\u2588'.repeat(fill)+'\u2591'.repeat(18-fill)+'] '+String(pct).padStart(3)+'%');
+        const cyc=44, k=f%cyc;
+        const stamped=(k>=7);
+        const slam=(k>=7 && k<11);                     // impact frames
+        const blink=(Math.floor(f/4)%2)===0;
+        // faint redacted dossier behind the stamp
+        const rows=[
+          'CASE  \u2592\u2592-\u2592\u2592\u2592\u2592          DATE \u2592\u2592/\u2592\u2592/26',
+          '\u2500'.repeat(IW),
+          'SUBJECT   \u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592',
+          '\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592  \u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592',
+          '\u2592\u2592\u2592\u2592\u2592\u2592  \u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592',
+        ];
+        const L=[' \u250c'+'\u2500'.repeat(IW+2)+'\u2510'];
+        rows.forEach(r=>L.push(line(r)));
+        const word='C L A S S I F I E D';
+        const bw=word.length+6, pad=Math.max(0,Math.floor((IW-bw)/2)), sp=' '.repeat(pad);
+        if(!stamped){
+          L.push(line(''));
+          L.push(line(sp+(k<4?'':'\u25bc   incoming   \u25bc')));
+          L.push(line(''));
+        } else {
+          const b=slam?'\u2588':'\u2593';                        // brighter on the slam
+          L.push(line(sp+b.repeat(bw)));
+          L.push(line(sp+b+'  '+word+'  '+b));
+          L.push(line(sp+b.repeat(bw)));
+        }
+        L.push(' \u2514'+'\u2500'.repeat(IW+2)+'\u2518');
+        if(slam) L.push('      \u2736     [ TOP SECRET ]     \u2737');
+        else L.push('   '+(blink?'\u25cf':'\u25cb')+' ACCESS: AUTHORIZED PERSONNEL ONLY');
         return L.join('\n');
       },
       // RANDOMIZED TIERED CHESTS - hunger-games arena chests rolling their loot tier

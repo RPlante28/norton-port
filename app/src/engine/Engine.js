@@ -136,10 +136,10 @@ export default class Engine {
   resetCfg(){ this.cfg = this._cfgDefaults(); this._saveCfg(); this.forceUpdate(); }
   // ----- CLI helpers: command-history recall + tab completion -----
   _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','pwd','history','clear','6502','viz','mail','resume','go','cli','gui','config','about','help','whoami','date','ver']; }
+  // only complete against what's in the CURRENT directory (what's actually available)
   _completionNames(){
     const set=new Set();
     (this.items()||[]).forEach(it=>{ if(it.name && it.kind!=='updir') set.add(it.name.replace(/\s+/g,'')); });
-    this.flatten(this.root).forEach(n=>{ if(n.name) set.add(n.name.replace(/\s+/g,'')); });
     return Array.from(set);
   }
   _commonPrefix(arr){ if(!arr.length) return ''; let p=arr[0]; for(const s of arr){ let i=0; while(i<p.length && i<s.length && p[i].toLowerCase()===s[i].toLowerCase()) i++; p=p.slice(0,i); if(!p) break; } return p; }
@@ -715,11 +715,14 @@ export default class Engine {
     if(cmd==='home' || cmd==='cls' || cmd==='cd\\' || (cmd==='cd' && (arg==='\\'||arg==='/'))){ this.goRoot(); this.say(''); return; }
     if(cmd==='cd'){
       if(arg==='..'){ if(this.state.stack.length>1){ this._upDir(); this.say(''); } else this.say('already at C:\\ROHAN'); return; }
-      if(this.openDirByName(arg)){ this.say(''); return; }
-      // maybe a dir in current listing
-      const sel=this.selectInCurrent(arg);
-      if(sel && sel.kind==='dir'){ this.say(''); return; }
-      this.say('directory not found: '+arg); return;
+      if(arg===''||arg==='.'){ this.say(''); return; }
+      // only descend into a subdirectory of the CURRENT folder (no teleporting
+      // to nested dirs elsewhere in the tree)
+      const norm=s=>s.replace(/\s+/g,'').toUpperCase();
+      const kids=(this.cur().children||[]).filter(c=>c.kind==='dir');
+      const target=kids.find(c=>norm(c.name)===norm(arg)) || kids.find(c=>norm(c.name).startsWith(norm(arg)));
+      if(target){ this.setState(s=>({ stack:s.stack.concat([target]), sel:(target.children&&target.children.length)?1:0, activeMenu:null, cmdMsg:'', editing:null })); return; }
+      this.say('directory not found here: '+arg); return;
     }
     if(cmd==='open' || cmd==='view' || cmd==='type' || cmd==='read'){
       // a glob ( open * , open *.txt ) reads everything in the current folder
