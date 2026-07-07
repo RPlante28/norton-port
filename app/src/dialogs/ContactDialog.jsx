@@ -37,7 +37,7 @@ export default function ContactDialog({ v }) {
                 <div className="flex items-baseline gap-2 mb-1.5">
                   <span className="text-[12px] text-dos-blue font-bold">Sending…</span>
                   <span className="flex-1"></span>
-                  <span className="text-[11px] text-[#555]">please wait — no need to click again</span>
+                  <span className="text-[11px] text-[#555]">please wait, no need to click again</span>
                 </div>
                 <div className="nc-progress">
                   <i />

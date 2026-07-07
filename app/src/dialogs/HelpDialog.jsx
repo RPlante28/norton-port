@@ -30,7 +30,8 @@ export default function HelpDialog({ v }) {
         <div className="text-[#06457a] font-bold mb-[5px]">Useful commands (type below or in CLI)</div>
         <div className="font-mono text-[12px] text-[#222] leading-[1.7]">
           help · tree · ls · cd &lt;dir&gt; · cat &lt;file&gt; (try cat *.txt )<br />
-          open &lt;name&gt; · mail · 6502 · go github · clear
+          open &lt;name&gt; · edit &lt;file&gt; · find &lt;t&gt; · 6502 · viz · mail · go github<br />
+          In CLI: ↑/↓ recall history · Tab completes commands &amp; files
         </div>
       </div>
       <div className="flex justify-center pb-3.5">

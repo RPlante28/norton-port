@@ -3,6 +3,28 @@
 // action buttons, and the RAVEN-V / trail photo sets.
 const photoFilter = { filter: 'brightness(1.05) contrast(1.04)' };
 
+// Render [[n]] / [[word]] markup as a solid black redaction bar (n chars wide,
+// or the placeholder's length). Used by the redacted "Internship" entry so the
+// source never carries anything sensitive, only a bar length.
+function redact(str) {
+  const s = String(str == null ? '' : str);
+  if (s.indexOf('[[') < 0) return s;
+  return s.split(/(\[\[[^\]]*\]\])/g).map((p, i) => {
+    const m = p.match(/^\[\[([^\]]*)\]\]$/);
+    if (!m) return p;
+    const n = /^\d+$/.test(m[1]) ? parseInt(m[1], 10) : m[1].length;
+    return (
+      <span
+        key={i}
+        title="redacted"
+        style={{ background: '#000', color: '#000', borderRadius: '1px', padding: '0 1px' }}
+      >
+        {'█'.repeat(Math.max(2, n))}
+      </span>
+    );
+  });
+}
+
 export default function DocView({ v }) {
   const d = v.d;
   return (
@@ -48,19 +70,19 @@ export default function DocView({ v }) {
           {d.title}
         </a>
       </div>
-      <div className="text-[12px] text-yellow mt-[3px] mb-2 tracking-[0.04em]">{d.meta}</div>
-      {d.hasSub && <div className="italic text-muted text-[13.5px] mb-3">{d.sub}</div>}
+      <div className="text-[12px] text-yellow mt-[3px] mb-2 tracking-[0.04em]">{redact(d.meta)}</div>
+      {d.hasSub && <div className="italic text-muted text-[13.5px] mb-3">{redact(d.sub)}</div>}
       {d.bullets.map((b, i) => (
         <div key={i} className="text-[13.5px] leading-[1.5] mb-1.5 pl-4 [text-indent:-16px]">
           <span className="text-cyan">› </span>
-          {b}
+          {redact(b)}
         </div>
       ))}
       {d.hasTags && (
         <div className="flex flex-wrap gap-1.5 mt-3">
           {d.tags.map((t, i) => (
             <span key={i} className="nc-tag">
-              {t}
+              {redact(t)}
             </span>
           ))}
         </div>

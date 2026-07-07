@@ -1,5 +1,5 @@
 // =====================================================================
-//  Engine.js — the ROHAN-DOS application logic.
+//  Engine.js - the ROHAN-DOS application logic.
 //
 //  Ported verbatim from the original single-file app's logic class. The only
 //  changes vs. the original are the store plumbing at the top (subscribe /
@@ -90,15 +90,16 @@ export default class Engine {
       ]},
       { id:'commands', label:'Commands', items:[
         { label:'cd <dir>     open a folder   ( cd .. up )', cmd:true },
-        { label:'ls / tree    list files', cmd:true },
-        { label:'open <file>  read a file     ( cat )', cmd:true },
-        { label:'edit <file>  vim editor      ( make new )', cmd:true },
+        { label:'ls / tree    list files      ( pwd )', cmd:true },
+        { label:'open <file>  read a file      ( cat )', cmd:true },
+        { label:'edit <file>  vim editor      ( make = new )', cmd:true },
         { label:'touch / mkdir / rm   manage MY-FILES', cmd:true },
+        { label:'find / grep / wc     search files', cmd:true },
         { label:'6502         launch the CPU VM', cmd:true },
-        { label:'go <github|linkedin|marist>', cmd:true },
-        { label:'mail         compose email', cmd:true },
+        { label:'viz          analytics dashboards', cmd:true },
+        { label:'mail · resume · go <github|linkedin>', cmd:true },
         { label:'cli / gui    toggle CLI mode  ( clear )', cmd:true },
-        { label:'help  config  about  +eggs', cmd:true },
+        { label:'help · config · about', cmd:true },
       ]},
       { id:'options', label:'Options', items:[
         { label:'Help & shortcuts\u2026   (F1)', act:()=>this.openHelp() },
@@ -132,6 +133,29 @@ export default class Engine {
   }
 
   toggleCfg(k){ this.cfg[k]=!this.cfg[k]; this._saveCfg(); this.forceUpdate(); }
+  resetCfg(){ this.cfg = this._cfgDefaults(); this._saveCfg(); this.forceUpdate(); }
+  // ----- CLI helpers: command-history recall + tab completion -----
+  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','pwd','history','clear','6502','viz','mail','resume','go','cli','gui','config','about','help','whoami','date','ver']; }
+  _completionNames(){
+    const set=new Set();
+    (this.items()||[]).forEach(it=>{ if(it.name && it.kind!=='updir') set.add(it.name.replace(/\s+/g,'')); });
+    this.flatten(this.root).forEach(n=>{ if(n.name) set.add(n.name.replace(/\s+/g,'')); });
+    return Array.from(set);
+  }
+  _commonPrefix(arr){ if(!arr.length) return ''; let p=arr[0]; for(const s of arr){ let i=0; while(i<p.length && i<s.length && p[i].toLowerCase()===s[i].toLowerCase()) i++; p=p.slice(0,i); if(!p) break; } return p; }
+  _cliComplete(el){
+    const val=el.value||''; const toks=val.split(' '); const last=toks[toks.length-1];
+    if(!last){ return; }
+    const pool = (toks.length<=1) ? this._commandNames() : this._completionNames();
+    const low=last.toLowerCase();
+    const matches=pool.filter(x=>x.toLowerCase().startsWith(low));
+    if(!matches.length) return;
+    let comp;
+    if(matches.length===1){ comp=matches[0]; }
+    else { comp=this._commonPrefix(matches); if(comp.length<=last.length){ this.print([this._promptStr()+'> '+val, matches.join('   ')]); comp=last; } }
+    toks[toks.length-1]=comp; el.value=toks.join(' ');
+    this._moveCursor(this._cliCurs, el);
+  }
   // ----- persisted configuration (all settings remembered across visits) -----
   _cfgDefaults(){ return { hidden:false, ins:true, autodir:true, automenu:false, mini:true, crt:false, crtIntensity:0.22, keysound:true, soundProfile:'thock', pitch:1.0, click:0.6, bootSound:true, clickProfile:'tick', mousePitch:1.0, mouseClick:0.6 }; }
   _loadCfg(){ const d=this._cfgDefaults(); try{ const r=localStorage.getItem('rohanCfg'); if(r){ const o=JSON.parse(r); if(o&&typeof o==='object') return Object.assign(d, o); } }catch(e){} return d; }
@@ -356,7 +380,9 @@ export default class Engine {
       if(o.title) lines.push(o.title); if(o.meta) lines.push(o.meta); if(o.sub) lines.push('', o.sub);
       (o.bullets||[]).forEach(b=>lines.push('  - '+b));
       if(o.link) lines.push('', o.link);
-      return { name:node.name, body:lines.join('\n')||'(read-only program file)', editable:false, ro:true };
+      // [[n]] redaction markup -> solid blocks, so `cat` matches the GUI's bars
+      const body=(lines.join('\n')||'(read-only program file)').replace(/\[\[([^\]]*)\]\]/g,(m,x)=>'█'.repeat(Math.max(2,/^\d+$/.test(x)?parseInt(x,10):x.length)));
+      return { name:node.name, body, editable:false, ro:true };
     }
     return { name:node.name, body:'', editable:false, ro:true };
   }
@@ -782,18 +808,18 @@ export default class Engine {
   }
   _helpLines(){ return [
     'COMMANDS',
-    '  cd <dir>     open a folder        cd ..   go up',
-    '  ls / dir / tree                   pwd',
-    '  open <file>  read a file          cat <file>',
-    '  edit <file>  vim editor           make <file>  new+edit',
-    '  touch <name> new empty file       mkdir <name> new folder',
-    '  rm <name>    delete (MY-FILES only)',
-    '  6502         launch the CPU VM',
-    '  games        snake · pacman · tictactoe · combinatris',
-    '  go <github|linkedin|marist>        resume   mail',
-    '  cli / gui    toggle CLI mode       clear',
-    '  config  about  help',
-    '  ...and a few hidden ones. (try  cowsay ,  fortune ,  sudo )',
+    '  cd <dir> / ..     open a folder / go up      ls · dir · tree',
+    '  open <file>       read a file   ( cat ,  also  cat *.txt )',
+    '  edit <file>       vim editor    ( make <name>  = new + edit )',
+    '  touch <name>      new file      mkdir <name>   new folder',
+    '  rm / rename / cp  manage your MY-FILES files',
+    '  find <t> · grep <t> · wc <file> · pwd · history · clear',
+    '  6502              launch the CPU VM   ( in CLI:  6502 help )',
+    '  viz               open the analytics dashboards',
+    '  mail · resume · go <github|linkedin|marist>',
+    '  cli / gui         toggle CLI mode      config · about · help',
+    '  keys:  ↑ / ↓  recall history      Tab  completes commands & files',
+    '  psst: there may be an easter egg or two hidden around, especially in here.',
   ]; }
   selectRootFile(prefix){
     const idx=(this.root.children||[]).findIndex(x=>x.name.toUpperCase().startsWith(prefix.toUpperCase()));
@@ -1010,8 +1036,8 @@ export default class Engine {
     const start=clock(); let last=null, lastF=-1;
     // Drive with requestAnimationFrame but hand the generators an INTEGER frame
     // (they're all written for integer steps) that only advances ~14x/sec. We
-    // recompute the art only when that frame number changes — not on every paint
-    // — so the main thread stays free and the block cursor / UI stay smooth.
+    // recompute the art only when that frame number changes, not on every paint,
+    // so the main thread stays free and the block cursor / UI stay smooth.
     const tick=()=>{
       if(this._dead || !this._vizEl || this._curViz!==type){ this._vizRaf=null; return; }
       const f=Math.floor((clock()-start)/70);
@@ -1168,7 +1194,7 @@ export default class Engine {
     document.documentElement.classList.add('nc-blockcur');
     // Coalesce mouse moves into one transform write per animation frame (mice
     // poll far faster than 60Hz, and the mix-blend cursor repaints on every
-    // write — one paint per event makes it visibly drag). translate3d keeps it
+    // write, one paint per event makes it visibly drag). translate3d keeps it
     // on its own layer.
     this._mouseXY = null;
     this._drawCursor = ()=>{ this._cursorRaf=0; const m=this._mouse, p=this._mouseXY; if(!m||!p) return; m.style.display='block'; m.style.transform='translate3d('+p.x+'px,'+(p.y-2)+'px,0)'; };
@@ -1315,6 +1341,7 @@ export default class Engine {
       gotoFile2:()=>{ const its=this.items(); const cur=its[this.state.sel]; const name=cur&&cur.doc&&cur.doc.goto2; if(!name) return; const key=String(name).replace(/\s+/g,'').toUpperCase(); const f=this.flatten(this.root).find(x=>x.kind==='file' && x.name.replace(/\s+/g,'').toUpperCase().indexOf(key)>=0); if(f) this.revealNode(f); },
       openCompSoc:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('COMPSOC')>=0); if(f) this.revealNode(f); },
       openDataAnl:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('DATA-ANL')>=0); if(f) this.revealNode(f); },
+      openNorton:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.replace(/\s+/g,'').indexOf('NORTON')>=0); if(f) this.revealNode(f); },
       isGame: view==='game',
       gameTitle: (view==='game' && sel && sel.doc) ? (sel.doc.title||sel.doc.game) : '',
       gameStatusInit: this._gameStatus||'',
@@ -1359,11 +1386,19 @@ export default class Engine {
       cliInputType: this.state.sudoFlow ? 'password' : 'text',
       focusCli:()=>{ if(this._cli) this._cli.focus(); },
       mailActive: !!this.state.mailFlow,
-      onCliKey:(e)=>{ if(e.key==='Enter'){ const v=e.target.value; e.target.value='';
+      onCliKey:(e)=>{ const el=e.target;
+        // history recall (↑/↓) and tab-completion, only outside sudo/mail prompts
+        if(!this.state.sudoFlow && !this.state.mailFlow){
+          const hist=this._cmdHistory||[];
+          if(e.key==='ArrowUp'){ e.preventDefault(); if(!hist.length) return; if(this._histIdx==null) this._histIdx=hist.length; this._histIdx=Math.max(0,this._histIdx-1); el.value=hist[this._histIdx]||''; this._moveCursor(this._cliCurs, el); return; }
+          if(e.key==='ArrowDown'){ e.preventDefault(); if(this._histIdx==null) return; this._histIdx=Math.min(hist.length,this._histIdx+1); el.value=(this._histIdx>=hist.length)?'':(hist[this._histIdx]||''); this._moveCursor(this._cliCurs, el); return; }
+          if(e.key==='Tab'){ e.preventDefault(); this._cliComplete(el); return; }
+        }
+        if(e.key==='Enter'){ const v=el.value; el.value=''; this._histIdx=null;
           if(this.state.sudoFlow){ this.sudoInput(v); }
           else if(this.state.mailFlow){ this.echo(this.mailPrompt(this.state.mailFlow.step)+' > '+v); this.mailInput(v); }
           else { this.runCommand(v); }
-        } else if(e.key==='Escape'){ if(this.state.sudoFlow){ e.target.value=''; this.setState({ sudoFlow:null }); this.print(['[sudo] password for guest: ','^C','']); } else if(this.state.mailFlow){ this.setState({ mailFlow:null }); this.print(['^C  mail aborted.']); } } },
+        } else if(e.key==='Escape'){ if(this.state.sudoFlow){ el.value=''; this.setState({ sudoFlow:null }); this.print(['[sudo] password for guest: ','^C','']); } else if(this.state.mailFlow){ this.setState({ mailFlow:null }); this.print(['^C  mail aborted.']); } } },
       // editor
       editing: this.state.editing, isEditing: !!this.state.editing,
       edInPanel: !!this.state.editing && !this.state.cliMode,
@@ -1469,10 +1504,11 @@ export default class Engine {
       bootLogo: this.art.boot,
       bootDone: this.state.bootText.length >= this.bootFull.length,
       skipBoot: ()=>this.finishBoot(),
-      fHelp: ()=>this.setState({ dialog:'about', activeMenu:null }),
+      fHelp: ()=>this.openHelp(),
       fMenu: ()=>this.openMenu('commands'),
       fConfig: ()=>this.setState({ dialog:'config', activeMenu:null }),
       closeDialog: ()=>this.closeDialog(),
+      resetCfg: ()=>this.resetCfg(),
       stop: (e)=>{ if(e&&e.stopPropagation) e.stopPropagation(); },
       cfgRows: [
         { k:'hidden',  label:'Show hidden files',      on:this.cfg.hidden },
@@ -1486,7 +1522,8 @@ export default class Engine {
       ].map(r=>({ label:r.label, box: r.on?'[x]':'[ ]', boxColor: r.on?'#0000a8':'#06457a', onClick:()=>this.toggleCfg(r.k) })),
       soundOpacity: this.cfg.keysound ? 1 : 0.4,
       soundProfiles: [
-        { id:'thock', name:'thock' }, { id:'soft', name:'soft' },
+        { id:'thock', name:'thock' }, { id:'clicky', name:'clicky' },
+        { id:'typewriter', name:'type' }, { id:'soft', name:'soft' },
       ].map(p=>{ const sel=(this.cfg.soundProfile||'thock')===p.id; return {
         name:p.name, mark: sel?'(o) ':'( ) ',
         color: sel?'#0000a8':'#06457a', weight: sel?'700':'400',

@@ -1,20 +1,20 @@
 // =====================================================================
-//  animations.js  —  ALL ASCII ANIMATIONS live here.
+//  animations.js  -  ALL ASCII ANIMATIONS live here.
 //
 //  Each animation is a function that takes a frame number `f` (it ticks up
-//  ~8x/second) and returns a string of text to draw. They are collected in
+//  ~14x/second) and returns a string of text to draw. They are collected in
 //  the object returned below and referenced from content.js by name, e.g.
 //  a project with  viz:'radar'  plays the `radar` animation.
 //
 //  THE ANIMATIONS (use these names as the `viz:` value in content.js):
 //    radar  pipe  pantry  route  boot  web  dash  sheets  forge
-//    court  mc    wave    hud    ascent ridge steam
+//    court  mc    wave    hud    ascent ridge steam  classified  loot
 //
 //  TO TWEAK ONE: find it by name below and edit its drawing code.
 //  TO ADD ONE:   add  myname:(f)=>{ ...return a string... },  then set
 //                viz:'myname' on a project in content.js.
 //
-//  Tip: `\u2588` is a full block, `\u2591` a light block — handy for bars.
+//  Tip: `\u2588` is a full block, `\u2591` a light block, handy for bars.
 // =====================================================================
 window.VIZ = (function () {
   let _songs;   // local cache for the music visualizer
@@ -396,26 +396,87 @@ window.VIZ = (function () {
         L.push(' R Monadnock \u2192 Washington \u2192 Katahdin \u2192 \u25b2 RAINIER');
         return L.join('\n');
       },
-      // COOKING - pot on a burner with rising steam + heat (heat/steam/organic)
+      // COOKING - a pot on a burner with curling steam rising off it
       steam:(f)=>{
         const W=30, H=8;
         const g=[]; for(let r=0;r<H;r++) g.push(new Array(W).fill(' '));
-        const cx=14;
-        // steam wisps rising and curling
-        for(let i=0;i<4;i++){ const phase=f*0.5+i*1.7; const y= (f+i*2)%5; const x=cx-3+i*2 + Math.round(Math.sin(phase)*1.5); if(y<4) g[y][x]= (y%2)?'\u0282':'\u0283'==='\u0283'?'~':'~'; }
-        for(let i=0;i<4;i++){ const x=cx-3+i*2 + Math.round(Math.sin(f*0.5+i*1.7)*1.5); const y=(f+i*2)%5; if(y>=0&&y<4&&x>=0&&x<W) g[y][x]='\u0303'==='\u0303'?'\u2248':'\u2248'; }
-        // pot
-        const potY=5;
-        g[potY][cx-4]='\u255a'; for(let x=cx-3;x<=cx+3;x++) g[potY][x]='\u2550'; g[potY][cx+4]='\u255d';
-        for(let x=cx-4;x<=cx+4;x++){ g[potY-1][x]= (x===cx-4||x===cx+4)?'\u2551':' '; }
-        g[potY-1][cx-5]='('; g[potY-1][cx+5]=')';
-        // burner flames reacting
-        const fl=['\u2229','\u028c','\u2227'][f%3];
-        for(let x=cx-3;x<=cx+3;x+=2) g[potY+1][x]= (f%2)? '\u028c':'\u2229';
-        for(let x=cx-4;x<=cx+4;x++) g[potY+2][x]='\u2550';
+        const put=(x,y,ch)=>{ if(y>=0&&y<H&&x>=0&&x<W) g[y][x]=ch; };
+        const cx=14, potY=5;
+        // three steam columns, each curling as it rises off the pot
+        for(let i=0;i<3;i++){
+          const colX=cx-3+i*3;
+          for(let t=0;t<4;t++){
+            const y=(potY-2)-t;                                   // rows just above the pot
+            const sway=Math.round(Math.sin(f*0.4+i*1.3+t*0.9)*1.3);
+            put(colX+sway, y, ((t+Math.floor(f/3))%2)?'\u2248':'~');
+          }
+        }
+        // pot: side walls + handles, then a rounded base
+        put(cx-5,potY-1,'('); put(cx+5,potY-1,')');
+        put(cx-4,potY-1,'\u2551'); put(cx+4,potY-1,'\u2551');
+        put(cx-4,potY,'\u255a'); for(let x=cx-3;x<=cx+3;x++) put(x,potY,'\u2550'); put(cx+4,potY,'\u255d');
+        // burner flames + element
+        for(let x=cx-3;x<=cx+3;x+=2) put(x,potY+1,(f%2)?'\u028c':'\u2229');
+        for(let x=cx-4;x<=cx+4;x++) put(x,potY+2,'\u2550');
         const L=[' KITCHEN \u00b7 experiment > recipe'];
         g.forEach(r=>L.push(' '+r.join('')));
         L.push(' Indian \u00b7 Asian \u00b7 Greek \u00b7 Mexican \u00b7 fusion');
+        return L.join('\n');
+      },
+      // INTERNSHIP - a personnel dossier redacting itself field by field
+      classified:(f)=>{
+        const IW=38;
+        const fields=[
+          { l:'NAME',     n:18, keep:'' },
+          { l:'EMPLOYER', n:20, keep:'' },
+          { l:'ROLE',     n:9,  keep:' INTERN' },
+          { l:'LOCATION', n:12, keep:'' },
+          { l:'TASKING',  n:22, keep:'' },
+        ];
+        const step=Math.floor(f/4);
+        const cur=step%(fields.length+4);          // sweep index, with a pause at the end
+        const done=Math.min(cur,fields.length);
+        const pct=Math.round(done/fields.length*100);
+        const blink=(Math.floor(f/5)%2)===0;
+        const bar=(r,i)=>{
+          if(i<cur) return '\u2588'.repeat(r.n);                                    // redacted
+          if(i===cur){ const p=1+(f%r.n); return '\u2593'.repeat(Math.min(p,r.n))+'\u2591'.repeat(Math.max(0,r.n-p)); }
+          return '\u2591'.repeat(r.n);                                              // pending
+        };
+        const line=(s)=>' \u2502 '+s.padEnd(IW).slice(0,IW)+' \u2502';
+        const stamp='[ '+(blink?'RESTRICTED':'\u00b7'.repeat(10))+' ]';
+        const hdr='PERSONNEL FILE';
+        const L=[' \u256d'+'\u2500'.repeat(IW+2)+'\u256e'];
+        L.push(line(hdr+' '.repeat(Math.max(1,IW-hdr.length-stamp.length))+stamp));
+        L.push(line('\u2500'.repeat(IW)));
+        fields.forEach((r,i)=>{ L.push(line(r.l.padEnd(9)+': '+bar(r,i)+r.keep)); });
+        L.push(line('STATUS'.padEnd(9)+': ACTIVE '+(blink?'\u25cf':'\u25cb')+'  2026 - PRESENT'));
+        L.push(' \u2570'+'\u2500'.repeat(IW+2)+'\u256f');
+        const fill=Math.round(pct/100*18);
+        L.push('   REDACTING ['+'\u2588'.repeat(fill)+'\u2591'.repeat(18-fill)+'] '+String(pct).padStart(3)+'%');
+        return L.join('\n');
+      },
+      // RANDOMIZED TIERED CHESTS - hunger-games arena chests rolling their loot tier
+      loot:(f)=>{
+        const N=6;
+        const step=Math.floor(f/6);
+        const done=step%(N+3);                     // chests rolled so far (+pause)
+        const cycle=Math.floor(step/(N+3));
+        const rnd=(n)=>{ const x=Math.sin((n+cycle*9.17)*12.9898)*43758.5453; return x-Math.floor(x); };
+        const tierOf=(i)=>{ const r=rnd(i*1.7+0.5); return r<0.55?1:(r<0.85?2:3); };
+        const dice=['|','/','-','\\'];
+        const pad5=(s)=>{ const l=Math.max(0,Math.round((5-s.length)/2)); return ' '.repeat(l)+s+' '.repeat(Math.max(0,5-s.length-l)); };
+        let cr=' ', tr=' ';
+        for(let i=0;i<N;i++){
+          const filled=i<done;
+          cr += pad5('['+(filled?'\u25a0':(i===done?'\u25a3':'\u25a1'))+']');
+          tr += pad5(filled? ('T'+tierOf(i)) : (i===done?'?':''));
+        }
+        const die=dice[f%4];
+        const L=[' HUNGER GAMES \u00b7 CHEST TIER ROLL', ' '+'\u2500'.repeat(30), cr, tr, ' '+'\u2500'.repeat(30)];
+        L.push(done>=N ? (' roll complete  '+die+'   arena armed \u2713')
+                       : (' rolling chest '+(done+1)+'/'+N+'  '+die+'   tier '+['','I','II','III'][tierOf(done)]));
+        L.push(' weights  T1 55%  \u00b7  T2 30%  \u00b7  T3 15%');
         return L.join('\n');
       },
     };
