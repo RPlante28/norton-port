@@ -48,7 +48,7 @@ export default function InfoCard({ v }) {
         I'm a Computer Science student at Marist University who likes building real, working systems, the kind with moving parts you can actually watch run. I've built a{' '}
         <a className="nc-link" href="https://github.com/RPlante28/MaristMaps" target="_blank" rel="noopener noreferrer">campus navigator</a> with a voice-enabled AI agent, rebuilt a{' '}
         <a className="nc-link" href="https://github.com/RPlante28/6502-emulator" target="_blank" rel="noopener noreferrer">6502 CPU</a> one pipeline stage at a time, and shipped full-stack apps, data pipelines, and interactive maps. This whole{' '}
-        <a className="nc-link" href="#">portfolio</a> is one of those projects, a DOS-era interface you're exploring right now. I'm looking for software and data internships where I can build things that matter.
+        <span className="nc-link cursor-pointer" onClick={v.openNorton}>portfolio</span> is one of those projects, a DOS-era interface you're exploring right now. I'm looking for software and data internships where I can build things that matter.
       </div>
 
       <div className="flex gap-2 flex-wrap mb-3.5">
@@ -71,14 +71,14 @@ export default function InfoCard({ v }) {
       <div className="border-t border-edge-dim mb-2.5"></div>
       <div className="flex gap-3.5 flex-wrap text-[11px] text-dim mb-2">
         <span>MEM 640K OK</span>
-        <span>9 DIRS · 6 PROJECTS</span>
+        <span>7 DIRS · 9 PROJECTS</span>
         <span>SYS 6502 @ 1.79MHz</span>
         <span>READY ▮</span>
       </div>
       <div className="text-[11.5px] text-dim leading-[1.55]">
         Press <span className="text-cyan">F1</span> for help, pick a folder on the left, or type{' '}
-        <span className="text-cyan">help</span> below.  This is INFO.TXT - return any time with{' '}
-        <span className="text-cyan">cat INFO.TXT</span>.
+        <span className="text-cyan">help</span> below.  This is WHOAMI.TXT - return any time with{' '}
+        <span className="text-cyan">cat WHOAMI.TXT</span>.
       </div>
     </div>
   );

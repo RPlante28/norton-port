@@ -125,7 +125,8 @@ snake:
           '=========================================\n\n'+
           'Welcome. You have booted into ROHAN-DOS: my portfolio,\n'+
           'built as a working homage to Norton Commander (1986).\n'+
-          'The whole thing is one self-contained file.\n\n'+
+          'Under the hood it is React, Vite, and Tailwind, compiled\n'+
+          'to a fully static site, no server required.\n\n'+
           'WHO\n'+
           '  Rohan Plante, Computer Science, Marist University.\n'+
           '  I build systems with moving parts you can see.\n\n'+
@@ -134,17 +135,17 @@ snake:
           '  \u2022 Arrows move \u00b7 Enter opens \u00b7 Backspace goes up a level.\n'+
           '  \u2022 Press  O  (or type  cli ) for a full-screen terminal.\n\n'+
           'WHAT TO EXPLORE\n'+
-          '  EDUCATION/    Marist, standing + coursework\n'+
-          '  EXPERIENCE/   roles, history, and what I did\n'+
-          '  PROJECTS/     six builds, each its own exhibit\n'+
+          '  EDUCATION/    Marist + Essex Tech, coursework\n'+
+          '  EXPERIENCE/   roles, projects, and clubs\n'+
           '  SKILLS/       languages, tools, technologies\n'+
           '  AWARDS/       Eagle Scout, CTF, STEM honors\n'+
-          '  PROGRAMS/     a real 6502 CPU emulator you can run\n\n'+
+          '  PROGRAMS/     a real 6502 CPU emulator you can run\n'+
+          '  HOBBIES/      music, climbing, hiking, cooking\n\n'+
           'KEYBOARD\n'+
           '  O   toggle CLI       Esc  close / back\n'+
-          '  Tab next item        F1   help menu\n\n'+
+          '  F1  help window      F6   contact\n\n'+
           'TRY TYPING\n'+
-          '  help \u00b7 tree \u00b7 cat INFO.TXT \u00b7 open raven \u00b7 mail\n\n'+
+          '  help \u00b7 tree \u00b7 cat WHOAMI.TXT \u00b7 open raven \u00b7 mail\n\n'+
           'This file is the permanent manual, come back any time\n'+
           'with  cat WHOAMI.TXT  or by opening  WHOAMI.TXT .\n\n'+
           '- Rohan'
@@ -159,6 +160,11 @@ snake:
       ]},
       { name:'EXPERIENCE', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'09.05.25', children:[
         { name:'EMPLOYMENT', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'09.05.25', children:[
+        { name:'CLASSIFY.LOG', kind:'file', size:'█ ███', date:'██.██.26', doc:D({ viz:'classified', vizLabel:'CONFIDENTIAL FILE · DETAILS REDACTED', title:'Internship', meta:'2026 – PRESENT · [[9]], [[2]]', sub:'A current internship on the infrastructure side; a few details are redacted until the term ends.', redacted:true, tags:['Internship','Infrastructure','[[8]]','[[6]]'], bullets:[
+          'Currently interning on an infrastructure team, working on deployment, automation, and reliability.',
+          'Hands-on with [[10]] and [[8]], plus the pipelines that move code and data between systems.',
+          'Learning how large systems get provisioned, monitored, and kept healthy under real load.',
+          'A full write-up is coming once the internship wraps up and I can share the details.' ] }) },
         { name:'DATA-ANL.LOG', kind:'file', size:'4 096', date:'09.05.25', doc:D({ viz:'dash', vizLabel:'CAMPUS ANALYTICS · LIVE', title:'Data Analyst Assistant', meta:'SEP 2025 \u2013 PRESENT', sub:'Office of Community & Belonging, Marist University · Poughkeepsie, NY', link:'https://www.marist.edu', linkLabel:'VISIT \u25b8', dataviz:true, bullets:[
           'Collect, organize, and analyze quantitative and qualitative campus data to surface trends and insights.',
           'Prepare reports and visualizations that help guide university leadership.',
@@ -203,21 +209,26 @@ snake:
             'Won Best Overall at Marist\u2019s Spring 2026 hackathon: a Google Maps-style navigator for indoor and outdoor routing.',
             'Designed an indoor routing algorithm that flattens multi-floor paths and stitches them through shared stairs and elevators.',
             'Built mobile GPS surveying and desktop editing tools to map entrances, stairs, elevators, rooms, and hallways across campus.' ] }) },
-          { name:'KITCHEN .SQL', kind:'file', size:'6 656', date:'12.10.25', doc:D({ viz:'pantry', vizLabel:'RECIPE RECOMMENDER · LIVE', title:'Kitchen Management Suite', meta:'SEP \u2013 DEC 2025', sub:'A full-stack pantry and recipe manager for households, built with a team.', link:'https://github.com/RPlante28/kitchen-suite', linkLabel:'OPEN REPO \u25b8', tags:['Flask','PostgreSQL','Custom JS'], bullets:[
+          { name:'KITCHEN .SQL', kind:'file', size:'6 656', date:'12.10.25', doc:D({ viz:'pantry', vizLabel:'RECIPE RECOMMENDER · LIVE', title:'Kitchen Management Suite', meta:'SEP \u2013 DEC 2025', sub:'A full-stack pantry and recipe manager for households, built with a team.', link:'https://github.com/Kitchen-Management-Suite/kitchen_management_suite', linkLabel:'OPEN REPO \u25b8', tags:['Flask','PostgreSQL','Custom JS'], bullets:[
             'Built a full-stack app with a relational database supporting multi-household recipe and pantry management.',
             'Implemented recipe creation and recommendation, role-based access control, and household membership.',
             'Wrote a seeding script that populates the database with realistic users, groups, items, and recipes.' ] }) },
         ]},
         { name:'SYSTEMS', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'06.26.26', children:[
-          { name:'CPU6502 .TS', kind:'file', size:'8 192', date:'05.02.26', doc:D({ viz:'pipe', vizLabel:'SCALAR PIPELINE · LIVE TRACE', title:'6502 Emulator', meta:'MAR \u2013 MAY 2026', sub:'A scalar-pipelined CPU, rebuilt one stage at a time.', link:'https://github.com/RPlante28/6502-emulator', linkLabel:'OPEN REPO \u25b8', demo:true, tags:['TypeScript','Node.js'], bullets:[
+          { name:'CPU6502 .TS', kind:'file', size:'8 192', date:'05.02.26', doc:D({ viz:'pipe', vizLabel:'SCALAR PIPELINE · LIVE TRACE', title:'6502 Emulator', meta:'MAR \u2013 MAY 2026', sub:'A scalar-pipelined CPU, rebuilt one stage at a time.', demo:true, tags:['TypeScript','Node.js'], bullets:[
             'Built a 6502 with fetch, decode, execute, writeback, and interrupt-check stages advancing one slot per clock cycle.',
             'Implemented hazard handling: fetch stalls on register dependencies, multi-cycle execute stalls, and pipeline flushes on branches.',
             'Measured performance with IPC, stall, and flush metrics, validated against hand-written machine code.',
             'A faithful port of this CPU runs live on this site, press RUN THE LIVE DEMO to open it in PROGRAMS.' ] }) },
-          { name:'RAVEN-V .ML', kind:'file', size:'9 216', date:'08.15.24', doc:D({ viz:'radar', vizLabel:'LiDAR SWEEP · OBJECT DETECTION', title:'RAVEN-V', meta:'2023 \u2013 2024', sub:'An autonomous self-driving car prototype.', link:'https://github.com/RPlante28/RAVEN-V', linkLabel:'OPEN REPO \u25b8', photoset:'raven', tags:['LiDAR','OpenCV','Machine Learning'], bullets:[
+          { name:'RAVEN-V .ML', kind:'file', size:'9 216', date:'08.15.24', doc:D({ viz:'radar', vizLabel:'LiDAR SWEEP · OBJECT DETECTION', title:'RAVEN-V', meta:'2023 \u2013 2024', sub:'An autonomous self-driving car prototype.', photoset:'raven', tags:['LiDAR','OpenCV','Machine Learning'], bullets:[
             'Designed and built a working prototype integrating LiDAR, computer vision, and ML for real-time navigation.',
             'Handled object detection and path-finding live from sensor data.' ] }) },
         ]},
+        { name:'HGCHESTS .JAR', kind:'file', size:'5 632', date:'09.10.25', doc:D({ viz:'loot', vizLabel:'HUNGER GAMES · CHEST TIER ROLL', title:'Randomized Tiered Chests', meta:'MARIST MINECRAFT SERVER · EVENT TOOLING', sub:'A Minecraft plugin that auto-tiers Hunger Games loot chests.', link:'https://github.com/RPlante28/Randomized_Tiered_Chests', linkLabel:'OPEN REPO ▸', tags:['Java','Spigot/Paper','Gradle','Minecraft','Plugin Dev'], goto:'MCSERVER', gotoLabel:'MARIST MC SERVER ▸', bullets:[
+          'Built a Spigot/Paper plugin in Java (Gradle, Kotlin DSL) to automate loot setup for the server’s Hunger Games events.',
+          'Scans every chest in an arena and rolls each one a randomized tier from a weighted probability table, so no two matches loot the same.',
+          'Companion to the HungerGames plugin: it reads that plugin’s arena file structure and writes the tier assignments back into it.',
+          'Turned a slow, manual, per-chest chore into a one-command roll, so event nights start faster.' ] }) },
       ]},
       { name:'EXTRACURRICULARS', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'09.10.25', children:[
         { name:'SCOUTING.LOG', kind:'file', size:'3 584', date:'12.03.23', doc:D({ title:'Scouting, Eagle Scout', meta:'SCOUTS BSA · TROOP 19, MIDDLETON, MA · 2016 – 2024', imgSrc:'uploads/eagle-citation.jpg', dither:true, tags:['Eagle Scout','Order of the Arrow','Leadership','Service'], goto:'EAGLE', gotoLabel:'EAGLE SCOUT PROJECT ▸', goto2:'ARROW', gotoLabel2:'ORDER OF THE ARROW ▸', bullets:[
@@ -228,7 +239,7 @@ snake:
           'Honored by the Massachusetts State Senate with an Official Citation for attaining Eagle Scout (December 2023).',
           'Scouting shaped how I lead, plan, and follow through, I carry its values into every project I do.' ] }) },
 
-        { name:'MCSERVER.LOG', kind:'file', size:'3 328', date:'09.10.25', doc:D({ viz:'mc', vizLabel:'MARIST MC SERVER \u00b7 EVENT NIGHT', title:'Event Coordinator, Marist Minecraft Server', meta:'MARIST UNIVERSITY \u00b7 2024 \u2013 PRESENT', tags:['Java','Spigot/Paper Plugins','Server Admin','Event Ops','Community'], bullets:[
+        { name:'MCSERVER.LOG', kind:'file', size:'3 328', date:'09.10.25', doc:D({ viz:'mc', vizLabel:'MARIST MC SERVER \u00b7 EVENT NIGHT', title:'Event Coordinator, Marist Minecraft Server', meta:'MARIST UNIVERSITY \u00b7 2024 \u2013 PRESENT', tags:['Java','Spigot/Paper Plugins','Server Admin','Event Ops','Community'], goto:'HGCHESTS', gotoLabel:'RANDOMIZED TIERED CHESTS \u25b8', bullets:[
           'Plan, set up, and run community events on the Marist Minecraft server, from concept through game-night execution.',
           'Manage server plugins, and built custom plugins to automate event flow and smooth out the rough edges.',
           'Handle backend server management: configuration, uptime, performance, and world/data upkeep.',

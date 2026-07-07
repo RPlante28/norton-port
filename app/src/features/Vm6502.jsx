@@ -131,11 +131,9 @@ export default function Vm6502({ v }) {
       </div>
       <div className="text-[#8fb0e8] text-[11px] mt-2 leading-[1.5]">{v.vm.loadMsg}</div>
       <div className="text-dim text-[11px] mt-1 leading-[1.5]">
-        Faithful port of my{' '}
-        <a className="nc-link" href="https://github.com/RPlante28/422-tsiraM/tree/scalar-pipeline" target="_blank" rel="noopener noreferrer">
-          tsiraM-6502
-        </a>{' '}
-        scalar pipeline (fetch→decode→execute→writeback→interrupt, with fetch / INC / branch hazard stalls). Pick a sample, Step through it, or write your own in hex or assembly with <b>+ New program</b>.
+        Faithful port of my <b className="text-[#8fb0e8] font-normal">tsiraM-6502</b> scalar pipeline
+        (fetch→decode→execute→writeback→interrupt, with fetch / INC / branch hazard stalls). Pick a
+        sample, Step through it, or write your own in hex or assembly with <b>+ New program</b>.
       </div>
     </div>
   );

@@ -169,6 +169,9 @@ export default function ConfigDialog({ v }) {
         <span onClick={v.closeDialog} className="nc-dlgbtn px-4 py-[3px]">
           Cancel
         </span>
+        <span onClick={v.resetCfg} className="nc-dlgbtn px-4 py-[3px]" title="restore all settings to defaults">
+          Defaults
+        </span>
       </div>
     </div>
   );
