@@ -1,0 +1,35 @@
+{
+  "name": "rohan-dos",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ROHAN-DOS portfolio — React + Vite + Tailwind rebuild",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "pack": "node scripts/pack.mjs",
+    "deploy": "vite build && node scripts/pack.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "adm-zip": "^0.5.18",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.26",
+    "globals": "^17.7.0",
+    "postcss": "^8.4.49",
+    "prettier": "^3.9.4",
+    "tailwindcss": "^3.4.17",
+    "vite": "^5.4.11"
+  }
+}
