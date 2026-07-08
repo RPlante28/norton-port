@@ -1,0 +1,7 @@
+# Rohan Plante — portfolio
+# Everything here is public; crawl away.
+User-agent: *
+Allow: /
+
+# A sitemap will be added once the production domain is set:
+# Sitemap: https://YOUR-DOMAIN/sitemap.xml

@@ -3,14 +3,46 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rohan Plante</title>
-  <meta name="description" content="Rohan Plante: software developer, Eagle Scout, systems thinker." />
+  <title>Rohan Plante — Computer Science @ Marist · Software &amp; Systems</title>
+  <meta name="description" content="Rohan Plante — Computer Science student at Marist University who builds real, working systems: a campus navigator with a voice-enabled AI agent, a pipelined 6502 CPU emulator, full-stack apps, and this Norton Commander–style DOS portfolio. Seeking software & data internships." />
+  <meta name="author" content="Rohan Plante" />
+  <meta name="keywords" content="Rohan Plante, software engineer, software developer, computer science, Marist University, 6502 emulator, full-stack developer, Flask, React, Python, TypeScript, machine learning, portfolio, Eagle Scout" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="theme-color" content="#0000a8" />
+  <meta name="color-scheme" content="dark" />
+
+  <!-- Open Graph / social share -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="ROHAN-DOS Portfolio" />
+  <meta property="og:title" content="Rohan Plante — Software &amp; Systems" />
+  <meta property="og:description" content="A Norton Commander–style DOS portfolio: a campus navigator with a voice-enabled AI agent, a pipelined 6502 CPU emulator, full-stack apps, and more." />
+  <meta property="og:image" content="/assets/dither-bw.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Rohan Plante — Software &amp; Systems" />
+  <meta name="twitter:description" content="A DOS-era portfolio: a campus navigator with a voice-enabled AI agent, a pipelined 6502 CPU emulator, full-stack apps, and more." />
+  <meta name="twitter:image" content="/assets/dither-bw.png" />
+
   <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="./favicon-32.png" sizes="32x32" type="image/png" />
   <link rel="apple-touch-icon" href="./favicon-180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+
+  <!-- Structured data: helps search engines understand who this is about -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Rohan Plante",
+    "jobTitle": "Computer Science Student",
+    "alumniOf": { "@type": "CollegeOrUniversity", "name": "Marist University" },
+    "email": "mailto:rohanplante@gmail.com",
+    "knowsAbout": ["Software Development", "Full-Stack Development", "Python", "TypeScript", "Flask", "React", "6502 assembly", "Machine Learning", "Geospatial routing"],
+    "sameAs": ["https://github.com/RPlante28", "https://linkedin.com/in/rohan-plante"]
+  }
+  </script>
+
   <!-- Portfolio CONTENT / ANIMATIONS / CPU engine: loaded as classic scripts so
        they define window.PORTFOLIO / window.VIZ / window.CPU6502 before the app
        mounts, and stay editable as plain files after `npm run build`. -->
@@ -20,6 +52,33 @@
 </head>
 <body>
   <div id="root"></div>
+
+  <!-- Crawlable fallback for search engines and no-JavaScript visitors. The app
+       itself is an interactive terminal-style SPA; this mirrors its content. -->
+  <noscript>
+    <div style="max-width:720px;margin:2rem auto;padding:1rem;font-family:system-ui,sans-serif;line-height:1.55;color:#111">
+      <h1>Rohan Plante</h1>
+      <p>Computer Science student at Marist University who builds real, working systems. Seeking software and data internships.</p>
+      <h2>Selected projects</h2>
+      <ul>
+        <li><strong>MaristMaps</strong> — a campus navigation platform with a voice-enabled AI agent; Best Overall at Marist's Spring 2026 hackathon. <a href="https://github.com/RPlante28/MaristMaps">Repository</a></li>
+        <li><strong>6502 CPU emulator</strong> — a scalar-pipelined 6502 rebuilt one stage at a time, with hazard handling and IPC metrics.</li>
+        <li><strong>Kitchen Management Suite</strong> — a full-stack pantry and recipe manager. <a href="https://github.com/Kitchen-Management-Suite/kitchen_management_suite">Repository</a></li>
+        <li><strong>This portfolio</strong> — a Norton Commander / DOS text-mode interface built with React, Vite, and Tailwind.</li>
+      </ul>
+      <h2>Skills</h2>
+      <p>Python, TypeScript, JavaScript, Java, C, SQL, PHP, HTML/CSS; Flask, React, Node.js, PostgreSQL and PostGIS, Linux, Tableau; machine learning, computer vision, and geospatial routing.</p>
+      <h2>Contact</h2>
+      <p>
+        <a href="mailto:rohanplante@gmail.com">rohanplante@gmail.com</a> ·
+        <a href="https://github.com/RPlante28">GitHub</a> ·
+        <a href="https://linkedin.com/in/rohan-plante">LinkedIn</a> ·
+        <a href="uploads/Rohan_Plante_resume.pdf">Résumé (PDF)</a>
+      </p>
+      <p>This site is an interactive terminal-style app — enable JavaScript for the full experience.</p>
+    </div>
+  </noscript>
+
   <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
