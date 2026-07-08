@@ -42,6 +42,21 @@ export default function ConfigDialog({ v }) {
             <span className={val}>{v.crtPct}</span>
           </div>
           <div className="border-t border-[#8a8a8a] mt-[9px] mb-[7px]"></div>
+          <div className="flex gap-x-[11px] gap-y-[7px] items-baseline flex-wrap">
+            <span className="whitespace-nowrap">Monitor:</span>
+            {v.themes.map((p, i) => (
+              <span
+                key={i}
+                onClick={p.onClick}
+                className="nc-cfg cursor-pointer whitespace-nowrap"
+                style={{ color: p.color, fontWeight: p.weight }}
+              >
+                {p.mark}
+                {p.name}
+              </span>
+            ))}
+          </div>
+          <div className="border-t border-[#8a8a8a] mt-[9px] mb-[7px]"></div>
           <div className="flex gap-x-[11px] gap-y-[7px] items-baseline flex-wrap" style={{ opacity: v.soundOpacity }}>
             <span className="whitespace-nowrap">Key sound profile:</span>
             {v.soundProfiles.map((p, i) => (

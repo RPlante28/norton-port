@@ -105,6 +105,13 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 /* ASCII animation heroes: use a complete monospace so box/block glyphs align */
 .nc-viz { font-family: var(--art); }
 
+/* Monitor phosphor themes: desaturate the whole UI to monochrome; the amber /
+   green tint is a body-level multiply overlay (added by the engine) on top.
+   'blue' is the untouched default; 'white' is monochrome with no tint. */
+:root[data-theme='amber'] #root,
+:root[data-theme='green'] #root,
+:root[data-theme='white'] #root { filter: grayscale(1) contrast(1.06) brightness(1.05); }
+
 /* ---- command line ------------------------------------------------- */
 .nc-cmd { background: transparent; border: none; outline: none; color: var(--yellow); font-family: var(--mono); font-size: 13.5px; caret-color: var(--yellow); flex: 1; padding: 0; }
 .nc-cmd-bc { caret-color: transparent; }

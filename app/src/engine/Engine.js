@@ -137,7 +137,7 @@ export default class Engine {
   toggleCfg(k){ this.cfg[k]=!this.cfg[k]; this._saveCfg(); this.forceUpdate(); }
   resetCfg(){ this.cfg = this._cfgDefaults(); this._saveCfg(); this.forceUpdate(); }
   // ----- CLI helpers: command-history recall + tab completion -----
-  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','cli','gui','config','about','help','whoami','date','ver']; }
+  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver']; }
   // only complete against what's in the CURRENT directory (what's actually available)
   _completionNames(){
     const set=new Set();
@@ -159,7 +159,16 @@ export default class Engine {
     this._moveCursor(this._cliCurs, el);
   }
   // ----- persisted configuration (all settings remembered across visits) -----
-  _cfgDefaults(){ return { hidden:false, ins:true, autodir:true, automenu:false, mini:true, crt:false, crtIntensity:0.22, keysound:true, soundProfile:'thock', pitch:1.0, click:0.6, bootSound:true, clickProfile:'tick', mousePitch:1.0, mouseClick:0.6 }; }
+  _cfgDefaults(){ return { hidden:false, ins:true, autodir:true, automenu:false, mini:true, crt:false, crtIntensity:0.22, keysound:true, soundProfile:'thock', pitch:1.0, click:0.6, bootSound:true, clickProfile:'tick', mousePitch:1.0, mouseClick:0.6, theme:'blue' }; }
+  // ----- monitor phosphor theme (blue default, or amber / green / white) -----
+  setTheme(name){ this.cfg.theme=name; this._saveCfg(); this._applyTheme(); this.forceUpdate(); }
+  _applyTheme(){
+    const t=this.cfg.theme||'blue';
+    try{
+      document.documentElement.setAttribute('data-theme', t);
+      if(this._tint){ const bg={ amber:'#ffb400', green:'#3bff70' }[t]||''; this._tint.style.background=bg; this._tint.style.display=bg?'block':'none'; }
+    }catch(e){}
+  }
   _loadCfg(){ const d=this._cfgDefaults(); try{ const r=localStorage.getItem('rohanCfg'); if(r){ const o=JSON.parse(r); if(o&&typeof o==='object') return Object.assign(d, o); } }catch(e){} return d; }
   _saveCfg(){ try{ localStorage.setItem('rohanCfg', JSON.stringify(this.cfg)); }catch(e){} }
   // The second arg `preview` plays the sample sound. It's true on a click or
@@ -595,6 +604,7 @@ export default class Engine {
     'go': { d:'open a link', s:'go <github|linkedin|marist>', l:['Opens an external link in a new tab.'] },
     'copy': { d:'copy to clipboard', s:'copy <email|github|linkedin|resume>', l:['Copies a contact detail to the clipboard.'] },
     'sysinfo|neofetch': { d:'system summary', s:'sysinfo', l:['Prints a neofetch-style summary of this machine.'] },
+    'theme|color|monitor': { d:'monitor phosphor colour', s:'theme <blue|amber|green|white>', l:['Switches the display between the blue default and amber / green / white','phosphor. Also in Configuration.'] },
     'cli|gui': { d:'toggle CLI mode', s:'cli | gui', l:['Switches between the full-screen terminal and the file browser.'] },
     'clear': { d:'clear the screen', s:'clear', l:['Clears the terminal scrollback.'] },
   }; }
@@ -608,24 +618,39 @@ export default class Engine {
   }
   // ----- deep links: shareable URLs like  /#maristmaps  open that file -----
   _slugOf(name){ return (name||'').replace(/\s+/g,'').replace(/\.[a-z0-9]+$/i,'').toLowerCase(); }
-  // reflect the currently highlighted file/folder into the URL hash (no history spam)
+  // reflect the folder you're in (plus the highlighted file) into the URL hash,
+  // e.g.  #experience/projects/systems/cpu6502  - no browser-history spam
   _syncHash(){
     if(this.state.booting || typeof location==='undefined') return;
+    const parts=this.state.stack.slice(1).map(n=>this._slugOf(n.name));   // folders you're inside
     const its=this.items(), sel=its[this.state.sel];
-    const slug=(sel && (sel.kind==='file'||sel.kind==='dir')) ? this._slugOf(sel.name) : '';
-    const want = slug ? '#'+slug : '';
+    if(sel && sel.kind==='file') parts.push(this._slugOf(sel.name));      // + the highlighted file
+    const want = parts.length ? '#'+parts.join('/') : '';
     if((location.hash||'')!==want){ try{ history.replaceState(null, '', location.pathname+location.search+want); }catch(e){} }
   }
-  // navigate to whatever the URL hash points at (on load, paste, back/forward)
+  // navigate to whatever the URL hash points at (on load, paste, back/forward).
+  // Walks a slug path; also accepts a single bare slug (legacy / shorthand links).
   _applyHash(){
     if(typeof location==='undefined') return;
-    const slug=decodeURIComponent((location.hash||'').replace(/^#/,'')).toLowerCase().trim();
-    if(!slug) return;
-    const all=this.flatten(this.root);
-    const file=all.find(n=>n.kind==='file' && this._slugOf(n.name)===slug);
-    if(file){ this.revealNode(file); return; }
-    const dir=all.find(n=>n.kind==='dir' && this._slugOf(n.name)===slug);
-    if(dir){ this.openDirByName(dir.name); }
+    const raw=decodeURIComponent((location.hash||'').replace(/^#/,'')).toLowerCase().trim();
+    if(!raw) return;
+    const segs=raw.split('/').filter(Boolean);
+    let node=this.root; const stack=[this.root];
+    for(let i=0;i<segs.length;i++){
+      const seg=segs[i], kids=node.children||[];
+      const dir=kids.find(c=>c.kind==='dir' && this._slugOf(c.name)===seg);
+      if(dir){ node=dir; stack.push(dir); continue; }
+      const file=kids.find(c=>c.kind==='file' && this._slugOf(c.name)===seg);
+      if(file){ this.revealNode(file); return; }
+      // segment not a child here: fall back to a global lookup (bare-slug links)
+      const anyFile=this.flatten(this.root).find(n=>n.kind==='file' && this._slugOf(n.name)===seg);
+      if(anyFile){ this.revealNode(anyFile); return; }
+      const anyDir=this.flatten(this.root).find(n=>n.kind==='dir' && this._slugOf(n.name)===seg);
+      if(anyDir){ const path=this._stackTo(anyDir); if(path){ this.setState({ stack:path.concat([anyDir]), sel:(anyDir.children&&anyDir.children.length)?1:0, activeMenu:null, editing:null, cmdMsg:'' }); } return; }
+      return;
+    }
+    // resolved to a folder path: enter it
+    this.setState({ stack, sel:(stack.length>1 && node.children && node.children.length)?1:0, activeMenu:null, editing:null, cmdMsg:'' });
   }
   // return the stack [root, ...dirs] ending at target's PARENT dir, or null
   _stackTo(target){
@@ -822,6 +847,7 @@ export default class Engine {
       const out=[]; for(let i=0;i<Math.max(logo.length,info.length);i++){ out.push((logo[i]||'         ')+'  '+(info[i]||'')); }
       this.out(out); return;
     }
+    if(cmd==='theme' || cmd==='color' || cmd==='monitor'){ const t=(arg||'').toLowerCase(); if(['blue','amber','green','white'].includes(t)){ this.setTheme(t); this.say('monitor: '+t+' phosphor'); } else { this.say('monitor themes:  blue · amber · green · white   (e.g.  theme amber )'); } return; }
     if(cmd==='man'){ if(!arg){ this.say('usage: man <command>   (e.g.  man grep )'); return; } this.out(this._manPage(arg)); return; }
     if(cmd==='copy'){
       const map={ email:'rohanplante@gmail.com', github:'https://github.com/RPlante28', linkedin:'https://linkedin.com/in/rohan-plante', resume:'uploads/Rohan_Plante_resume.pdf' };
@@ -938,7 +964,7 @@ export default class Engine {
     '  touch · mkdir · rm · rename · cp · echo <text> > file',
     '  6502              launch the CPU VM   ( in CLI:  6502 help )',
     '  viz · mail · resume · go <github|linkedin> · copy <email>',
-    '  sysinfo · man <cmd> · cli / gui · config · about',
+    '  sysinfo · theme <amber|green|white> · man <cmd> · cli / gui',
     '  keys:  ↑ / ↓  recall history      Tab  completes commands & files',
     '  psst: there may be an easter egg or two hidden around, especially in here.',
   ]; }
@@ -1313,6 +1339,11 @@ export default class Engine {
     this._onHash = ()=>this._applyHash();
     window.addEventListener('hashchange', this._onHash);
     this._applyHash();
+    // phosphor tint overlay (amber / green monitor modes), above everything
+    this._tint = document.createElement('div');
+    this._tint.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483000;mix-blend-mode:multiply;display:none';
+    document.body.appendChild(this._tint);
+    this._applyTheme();
     this._onPointer = (e)=>{ this._bootSound(); this.clickSound(); };
     window.addEventListener('pointerdown', this._onPointer);
     // DOS block mouse cursor: a character-cell block that inverts what's under it
@@ -1353,7 +1384,7 @@ export default class Engine {
     }
   }
   finishBoot(){ clearTimeout(this._bootT); if(this.state.booting) this.setState({ booting:false }); }
-  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); if(this._onHash) window.removeEventListener('hashchange', this._onHash); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._cursorRaf) cancelAnimationFrame(this._cursorRaf); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); if(this._game) this._game.stop(); }
+  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); if(this._onHash) window.removeEventListener('hashchange', this._onHash); if(this._tint&&this._tint.parentNode) this._tint.parentNode.removeChild(this._tint); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._cursorRaf) cancelAnimationFrame(this._cursorRaf); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); if(this._game) this._game.stop(); }
   componentDidUpdate(){ if(this.state.cliMode && this._termScroll){ this._termScroll.scrollTop = this._termScroll.scrollHeight; } this._syncHash(); }
   _twTick(){ /* tagline animation retired */ }
 
@@ -1646,6 +1677,12 @@ export default class Engine {
         { k:'crt',     label:'CRT scanlines',          on:this.cfg.crt },
       ].map(r=>({ label:r.label, box: r.on?'[x]':'[ ]', boxColor: r.on?'#0000a8':'#06457a', onClick:()=>this.toggleCfg(r.k) })),
       soundOpacity: this.cfg.keysound ? 1 : 0.4,
+      themes: [
+        { id:'blue', name:'blue' }, { id:'amber', name:'amber' }, { id:'green', name:'green' }, { id:'white', name:'white' },
+      ].map(p=>{ const sel=(this.cfg.theme||'blue')===p.id; return {
+        name:p.name, mark: sel?'(o) ':'( ) ',
+        color: sel?'#0000a8':'#06457a', weight: sel?'700':'400',
+        onClick:()=>this.setTheme(p.id) }; }),
       soundProfiles: [
         { id:'thock', name:'thock' }, { id:'clicky', name:'clicky' },
         { id:'typewriter', name:'type' }, { id:'soft', name:'soft' },
