@@ -379,6 +379,7 @@ export default class Engine {
       const o=node.doc; const lines=[];
       if(o.title) lines.push(o.title); if(o.meta) lines.push(o.meta); if(o.sub) lines.push('', o.sub);
       (o.bullets||[]).forEach(b=>lines.push('  - '+b));
+      if(o.tags&&o.tags.length) lines.push('', 'tags: '+o.tags.join(', '));
       if(o.link) lines.push('', o.link);
       // [[n]] redaction markup -> solid blocks, so `cat` matches the GUI's bars
       const body=(lines.join('\n')||'(read-only program file)').replace(/\[\[([^\]]*)\]\]/g,(m,x)=>'█'.repeat(Math.max(2,/^\d+$/.test(x)?parseInt(x,10):x.length)));
@@ -550,6 +551,25 @@ export default class Engine {
   }
 
   flatten(node, acc){ acc=acc||[]; (node.children||[]).forEach(c=>{ acc.push(c); if(c.children) this.flatten(c, acc); }); return acc; }
+  // ----- shared helpers for find / grep / wc (search the WHOLE tree) -----
+  // every file node anywhere (portfolio docs + your MY-FILES)
+  _allFiles(){ const out=[]; const walk=(d)=>{ (d.children||[]).forEach(c=>{ if(c.kind==='file') out.push(c); if(c.kind==='dir') walk(c); }); }; walk(this.root); return out; }
+  // the readable text of any node - exactly what `cat` shows (title/meta/bullets
+  // for portfolio docs, the body for your files) - so grep/wc see real content
+  _nodeText(node){ return (node && node.kind==='file') ? (this.bufferFor(node).body||'') : ''; }
+  // resolve a scope (space-separated names and/or *.glob) to file nodes; empty = all
+  _matchFiles(scope){
+    const norm=s=>s.replace(/\s+/g,'').toLowerCase();
+    const all=this._allFiles();
+    if(!scope) return all;
+    const picked=[];
+    scope.split(/\s+/).filter(Boolean).forEach(tok=>{
+      const p=norm(tok);
+      if(/[*?]/.test(p)){ const rx=new RegExp('^'+p.replace(/[.]/g,'\\.').replace(/\*/g,'.*').replace(/\?/g,'.')+'$'); all.forEach(n=>{ if(rx.test(norm(n.name))) picked.push(n); }); }
+      else { const hit=all.find(n=>norm(n.name)===p) || all.find(n=>norm(n.name).includes(p)); if(hit) picked.push(hit); }
+    });
+    return picked.filter((n,i)=>picked.indexOf(n)===i);
+  }
   // return the stack [root, ...dirs] ending at target's PARENT dir, or null
   _stackTo(target){
     let result=null;
@@ -690,25 +710,33 @@ export default class Engine {
       const f=this.makeFile(parts[1]); f.body=src.body||''; this._saveFS(); this.forceUpdate(); this.out(['copied '+src.name+' \u2192 '+f.name]); return;
     }
     if(cmd==='find'){
-      if(!arg){ this.say('usage: find <term>'); return; }
-      const results=[]; const n=arg.toLowerCase();
-      const walk=(d)=>{ (d.children||[]).forEach(c=>{ if(c.name.replace(/\s+/g,'').toLowerCase().includes(n)) results.push(c.name); if(c.kind==='dir') walk(c); }); };
-      walk(this.root); this.out(results.length?results:['(no results for '+arg+')']); return;
+      if(!arg){ this.say('usage: find <name>   (searches the whole tree, also  find *.txt )'); return; }
+      const norm=s=>s.replace(/\s+/g,'').toLowerCase();
+      const p=norm(arg), glob=/[*?]/.test(p);
+      const rx=glob?new RegExp('^'+p.replace(/[.]/g,'\\.').replace(/\*/g,'.*').replace(/\?/g,'.')+'$'):null;
+      const results=[];
+      const walk=(d,path)=>{ (d.children||[]).forEach(c=>{ const nm=norm(c.name), full=path+'\\'+c.name.replace(/\s+/g,'')+(c.kind==='dir'?'\\':''); if(rx?rx.test(nm):nm.includes(p)) results.push(full); if(c.kind==='dir') walk(c, path+'\\'+c.name.replace(/\s+/g,'')); }); };
+      walk(this.root, this.root.path);
+      this.out(results.length?results:['find: no match for '+arg]); return;
     }
     if(cmd==='grep'){
-      if(!arg){ this.say('usage: grep <term> [file]'); return; }
-      const parts=arg.split(/\s+/); const term=parts[0].toLowerCase();
-      const results=[]; const search=(node)=>{ const body=node.body||(node.doc&&node.doc.body)||''; body.split('\n').forEach((l,i)=>{ if(l.toLowerCase().includes(term)) results.push(node.name+':'+(i+1)+': '+l.trim()); }); };
-      if(parts[1]){ const f=this.findUserFile(parts[1])||this.findInDir(this.curUserDir(),parts[1]); if(f) search(f); }
-      else { const walk=(d)=>{ (d.children||[]).forEach(c=>{ if(c.kind==='file') search(c); if(c.kind==='dir') walk(c); }); }; walk(this.userRoot); }
-      this.out(results.length?results:['(no matches)']); return;
+      if(!arg){ this.say('usage: grep <term> [file|*.ext]   (whole tree if no file given)'); return; }
+      const parts=arg.split(/\s+/), term=parts[0], scope=parts.slice(1).join(' ');
+      const files=this._matchFiles(scope);
+      if(scope && !files.length){ this.say('grep: no such file: '+scope); return; }
+      const t=term.toLowerCase(), results=[], multi=files.length>1;
+      files.forEach(n=>{ this._nodeText(n).split('\n').forEach((l,i)=>{ if(l.toLowerCase().includes(t)){ results.push((multi?n.name.replace(/\s+/g,'')+':':'')+(i+1)+': '+l.trim().slice(0,90)); } }); });
+      if(results.length>150){ const more=results.length-150; results.length=150; results.push('… +'+more+' more matches (narrow with a file: grep '+term+' <file>)'); }
+      this.out(results.length?results:['grep: no matches for '+term]); return;
     }
     if(cmd==='wc'){
-      if(!arg){ this.say('usage: wc <file>'); return; }
-      const f=this.findUserFile(arg)||this.findInDir(this.curUserDir(),arg);
-      if(!f||f.kind!=='file'){ this.say('wc: not found: '+arg); return; }
-      const b=f.body||''; const lines=b.split('\n').length; const words=b.trim().split(/\s+/).filter(Boolean).length; const chars=b.length;
-      this.out([arg+':  '+lines+' lines  '+words+' words  '+chars+' chars']); return;
+      if(!arg){ this.say('usage: wc <file> [file2 …]   (also  wc *.txt )'); return; }
+      const files=this._matchFiles(arg);
+      if(!files.length){ this.say('wc: not found: '+arg); return; }
+      const rows=['lines  words   chars  name']; let TL=0,TW=0,TC=0;
+      files.forEach(n=>{ const b=this._nodeText(n); const L=b.split('\n').length, Wd=b.trim()?b.trim().split(/\s+/).length:0, C=b.length; TL+=L;TW+=Wd;TC+=C; rows.push(String(L).padStart(5)+' '+String(Wd).padStart(6)+' '+String(C).padStart(7)+'  '+n.name.replace(/\s+/g,'')); });
+      if(files.length>1) rows.push(String(TL).padStart(5)+' '+String(TW).padStart(6)+' '+String(TC).padStart(7)+'  total');
+      this.out(rows); return;
     }
     if(cmd==='history'){ const h=this._cmdHistory||[]; this.out(h.length?h.map((c,i)=>('  '+(i+1)+'  '+c)):['(no history)']); return; }
     if(cmd==='help' || cmd==='?'){ if(this.state.cliMode){ this.print(this._helpLines()); } else { this.openMenu('commands'); this.say('commands listed above \u2191'); } return; }
