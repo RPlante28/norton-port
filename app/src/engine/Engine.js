@@ -600,6 +600,7 @@ export default class Engine {
     } else { const at=Math.min(v.length, after?p+1:p); ta.value=v.slice(0,at)+text+v.slice(at); const c=at+text.length-1; ta.setSelectionRange(c,c); }
     this._dirtyVim(); this._syncEdCursor();
   }
+  _vimIndent(op,a,b){ const ta=this._ed, v=ta.value; const lines=v.split('\n'); if(a>b){ const t=a; a=b; b=t; } a=Math.max(0,a); b=Math.min(lines.length-1,b); this._pushUndo(); for(let i=a;i<=b;i++){ if(op==='>') lines[i]='  '+lines[i]; else lines[i]=lines[i].replace(/^( {1,2}|\t)/,''); } ta.value=lines.join('\n'); const pos=this._firstNonBlank(ta.value, this._lineStartOf(ta.value,a), this._lineStartOf(ta.value,a)+lines[a].length); ta.setSelectionRange(pos,pos); this._dirtyVim(); this._syncEdCursor(); }
   _vimShow(extra){ this.setState({ edPend:(this._vimCount||'')+(this._vimOp||'')+(extra||'') }); }
   vimKey(e){
     const mode=this.state.edModeV||'insert';
@@ -626,13 +627,14 @@ export default class Engine {
     // operator pending (d / c / y already pressed)
     if(this._vimOp){ e.preventDefault(); const op=this._vimOp;
       if(k==='g'){ this._vimG=true; this._vimShow('g'); return; }
+      if(op==='>'||op==='<'){ if(k===op){ this._vimIndent(op, li, li+N-1); } else { const r=this._vimMotionRange(v,p,k,count); if(r) this._vimIndent(op, r.linewise?r.a:li, r.linewise?r.b:li); } done(); return; }
       if((op==='d'&&k==='d')||(op==='c'&&k==='c')||(op==='y'&&k==='y')){ this._vimLinesOp(op, li, li+N-1); done(); return; }
       const range=this._vimMotionRange(v,p,k,count);
       if(range){ if(range.linewise) this._vimLinesOp(op, range.a, range.b); else this._vimOperate(op,range); }
       done(); return; }
     e.preventDefault();
     // operators wait for a motion
-    if(k==='d'||k==='y'||k==='c'){ if(k!=='y'&&ro){ done(); return; } this._vimOp=k; this._vimShow(); return; }
+    if(k==='d'||k==='y'||k==='c'||k==='>'||k==='<'){ if(k!=='y'&&ro){ done(); return; } this._vimOp=k; this._vimShow(); return; }
     if(k==='g'){ this._vimG=true; this._vimShow('g'); return; }
     // one-shot edits
     if(k==='D'){ if(!ro) this._vimOperate('d',{from:p,to:le,linewise:false}); done(); return; }
