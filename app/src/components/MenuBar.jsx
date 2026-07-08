@@ -1,3 +1,21 @@
+import { useState, useEffect } from 'react';
+
+// Live clock in the top-right, like Norton Commander. Self-contained so only it
+// re-renders each second, not the whole menu bar.
+function Clock() {
+  const [t, setT] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setT(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  let h = t.getHours();
+  const ap = h < 12 ? 'a' : 'p';
+  h = h % 12 || 12;
+  const mm = String(t.getMinutes()).padStart(2, '0');
+  const ss = String(t.getSeconds()).padStart(2, '0');
+  return <span className="px-2">{`${h}:${mm}:${ss}${ap}`}</span>;
+}
+
 // Top pull-down menu bar (Left / Files / Commands / Options / Right).
 // Tailwind for structure; dynamic tab/item colors stay inline since they're
 // computed per-state in the engine.
@@ -31,6 +49,7 @@ export default function MenuBar({ menus, anyMenuOpen, closeMenu }) {
           </div>
         ))}
         <span className="flex-1" />
+        <Clock />
         <span className="px-1.5">ROHAN-DOS</span>
       </div>
       {anyMenuOpen && <div onClick={closeMenu} className="fixed inset-0 z-[55]" />}
