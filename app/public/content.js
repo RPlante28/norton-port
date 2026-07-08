@@ -173,7 +173,7 @@ snake:
           'Built prototype pages integrating the Google Sheets API to create responsive curriculum maps.',
           'Automated Google Forms to Docs workflows, improving faculty efficiency.',
           'Presented prototypes to the school committee, administrators, and faculty.' ] }) },
-        { name:'HERITAGE.LOG', kind:'file', size:'5 120', date:'06.01.25', doc:D({ viz:'forge', vizLabel:'HISTORIC PRESERVATION · FORGE', title:'Future Leader to Supervisor', meta:'2020 \u2013 2025', sub:'Essex Heritage · Saugus & Salem, MA', link:'https://essexheritage.org', linkLabel:'VISIT \u25b8', bullets:[
+        { name:'HERITAGE.LOG', kind:'file', size:'5 120', date:'06.01.25', doc:D({ viz:'blast', vizLabel:'HISTORIC PRESERVATION · BLAST FURNACE', title:'Future Leader to Supervisor', meta:'2020 \u2013 2025', sub:'Essex Heritage · Saugus & Salem, MA', link:'https://essexheritage.org', linkLabel:'VISIT \u25b8', bullets:[
           'Promoted to Supervisor (2025); lead peer workers in historic preservation alongside Park Rangers.',
           'Assisted the museum curator with archival care and collections management.',
           'Worked on carpentry, blacksmithing, fence building, and landscaping projects.' ] }) },

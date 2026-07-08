@@ -7,7 +7,7 @@
 //  a project with  viz:'radar'  plays the `radar` animation.
 //
 //  THE ANIMATIONS (use these names as the `viz:` value in content.js):
-//    radar  pipe  pantry  route  boot  web  dash  sheets  forge
+//    radar  pipe  pantry  route  boot  web  dash  sheets  blast
 //    court  mc    wave    hud    ascent ridge steam  classified  loot
 //
 //  TO TWEAK ONE: find it by name below and edit its drawing code.
@@ -148,9 +148,9 @@ window.VIZ = (function () {
         L.push(' building map\u2026 '+Math.min(100,Math.round(k/(cols*rows)*100))+'%   Forms \u2192 Docs flow');
         return L.join('\n');
       },
-      // Essex Heritage - Saugus Iron Works: waterwheel cranks a clear bellows -> reactive fire
-      forge:(f)=>{
-        const W=48, H=13;
+      // Essex Heritage - Saugus Iron Works: a water-powered blast furnace
+      blast:(f)=>{
+        const W=48, H=14;
         const g=[]; for(let r=0;r<H;r++) g.push(new Array(W).fill(' '));
         const put=(x,y,ch)=>{ if(y>=0&&y<H&&x>=0&&x<W) g[y][x]=ch; };
         const ln=(x0,y0,x1,y1,ch)=>{ let dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,err=dx-dy,x=x0,y=y0; for(let i=0;i<60;i++){ put(x,y,ch); if(x===x1&&y===y1)break; const e2=2*err; if(e2>-dy){err-=dy;x+=sx;} if(e2<dx){err+=dx;y+=sy;} } };
@@ -174,8 +174,8 @@ window.VIZ = (function () {
         const crankR=R-1;
         const pinx=Math.round(wcx+Math.cos(ang)*crankR*2), piny=Math.round(wcy+Math.sin(ang)*crankR);
         const blowing=(Math.sin(ang)>0);
-        const backX=21, nozX=30, cy=7;
-        const open=blowing?1:3, topY=cy-open, botY=cy+open, leverY=topY-2;
+        const backX=20, nozX=30, cy=9;
+        const open=blowing?1:2, topY=cy-open, botY=cy+open, leverY=topY-2;
         // connecting rod from the wheel crank to the bellows lever
         ln(pinx,piny,backX,leverY,'\u00b7');
         put(backX,leverY,'\u25cb');
@@ -187,17 +187,30 @@ window.VIZ = (function () {
         put(nozX,cy,'\u25b8');                                 // nozzle into the fire
         if(blowing){ put(nozX+1,cy,'\u00bb'); put(nozX+2,cy,'\u00b7'); }
 
-        // ---- FORGE HEARTH to the right of the bellows, reacting to airflow ----
-        const hx=34, fireH=blowing?4:2, flame=['\u2593','\u2592','\u2591'];
-        for(let h=0;h<fireH;h++){ const y=cy+1-h, spread=Math.max(0,2-h); for(let x=hx-spread;x<=hx+spread;x++) put(x,y, flame[Math.min(2,h+((f+x)%2))]); }
-        put(hx,cy+1-fireH, blowing?'\u2737':'\u00b7');
-        for(let x=hx-3;x<=hx+3;x++){ put(x,cy+2,'\u2588'); put(x,cy+3,'\u2588'); }
+        // ---- BLAST FURNACE stack: charged at the top, blasted low, tapped at the base ----
+        const fx0=32, fx1=39, ftop=2, fbase=11;
+        // charge smoke / flame rising from the open charging mouth
+        for(let i=0;i<3;i++){ const sx=fx0+2+i*2+Math.round(Math.sin(f*0.4+i)); put(sx, ftop-1-((f+i)%2), blowing?'\u25b2':'\u2248'); }
+        // stone stack walls + charging lip
+        for(let y=ftop;y<=fbase;y++){ put(fx0,y,'\u2588'); put(fx1,y,'\u2588'); }
+        put(fx0,ftop,'\u259b'); put(fx1,ftop,'\u259c'); for(let x=fx0+1;x<fx1;x++) put(x,ftop,'\u2580');
+        // molten interior: white-hot toward the base, hotter under blast
+        for(let y=ftop+1;y<fbase;y++) for(let x=fx0+1;x<fx1;x++){
+          const hv=(y-ftop)/(fbase-ftop)+(blowing?0.25:0)+((f+x+y)%2)*0.08;
+          put(x,y, hv>0.78?'\u2588':hv>0.52?'\u2593':hv>0.28?'\u2592':'\u2591');
+        }
+        // tuyere: the blast entering the lower-left of the stack
+        put(fx0,cy, blowing?'\u25c4':'\u2588');
+        // hearth floor + molten iron tapping out to the runner
+        for(let x=fx0-1;x<=fx1+1;x++) put(x,fbase,'\u2580');
+        put(fx0,fbase+1,'\u2599'); put(fx1,fbase+1,'\u259f');
+        const mo=blowing?'\u2593':'\u2592'; for(let x=fx1;x<=fx1+3+(f%2);x++) put(x,fbase,mo); put(fx1+5,fbase,'\u25b8');
 
-        const heat = blowing ? '\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2591\u2591\u2591' : '\u2588\u2588\u2588\u2591\u2591\u2591\u2591\u2591\u2591\u2591';
-        const temp = 1300 + (blowing?260:120) + (Math.floor(f/2)%40);
-        const L=[' SAUGUS IRON WORKS \u00b7 WATER-POWERED FORGE'];
+        const heat = blowing ? '\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2592\u2592' : '\u2588\u2588\u2588\u2588\u2588\u2592\u2592\u2591\u2591\u2591';
+        const temp = 2400 + (blowing?300:120) + (Math.floor(f/2)%60);
+        const L=[' SAUGUS IRON WORKS \u00b7 WATER-POWERED BLAST FURNACE'];
         g.forEach(r=>L.push(' '+r.join('').replace(/\s+$/,'')));
-        L.push(' WHEEL \u27f3 cranks BELLOWS '+(blowing?'\u25bc blow':'\u25b2 draw')+'   FORGE ['+heat+'] '+temp+'\u00b0F');
+        L.push(' WHEEL \u27f3 drives BELLOWS '+(blowing?'\u25bc blast':'\u25b2 draw')+'   STACK ['+heat+'] '+temp+'\u00b0F');
         return L.join('\n');
       },
       // MCW Starz - a little basketball game: shots arc in, make or miss, running score per game
