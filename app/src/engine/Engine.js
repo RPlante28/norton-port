@@ -606,6 +606,27 @@ export default class Engine {
     const m=M[key];
     return ['NAME','  '+key.split('|')[0]+' - '+m.d, '', 'SYNOPSIS', '  '+m.s, '', 'DESCRIPTION'].concat(m.l.map(x=>'  '+x));
   }
+  // ----- deep links: shareable URLs like  /#maristmaps  open that file -----
+  _slugOf(name){ return (name||'').replace(/\s+/g,'').replace(/\.[a-z0-9]+$/i,'').toLowerCase(); }
+  // reflect the currently highlighted file/folder into the URL hash (no history spam)
+  _syncHash(){
+    if(this.state.booting || typeof location==='undefined') return;
+    const its=this.items(), sel=its[this.state.sel];
+    const slug=(sel && (sel.kind==='file'||sel.kind==='dir')) ? this._slugOf(sel.name) : '';
+    const want = slug ? '#'+slug : '';
+    if((location.hash||'')!==want){ try{ history.replaceState(null, '', location.pathname+location.search+want); }catch(e){} }
+  }
+  // navigate to whatever the URL hash points at (on load, paste, back/forward)
+  _applyHash(){
+    if(typeof location==='undefined') return;
+    const slug=decodeURIComponent((location.hash||'').replace(/^#/,'')).toLowerCase().trim();
+    if(!slug) return;
+    const all=this.flatten(this.root);
+    const file=all.find(n=>n.kind==='file' && this._slugOf(n.name)===slug);
+    if(file){ this.revealNode(file); return; }
+    const dir=all.find(n=>n.kind==='dir' && this._slugOf(n.name)===slug);
+    if(dir){ this.openDirByName(dir.name); }
+  }
   // return the stack [root, ...dirs] ending at target's PARENT dir, or null
   _stackTo(target){
     let result=null;
@@ -1288,6 +1309,10 @@ export default class Engine {
       else if(e.key==='Backspace'){ if(this.state.stack.length>1){ e.preventDefault(); this._upDir(); } }
     };
     window.addEventListener('keydown', this._onKey);
+    // deep links: apply the initial URL hash, and follow later hash changes
+    this._onHash = ()=>this._applyHash();
+    window.addEventListener('hashchange', this._onHash);
+    this._applyHash();
     this._onPointer = (e)=>{ this._bootSound(); this.clickSound(); };
     window.addEventListener('pointerdown', this._onPointer);
     // DOS block mouse cursor: a character-cell block that inverts what's under it
@@ -1328,8 +1353,8 @@ export default class Engine {
     }
   }
   finishBoot(){ clearTimeout(this._bootT); if(this.state.booting) this.setState({ booting:false }); }
-  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._cursorRaf) cancelAnimationFrame(this._cursorRaf); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); if(this._game) this._game.stop(); }
-  componentDidUpdate(){ if(this.state.cliMode && this._termScroll){ this._termScroll.scrollTop = this._termScroll.scrollHeight; } }
+  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); if(this._onHash) window.removeEventListener('hashchange', this._onHash); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._cursorRaf) cancelAnimationFrame(this._cursorRaf); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); if(this._game) this._game.stop(); }
+  componentDidUpdate(){ if(this.state.cliMode && this._termScroll){ this._termScroll.scrollTop = this._termScroll.scrollHeight; } this._syncHash(); }
   _twTick(){ /* tagline animation retired */ }
 
   renderVals(){
