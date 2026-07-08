@@ -122,7 +122,7 @@ window.VIZ = (function () {
           '\u2592\u2592\u2592\u2592\u2592    \u2592\u2592\u2592\u2592\u2592    \u2592\u2592\u2592\u2592\u2592',
           'essays    events    archive',
         ];
-        const L=[' .\u2500[ iswphil.org ]'+'\u2500'.repeat(IW-13)+'.'];
+        const L=[' .\u2500[ iswphil.org ]'+'\u2500'.repeat(IW-16)+'.'];
         for(let i=0;i<rows.length;i++){ const c=i<k?rows[i]:''; L.push(' \u2502'+c.padEnd(IW).slice(0,IW)+'\u2502'); }
         L.push(" '"+bar+"'");
         const mode=(Math.floor(f/16)%2)?'[ MOBILE ]':'[ DESKTOP ]';

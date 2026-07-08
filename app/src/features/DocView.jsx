@@ -42,7 +42,7 @@ export default function DocView({ v }) {
           </div>
           <pre
             ref={v.vizRef}
-            className="m-0 px-3 py-[11px] text-cyan text-[12.5px] leading-[1.14] whitespace-pre overflow-auto min-h-[172px]"
+            className="nc-viz m-0 px-3 py-[11px] text-cyan text-[12.5px] leading-[1.14] whitespace-pre overflow-auto min-h-[172px]"
           ></pre>
         </div>
       )}

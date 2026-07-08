@@ -23,6 +23,10 @@
   --border-dim:  #2746b8;
   --shadow:      #000050;
   --mono: 'Space Mono', monospace;
+  /* ASCII-art / animation font: Space Mono lacks box-drawing (─│┌┐) and block
+     (░▒▓█) glyphs, so they fall back to a font of a different width and the
+     boxes drift. This stack uses one complete monospace for the art instead. */
+  --art: 'DejaVu Sans Mono', 'Cascadia Mono', 'Consolas', 'Menlo', 'Liberation Mono', 'Courier New', monospace;
   --fs-row: 13px;
   --sp-1: 4px;  --sp-2: 8px;  --sp-3: 14px;
 }
@@ -97,6 +101,9 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 .nc-mtab:hover { background: var(--dos-blue) !important; color: var(--cyan) !important; }
 .nc-mitem:hover { background: var(--dos-blue); color: var(--cyan) !important; }
 .nc-cfg:hover { background: var(--dos-blue); color: var(--cyan); }
+
+/* ASCII animation heroes: use a complete monospace so box/block glyphs align */
+.nc-viz { font-family: var(--art); }
 
 /* ---- command line ------------------------------------------------- */
 .nc-cmd { background: transparent; border: none; outline: none; color: var(--yellow); font-family: var(--mono); font-size: 13.5px; caret-color: var(--yellow); flex: 1; padding: 0; }
