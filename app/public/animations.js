@@ -424,39 +424,35 @@ window.VIZ = (function () {
         L.push(' Indian \u00b7 Asian \u00b7 Greek \u00b7 Mexican \u00b7 fusion');
         return L.join('\n');
       },
-      // INTERNSHIP - a case file getting stamped CLASSIFIED
+      // INTERNSHIP - a calm declassification review: a scan line drifts down the
+      // dossier and quietly redacts each field as it passes over it
       classified:(f)=>{
         const IW=36;
         const line=(s)=>' \u2502 '+s.padEnd(IW).slice(0,IW)+' \u2502';
-        const cyc=44, k=f%cyc;
-        const stamped=(k>=7);
-        const slam=(k>=7 && k<11);                     // impact frames
-        const blink=(Math.floor(f/4)%2)===0;
-        // faint redacted dossier behind the stamp
-        const rows=[
-          'CASE  \u2592\u2592-\u2592\u2592\u2592\u2592          DATE \u2592\u2592/\u2592\u2592/26',
-          '\u2500'.repeat(IW),
-          'SUBJECT   \u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592',
-          '\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592  \u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592',
-          '\u2592\u2592\u2592\u2592\u2592\u2592  \u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592\u2592',
+        const fields=[
+          { l:'NAME',     n:16, keep:'' },
+          { l:'EMPLOYER', n:18, keep:'' },
+          { l:'ROLE',     n:8,  keep:' INTERN' },
+          { l:'LOCATION', n:14, keep:'' },
+          { l:'TASKING',  n:20, keep:'' },
         ];
+        const total=fields.length, cyc=total+4;
+        const step=Math.floor(f/10), s=step%cyc, done=Math.min(s,total);
+        const prog=f%10;                                    // 0..9 within the current line
+        const blink=(Math.floor(f/8)%2)===0;
+        const bar=(fld,i)=>{
+          if(i<s) return '\u2588'.repeat(fld.n);                                              // reviewed -> redacted
+          if(i===s){ const k=Math.round(prog/9*fld.n); return '\u2593'.repeat(k)+'\u2591'.repeat(Math.max(0,fld.n-k)); } // resolving under the scan line
+          return '\u2591'.repeat(fld.n);                                                      // not yet reviewed
+        };
+        const hdr='PERSONNEL FILE';
         const L=[' \u250c'+'\u2500'.repeat(IW+2)+'\u2510'];
-        rows.forEach(r=>L.push(line(r)));
-        const word='C L A S S I F I E D';
-        const bw=word.length+6, pad=Math.max(0,Math.floor((IW-bw)/2)), sp=' '.repeat(pad);
-        if(!stamped){
-          L.push(line(''));
-          L.push(line(sp+(k<4?'':'\u25bc   incoming   \u25bc')));
-          L.push(line(''));
-        } else {
-          const b=slam?'\u2588':'\u2593';                        // brighter on the slam
-          L.push(line(sp+b.repeat(bw)));
-          L.push(line(sp+b+'  '+word+'  '+b));
-          L.push(line(sp+b.repeat(bw)));
-        }
+        L.push(line(hdr+' '.repeat(Math.max(1,IW-hdr.length-12))+'CONFIDENTIAL'));
+        L.push(line('\u2500'.repeat(IW)));
+        fields.forEach((fld,i)=>{ const mark=(i===s)?'\u25b8':' '; L.push(line(mark+' '+fld.l.padEnd(9)+bar(fld,i)+fld.keep)); });
         L.push(' \u2514'+'\u2500'.repeat(IW+2)+'\u2518');
-        if(slam) L.push('      \u2736     [ TOP SECRET ]     \u2737');
-        else L.push('   '+(blink?'\u25cf':'\u25cb')+' ACCESS: AUTHORIZED PERSONNEL ONLY');
+        L.push(done>=total ? '   \u25cf REVIEW COMPLETE \u00b7 all fields redacted'
+                           : '   '+(blink?'\u25b8':' ')+' REVIEWING field '+Math.min(s+1,total)+' / '+total+'   scanning\u2026');
         return L.join('\n');
       },
       // RANDOMIZED TIERED CHESTS - hunger-games arena chests rolling their loot tier
