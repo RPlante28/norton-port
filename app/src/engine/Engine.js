@@ -1320,13 +1320,9 @@ export default class Engine {
     document.addEventListener('error', this._onImgErr, true);
     this._onKey = (e)=>{
       this._bootSound();
+      this._lastActivity=Date.now();
+      if(this.state.saver){ this.setState({ saver:false }); return; }   // any key wakes the screensaver
       this.keyClick(e);
-      // Konami code -> MINESWEEPER.EXE
-      { const KON=['arrowup','arrowup','arrowdown','arrowdown','arrowleft','arrowright','arrowleft','arrowright','b','a'];
-        if(!this._kon) this._kon=[];
-        this._kon.push((e.key||'').toLowerCase()); if(this._kon.length>KON.length) this._kon.shift();
-        if(this._kon.length===KON.length && KON.every((v,i)=>this._kon[i]===v)){ this._kon=[]; e.preventDefault(); this.setState({ showGame:true, dialog:null, activeMenu:null, bossMode:false }); return; } }
-      if(this.state.showGame){ if(e.key==='Escape'){ e.preventDefault(); this.setState({ showGame:false }); setTimeout(()=>{ const el=this.state.cliMode?this._cli:this._cmd; if(el) el.focus(); }, 20); } return; }
       if(this.state.booting){ this.finishBoot(); return; }
       if(this.state.bossMode){ if(e.key==='Escape'){ e.preventDefault(); this.setState({ bossMode:false }); setTimeout(()=>{ const el=this.state.cliMode?this._cli:this._cmd; if(el) el.focus(); }, 20); } return; }
       if(e.key==='F1'){ e.preventDefault(); if(this.state.dialog==='help') this.closeDialog(); else this.openHelp(); return; }
@@ -1364,7 +1360,7 @@ export default class Engine {
     this._tint.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483000;mix-blend-mode:multiply;display:none';
     document.body.appendChild(this._tint);
     this._applyTheme();
-    this._onPointer = (e)=>{ this._bootSound(); this.clickSound(); };
+    this._onPointer = (e)=>{ this._lastActivity=Date.now(); if(this.state.saver){ this.setState({ saver:false }); } this._bootSound(); this.clickSound(); };
     window.addEventListener('pointerdown', this._onPointer);
     // DOS block mouse cursor: a character-cell block that inverts what's under it
     document.documentElement.classList.add('nc-blockcur');
@@ -1374,7 +1370,7 @@ export default class Engine {
     // on its own layer.
     this._mouseXY = null;
     this._drawCursor = ()=>{ this._cursorRaf=0; const m=this._mouse, p=this._mouseXY; if(!m||!p) return; m.style.display='block'; m.style.transform='translate3d('+p.x+'px,'+(p.y-2)+'px,0)'; };
-    this._onMouseMove = (e)=>{ this._mouseXY={ x:e.clientX, y:e.clientY }; if(!this._cursorRaf) this._cursorRaf=requestAnimationFrame(this._drawCursor); };
+    this._onMouseMove = (e)=>{ this._lastActivity=Date.now(); if(this.state.saver){ this.setState({ saver:false }); } this._mouseXY={ x:e.clientX, y:e.clientY }; if(!this._cursorRaf) this._cursorRaf=requestAnimationFrame(this._drawCursor); };
     this._onMouseOut = (e)=>{ if(!e.relatedTarget && !e.toElement && this._mouse){ this._mouse.style.display='none'; } };
     this._onWinBlur = ()=>{ if(this._mouse) this._mouse.style.display='none'; };
     window.addEventListener('mousemove', this._onMouseMove);
@@ -1384,6 +1380,9 @@ export default class Engine {
     this._twTick();
     // Audio stays locked until the first real user gesture: the keydown/pointer
     // handlers call _bootSound() to resume it then. (Browser autoplay policy.)
+    // idle screensaver: after ~60s with no input, drift the logo DVD-style
+    this._lastActivity=Date.now();
+    this._idleTimer=setInterval(()=>{ if(!this.state.saver && !this.state.booting && !this._reduceMotion() && (Date.now()-this._lastActivity)>60000) this.setState({ saver:true }); }, 1000);
     this._bootStep();
   }
   _bootStep(){
@@ -1404,7 +1403,7 @@ export default class Engine {
     }
   }
   finishBoot(){ clearTimeout(this._bootT); if(this.state.booting) this.setState({ booting:false }); }
-  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); if(this._onHash) window.removeEventListener('hashchange', this._onHash); if(this._tint&&this._tint.parentNode) this._tint.parentNode.removeChild(this._tint); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._cursorRaf) cancelAnimationFrame(this._cursorRaf); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); if(this._game) this._game.stop(); }
+  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); if(this._onHash) window.removeEventListener('hashchange', this._onHash); if(this._tint&&this._tint.parentNode) this._tint.parentNode.removeChild(this._tint); if(this._idleTimer) clearInterval(this._idleTimer); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._cursorRaf) cancelAnimationFrame(this._cursorRaf); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); if(this._game) this._game.stop(); }
   componentDidUpdate(){ if(this.state.cliMode && this._termScroll){ this._termScroll.scrollTop = this._termScroll.scrollHeight; } this._syncHash(); }
   _twTick(){ /* tagline animation retired */ }
 
@@ -1685,8 +1684,7 @@ export default class Engine {
       fConfig: ()=>this.setState({ dialog:'config', activeMenu:null }),
       closeDialog: ()=>this.closeDialog(),
       resetCfg: ()=>this.resetCfg(),
-      showGame: !!this.state.showGame,
-      closeGame: ()=>this.setState({ showGame:false }),
+      saver: !!this.state.saver,
       stop: (e)=>{ if(e&&e.stopPropagation) e.stopPropagation(); },
       cfgRows: [
         { k:'hidden',  label:'Show hidden files',      on:this.cfg.hidden },
