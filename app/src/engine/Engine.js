@@ -425,6 +425,22 @@ export default class Engine {
   // line:col cursor readout for the vim status bar
   _edCaret(){ const ta=this._ed; if(!ta) return; const pos=ta.selectionStart||0; const before=ta.value.slice(0,pos); const line=before.split('\n').length; const col=pos-before.lastIndexOf('\n'); this.setState({ edCursor: line+':'+col }); this._moveEdCursor(); }
   _syncEdCursor(){ requestAnimationFrame(()=>this._moveEdCursor()); }
+  // exact monospace advance width for the editor font (measured + cached per font)
+  _measureCharW(cs){
+    const key=cs.fontSize+'|'+cs.fontFamily+'|'+cs.fontWeight+'|'+cs.letterSpacing;
+    if(this._cwCache && this._cwCache.key===key) return this._cwCache.w;
+    let w=(parseFloat(cs.fontSize)||13.5)*0.6;
+    try{
+      const s=document.createElement('span');
+      s.style.cssText='position:absolute;left:-9999px;top:-9999px;visibility:hidden;white-space:pre;font-family:'+cs.fontFamily+';font-size:'+cs.fontSize+';font-weight:'+cs.fontWeight+';letter-spacing:'+cs.letterSpacing;
+      s.textContent='0000000000000000000000000000';   // 28 chars
+      document.body.appendChild(s);
+      const m=s.getBoundingClientRect().width/28; if(m>0) w=m;
+      document.body.removeChild(s);
+    }catch(e){}
+    this._cwCache={ key, w };
+    return w;
+  }
   // draw the Norton/vim block cursor over the character at the caret (NORMAL & COMMAND modes only)
   _moveEdCursor(){
     const box=this._edcurs, ta=this._ed; if(!box||!ta) return;
@@ -438,7 +454,7 @@ export default class Engine {
     const fs=parseFloat(cs.fontSize)||13.5;
     const lh=parseFloat(cs.lineHeight)||(fs*1.5);
     const padL=parseFloat(cs.paddingLeft)||0, padT=parseFloat(cs.paddingTop)||0;
-    const chW=fs*0.6;                                  // Space Mono advance width
+    const chW=this._measureCharW(cs);                  // exact glyph advance for this font/size
     const op=ta.offsetParent; if(!op) return;
     const tr=ta.getBoundingClientRect(), pr=op.getBoundingClientRect();
     box.style.width=chW+'px'; box.style.height=lh+'px';
@@ -511,38 +527,138 @@ export default class Engine {
     const ta=this._ed; if(!ta) return;
     setTimeout(()=>{ ta.focus(); if(typeof after==='number'){ ta.setSelectionRange(after,after); } this._syncEdCursor(); }, 10);
   }
+  // ================= vim editor internals: motions, operators, counts =================
+  _pushUndo(){ const ta=this._ed; if(!ta) return; if(!this._vimUndo) this._vimUndo=[]; this._vimUndo.push({ v:ta.value, p:ta.selectionStart||0 }); if(this._vimUndo.length>200) this._vimUndo.shift(); }
+  _vimUndoPop(){ const ta=this._ed; if(!ta||!this._vimUndo||!this._vimUndo.length){ this.setState({ edStatus:'Already at oldest change' }); return; } const s=this._vimUndo.pop(); ta.value=s.v; const c=Math.min(s.p,s.v.length); ta.setSelectionRange(c,c); this._dirtyVim(); this._syncEdCursor(); }
+  _firstNonBlank(v,ls,le){ let i=ls; while(i<le && (v[i]===' '||v[i]==='\t')) i++; return i; }
+  _vcls(c){ return c===undefined?0:(/\s/.test(c)?0:(/\w/.test(c)?1:2)); }
+  _vimWordFwd(v,p){ const n=v.length; let i=p; const c0=this._vcls(v[i]); if(c0!==0){ while(i<n && this._vcls(v[i])===c0) i++; } while(i<n && /\s/.test(v[i])) i++; return Math.min(i,n); }
+  _vimWordEnd(v,p){ const n=v.length; let i=p+1; while(i<n && /\s/.test(v[i])) i++; if(i>=n) return Math.max(p,n-1); const c=this._vcls(v[i]); while(i+1<n && this._vcls(v[i+1])===c) i++; return i; }
+  _vimWordBack(v,p){ let i=p-1; while(i>0 && /\s/.test(v[i])) i--; if(i<=0) return 0; const c=this._vcls(v[i]); while(i>0 && this._vcls(v[i-1])===c) i--; return Math.max(0,i); }
+  _lineIndexAt(v,p){ return v.slice(0,p).split('\n').length-1; }
+  _lineStartOf(v,idx){ const lines=v.split('\n'); let s=0; for(let i=0;i<idx && i<lines.length;i++) s+=lines[i].length+1; return s; }
+  _vimGotoLine(v,ln){ const lines=v.split('\n'); const li=Math.max(0,Math.min(lines.length-1,ln-1)); const s=this._lineStartOf(v,li); return this._firstNonBlank(v,s,s+lines[li].length); }
+  _vimMotionPos(v,p,k,count){
+    const N=Math.max(1,count||1);
+    const ls=v.lastIndexOf('\n',p-1)+1, le=(v.indexOf('\n',p)===-1?v.length:v.indexOf('\n',p));
+    if(k==='h') return Math.max(ls,p-N);
+    if(k==='l'||k===' ') return Math.min(le,p+N);
+    if(k==='0') return ls;
+    if(k==='^') return this._firstNonBlank(v,ls,le);
+    if(k==='$'){ let cur=le; for(let i=1;i<N && cur<v.length;i++){ const ns=cur+1; cur=(v.indexOf('\n',ns)===-1?v.length:v.indexOf('\n',ns)); } return cur; }
+    if(k==='w'){ let q=p; for(let i=0;i<N;i++) q=this._vimWordFwd(v,q); return q; }
+    if(k==='e'){ let q=p; for(let i=0;i<N;i++) q=this._vimWordEnd(v,q); return q; }
+    if(k==='b'){ let q=p; for(let i=0;i<N;i++) q=this._vimWordBack(v,q); return q; }
+    if(k==='j'||k==='k'){ const col=p-ls; let q=p; for(let i=0;i<N;i++){ const qls=v.lastIndexOf('\n',q-1)+1, qle=(v.indexOf('\n',q)===-1?v.length:v.indexOf('\n',q)); if(k==='j'){ if(qle>=v.length) break; const ns=qle+1, ne=(v.indexOf('\n',ns)===-1?v.length:v.indexOf('\n',ns)); q=Math.min(ns+col,ne); } else { if(qls===0) break; const ps=v.lastIndexOf('\n',qls-2)+1; q=Math.min(ps+col,qls-1); } } return q; }
+    if(k==='G') return this._vimGotoLine(v, count? N : v.split('\n').length);
+    return null;
+  }
+  _vimMotionRange(v,p,k,count){
+    if(k==='j'||k==='k'||k==='G'){ const li=this._lineIndexAt(v,p), N=Math.max(1,count||1);
+      if(k==='j') return { linewise:true, a:li, b:li+N };
+      if(k==='k') return { linewise:true, a:li-N, b:li };
+      return { linewise:true, a:li, b: count?(N-1):v.split('\n').length-1 }; }
+    const inclusive=(k==='e'||k==='$');
+    let t=this._vimMotionPos(v,p,k,count); if(t==null) return null;
+    if(inclusive) t=Math.min(v.length,t+1);
+    return (t>=p)?{ from:p, to:t, linewise:false }:{ from:t, to:p, linewise:false };
+  }
+  _vimOperate(op,range){
+    const ta=this._ed, v=ta.value; if(!range) return;
+    let from=Math.max(0,range.from), to=Math.min(v.length,range.to);
+    if(to<=from){ if(op==='c'){ this.edToInsert(from); } return; }
+    this._vimReg={ text:v.slice(from,to), linewise:false };
+    if(op==='y'){ ta.setSelectionRange(from,from); this.setState({ edStatus:(to-from)+' chars yanked' }); this._syncEdCursor(); return; }
+    this._pushUndo();
+    ta.value=v.slice(0,from)+v.slice(to);
+    if(op==='c'){ this.edToInsert(from); }
+    else { const c=Math.min(from,ta.value.length); ta.setSelectionRange(c,c); this._dirtyVim(); this._syncEdCursor(); }
+  }
+  _vimLinesOp(op,a,b){
+    const ta=this._ed, v=ta.value; const lines=v.split('\n');
+    if(a>b){ const t=a; a=b; b=t; }
+    a=Math.max(0,a); b=Math.min(lines.length-1,b);
+    this._vimReg={ text:lines.slice(a,b+1).join('\n')+'\n', linewise:true };
+    if(op==='y'){ const s=this._lineStartOf(v,a); ta.setSelectionRange(s,s); this.setState({ edStatus:(b-a+1)+' line(s) yanked' }); this._syncEdCursor(); return; }
+    this._pushUndo();
+    const from=this._lineStartOf(v,a); const end=this._lineStartOf(v,b)+lines[b].length;
+    if(op==='c'){ ta.value=v.slice(0,from)+v.slice(end); this.edToInsert(from); return; }
+    let df=from, dt=end; if(dt<v.length) dt++; else if(df>0) df--;
+    const rest=v.slice(0,df)+v.slice(dt); ta.value=rest;
+    const np=Math.min(df,rest.length); const nls=rest.lastIndexOf('\n',np-1)+1, nle=(rest.indexOf('\n',np)===-1?rest.length:rest.indexOf('\n',np));
+    const c=this._firstNonBlank(rest,nls,nle); ta.setSelectionRange(c,c); this._dirtyVim(); this._syncEdCursor();
+  }
+  _vimReplace(pend,ch){ const ta=this._ed, v=ta.value; const p=pend.pos; let end=p; for(let i=0;i<pend.n && end<v.length && v[end]!=='\n'; i++) end++; if(end>p){ this._pushUndo(); ta.value=v.slice(0,p)+ch.repeat(end-p)+v.slice(end); const c=Math.max(p,end-1); ta.setSelectionRange(c,c); this._dirtyVim(); this._syncEdCursor(); } }
+  _vimPaste(after,N){
+    const ta=this._ed, v=ta.value, p=ta.selectionStart; const reg=this._vimReg; if(!reg||!reg.text) return;
+    this._pushUndo();
+    let text=reg.text; if(N>1) text=reg.text.repeat(N);
+    if(reg.linewise){
+      const le=(v.indexOf('\n',p)===-1?v.length:v.indexOf('\n',p)); const ls=v.lastIndexOf('\n',p-1)+1;
+      if(after){ if(le<v.length){ ta.value=v.slice(0,le+1)+text+v.slice(le+1); ta.setSelectionRange(le+1,le+1); } else { ta.value=v.slice(0,le)+'\n'+text.replace(/\n$/,'')+v.slice(le); ta.setSelectionRange(le+1,le+1); } }
+      else { ta.value=v.slice(0,ls)+text+v.slice(ls); ta.setSelectionRange(ls,ls); }
+    } else { const at=Math.min(v.length, after?p+1:p); ta.value=v.slice(0,at)+text+v.slice(at); const c=at+text.length-1; ta.setSelectionRange(c,c); }
+    this._dirtyVim(); this._syncEdCursor();
+  }
+  _vimShow(extra){ this.setState({ edPend:(this._vimCount||'')+(this._vimOp||'')+(extra||'') }); }
   vimKey(e){
     const mode=this.state.edModeV||'insert';
     const ta=this._ed; if(!ta) return;
-    if(mode==='insert'){
-      if(e.key==='Escape'){ e.preventDefault(); this.edToNormal(); }
-      return;
-    }
-    const v=ta.value; const p=ta.selectionStart;
-    const lineStart=v.lastIndexOf('\n',p-1)+1;
-    const lineEnd=(v.indexOf('\n',p)===-1?v.length:v.indexOf('\n',p));
+    if(mode==='insert'){ if(e.key==='Escape'){ e.preventDefault(); this.edToNormal(); } return; }
     const k=e.key;
-    const setSel=(n)=>{ const c=Math.max(0,Math.min(v.length,n)); ta.setSelectionRange(c,c); };
-    if(k===':'){ e.preventDefault(); this.edToCommand(); return; }
-    if(k==='i'){ e.preventDefault(); this.edToInsert(p); return; }
-    if(k==='a'){ e.preventDefault(); this.edToInsert(Math.min(p+1,lineEnd)); return; }
-    if(k==='A'){ e.preventDefault(); this.edToInsert(lineEnd); return; }
-    if(k==='I'){ e.preventDefault(); this.edToInsert(lineStart); return; }
-    if(k==='o'){ e.preventDefault(); if(this.state.editing.ro){ this.edToInsert(); return; } ta.value=v.slice(0,lineEnd)+'\n'+v.slice(lineEnd); this.edToInsert(lineEnd+1); return; }
-    if(k==='O'){ e.preventDefault(); if(this.state.editing.ro){ this.edToInsert(); return; } ta.value=v.slice(0,lineStart)+'\n'+v.slice(lineStart); this.edToInsert(lineStart); return; }
-    if(k==='h'){ e.preventDefault(); setSel(Math.max(lineStart,p-1)); return; }
-    if(k==='l'){ e.preventDefault(); setSel(Math.min(lineEnd,p+1)); return; }
-    if(k==='0'){ e.preventDefault(); setSel(lineStart); return; }
-    if(k==='$'){ e.preventDefault(); setSel(lineEnd); return; }
-    if(k==='j'||k==='k'){ e.preventDefault(); const col=p-lineStart;
-      if(k==='j'){ if(lineEnd<v.length){ const ns=lineEnd+1; const ne=(v.indexOf('\n',ns)===-1?v.length:v.indexOf('\n',ns)); setSel(Math.min(ns+col,ne)); } }
-      else { if(lineStart>0){ const ps=v.lastIndexOf('\n',lineStart-2)+1; setSel(Math.min(ps+col,lineStart-1)); } }
-      return; }
-    if(k==='x'){ e.preventDefault(); if(this.state.editing.ro) return; if(p<v.length && v[p]!=='\n'){ ta.value=v.slice(0,p)+v.slice(p+1); setSel(p); this._dirtyVim(); } return; }
-    if(k==='G'){ e.preventDefault(); setSel(v.length); return; }
-    if(k==='g'){ e.preventDefault(); if(this._gg){ setSel(0); this._gg=false; } else { this._gg=true; setTimeout(()=>{ this._gg=false; },450); } return; }
-    if(k==='d'){ e.preventDefault(); if(this.state.editing.ro) return; if(this._dd){ const le=(v.indexOf('\n',p)===-1?v.length:v.indexOf('\n',p)+1); ta.value=v.slice(0,lineStart)+v.slice(le); setSel(lineStart); this._dirtyVim(); this._dd=false; } else { this._dd=true; setTimeout(()=>{ this._dd=false; },450); } return; }
-    if(k.length===1){ e.preventDefault(); }
+    if(k==='Shift'||k==='Control'||k==='Alt'||k==='Meta'||k==='CapsLock') return;
+    const ro=this.state.editing && this.state.editing.ro;
+    const done=()=>{ this._vimCount=''; this._vimOp=null; this._vimG=false; this._vimShow(); };
+    // waiting for a replacement char (r)
+    if(this._vimPending){ e.preventDefault(); const pend=this._vimPending; this._vimPending=null; if(k.length===1 && k!=='Escape') this._vimReplace(pend,k); done(); return; }
+    // numeric count prefix (0 is a motion when the count is empty)
+    if(/^[0-9]$/.test(k) && !(k==='0' && !this._vimCount)){ e.preventDefault(); this._vimCount=(this._vimCount||'')+k; this._vimShow(); return; }
+    const count=this._vimCount?parseInt(this._vimCount,10):null;
+    const N=Math.max(1,count||1);
+    const v=ta.value, p=ta.selectionStart;
+    const ls=v.lastIndexOf('\n',p-1)+1, le=(v.indexOf('\n',p)===-1?v.length:v.indexOf('\n',p));
+    const li=this._lineIndexAt(v,p);
+    const setSel=(n)=>{ const c=Math.max(0,Math.min(v.length,n)); ta.setSelectionRange(c,c); this._syncEdCursor(); };
+    // second g of gg (also works as an operator motion: dgg / 5gg)
+    if(this._vimG){ e.preventDefault(); this._vimG=false;
+      if(k==='g'){ if(this._vimOp){ this._vimLinesOp(this._vimOp, count?(N-1):0, li); } else setSel(this._vimGotoLine(v, count?N:1)); }
+      done(); return; }
+    // operator pending (d / c / y already pressed)
+    if(this._vimOp){ e.preventDefault(); const op=this._vimOp;
+      if(k==='g'){ this._vimG=true; this._vimShow('g'); return; }
+      if((op==='d'&&k==='d')||(op==='c'&&k==='c')||(op==='y'&&k==='y')){ this._vimLinesOp(op, li, li+N-1); done(); return; }
+      const range=this._vimMotionRange(v,p,k,count);
+      if(range){ if(range.linewise) this._vimLinesOp(op, range.a, range.b); else this._vimOperate(op,range); }
+      done(); return; }
+    e.preventDefault();
+    // operators wait for a motion
+    if(k==='d'||k==='y'||k==='c'){ if(k!=='y'&&ro){ done(); return; } this._vimOp=k; this._vimShow(); return; }
+    if(k==='g'){ this._vimG=true; this._vimShow('g'); return; }
+    // one-shot edits
+    if(k==='D'){ if(!ro) this._vimOperate('d',{from:p,to:le,linewise:false}); done(); return; }
+    if(k==='C'){ if(!ro) this._vimOperate('c',{from:p,to:le,linewise:false}); done(); return; }
+    if(k==='Y'){ this._vimLinesOp('y', li, li+N-1); done(); return; }
+    if(k==='x'){ if(!ro){ let end=p; for(let i=0;i<N && end<v.length && v[end]!=='\n'; i++) end++; if(end>p){ this._vimReg={ text:v.slice(p,end), linewise:false }; this._pushUndo(); ta.value=v.slice(0,p)+v.slice(end); setSel(Math.min(p,ta.value.length)); this._dirtyVim(); } } done(); return; }
+    if(k==='X'){ if(!ro){ let st=p; for(let i=0;i<N && st>ls; i++) st--; if(st<p){ this._pushUndo(); ta.value=v.slice(0,st)+v.slice(p); setSel(st); this._dirtyVim(); } } done(); return; }
+    if(k==='r'){ if(!ro){ this._vimPending={ n:N, pos:p }; this._vimShow('r'); } else done(); return; }
+    if(k==='~'){ if(!ro){ let s=''; let i=p; for(let c=0;c<N && i<v.length && v[i]!=='\n'; c++,i++){ const ch=v[i]; s+=(ch.toLowerCase()===ch?ch.toUpperCase():ch.toLowerCase()); } if(i>p){ this._pushUndo(); ta.value=v.slice(0,p)+s+v.slice(i); setSel(Math.min(i,ta.value.length)); this._dirtyVim(); } } done(); return; }
+    if(k==='J'){ if(!ro){ this._pushUndo(); let val=v; const joins=Math.max(1,N-1); for(let j=0;j<joins;j++){ const e2=val.indexOf('\n',p); if(e2<0) break; let af=e2+1; while(val[af]===' '||val[af]==='\t') af++; val=val.slice(0,e2)+' '+val.slice(af); } ta.value=val; setSel(p); this._dirtyVim(); } done(); return; }
+    if(k==='p'||k==='P'){ if(!ro) this._vimPaste(k==='p',N); done(); return; }
+    if(k==='u'){ this._vimUndoPop(); done(); return; }
+    // enter insert mode
+    if(k==='i'){ if(!ro) this._pushUndo(); done(); this.edToInsert(p); return; }
+    if(k==='a'){ if(!ro) this._pushUndo(); done(); this.edToInsert(Math.min(p+1,le)); return; }
+    if(k==='A'){ if(!ro) this._pushUndo(); done(); this.edToInsert(le); return; }
+    if(k==='I'){ if(!ro) this._pushUndo(); done(); this.edToInsert(this._firstNonBlank(v,ls,le)); return; }
+    if(k==='s'){ if(!ro){ let end=p; for(let i=0;i<N && end<v.length && v[end]!=='\n'; i++) end++; this._pushUndo(); ta.value=v.slice(0,p)+v.slice(end); done(); this.edToInsert(p); } else done(); return; }
+    if(k==='S'){ if(!ro) this._vimLinesOp('c', li, li+N-1); done(); return; }
+    if(k==='o'){ if(ro){ done(); this.edToInsert(); return; } this._pushUndo(); ta.value=v.slice(0,le)+'\n'+v.slice(le); done(); this.edToInsert(le+1); return; }
+    if(k==='O'){ if(ro){ done(); this.edToInsert(); return; } this._pushUndo(); ta.value=v.slice(0,ls)+'\n'+v.slice(ls); done(); this.edToInsert(ls); return; }
+    if(k===':'){ done(); this.edToCommand(); return; }
+    // plain motions
+    const mv=this._vimMotionPos(v,p,k,count);
+    if(mv!=null) setSel(mv);
+    done();
   }
   _dirtyVim(){ this.setState({ edStatus:'[+] modified - :w to save' }); }
   edCommand(raw){
@@ -557,7 +673,9 @@ export default class Engine {
     else if(c==='q'){ this.closeEditor(); }
     else if(c==='wq'||c==='x'){ if(this.saveEditor()!==false) this.closeEditor(); }
     else if(c==='q!'){ this.closeEditor(); }
-    else if(c==='help'){ this.setState({ edStatus:':w save  :q quit  :wq save+quit  i insert  Esc/Tab normal' }); this.edToNormal(); }
+    else if(/^\d+$/.test(c) || c==='$'){ const ta=this._ed; if(ta){ const ln=c==='$'?ta.value.split('\n').length:parseInt(c,10); const pos=this._vimGotoLine(ta.value,ln); ta.setSelectionRange(pos,pos); } this.edToNormal(); }
+    else if((c==='%d'||c==='%d!'||c==='1,$d') && !(edm&&edm.ro)){ const ta=this._ed; if(ta){ this._pushUndo(); ta.value=''; ta.setSelectionRange(0,0); this._dirtyVim(); } this.edToNormal(); }
+    else if(c==='help'){ this.setState({ edStatus:'motions h j k l w b e 0 ^ $ gg G  ·  ops d c y (+ dd cc yy)  ·  x r ~ p u  ·  counts e.g. 100dd  ·  :w :q :wq :N' }); this.edToNormal(); }
     else { this.setState({ edStatus:'E492: not an editor command: '+c }); this.edToNormal(); }
   }
 
@@ -1600,8 +1718,8 @@ export default class Engine {
       edName: this.state.editing?this.state.editing.name:'',
       edRo: !!this.state.editing && (this.state.editing.ro || this.state.edModeV!=='insert'),
       edStatus: this.state.edStatus||'',
-      edMode: this.state.editing ? (this.state.editing.ro ? '-- NORMAL --  [readonly]' : (this.state.edModeV==='insert'?'-- INSERT --':this.state.edModeV==='command'?'-- COMMAND --':'-- NORMAL --')) : '',
-      edHint: this.state.edModeV==='insert' ? 'Esc/Tab: normal' : 'i insert · : cmd',
+      edMode: this.state.editing ? (this.state.editing.ro ? '-- NORMAL --  [readonly]' : (this.state.edModeV==='insert'?'-- INSERT --':this.state.edModeV==='command'?'-- COMMAND --':('-- NORMAL --'+(this.state.edPend?('   '+this.state.edPend):'')))) : '',
+      edHint: this.state.edModeV==='insert' ? 'Esc/Tab: normal' : (this.state.edModeV==='command' ? ':w :q :wq :N' : 'd/c/y · w b e · u undo · p · :help'),
       edRef:(el)=>{ this._ed=el; }, edCmdRef:(el)=>{ this._edcmd=el; }, edCursRef:(el)=>{ this._edcurs=el; if(el) this._syncEdCursor(); },
       saveEditor:()=>this.saveEditor(), closeEditor:()=>this.closeEditor(),
       onEdKey:(e)=>this.vimKey(e),
