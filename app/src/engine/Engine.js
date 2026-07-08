@@ -43,6 +43,7 @@ export default class Engine {
 
     this.goRoot = ()=>{ this.setState({ stack:[this.root], sel:0, activeMenu:null, cmdMsg:'', editing:null }); };
     this.cfg = this._loadCfg();
+    this._cmdHistory = this._loadHistory();
     // user filesystem (nested, persisted)
     this.userRoot = { name:'MY-FILES', kind:'dir', home:true, user:true, size:'\u25b6SUB-DIR\u25c4', date:'06.25.26', children:this._loadFS() };
     this._tagUser(this.userRoot);
@@ -93,13 +94,14 @@ export default class Engine {
         { label:'ls / tree    list files      ( pwd )', cmd:true },
         { label:'open <file>  read a file      ( cat )', cmd:true },
         { label:'edit <file>  vim editor      ( make = new )', cmd:true },
+        { label:'head / tail / stat   peek at a file', cmd:true },
         { label:'touch / mkdir / rm   manage MY-FILES', cmd:true },
         { label:'find / grep / wc     search files', cmd:true },
         { label:'6502         launch the CPU VM', cmd:true },
         { label:'viz          analytics dashboards', cmd:true },
         { label:'mail · resume · go <github|linkedin>', cmd:true },
         { label:'cli / gui    toggle CLI mode  ( clear )', cmd:true },
-        { label:'help · config · about', cmd:true },
+        { label:'sysinfo · man <cmd> · help · config · about', cmd:true },
       ]},
       { id:'options', label:'Options', items:[
         { label:'Help & shortcuts\u2026   (F1)', act:()=>this.openHelp() },
@@ -135,7 +137,7 @@ export default class Engine {
   toggleCfg(k){ this.cfg[k]=!this.cfg[k]; this._saveCfg(); this.forceUpdate(); }
   resetCfg(){ this.cfg = this._cfgDefaults(); this._saveCfg(); this.forceUpdate(); }
   // ----- CLI helpers: command-history recall + tab completion -----
-  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','pwd','history','clear','6502','viz','mail','resume','go','cli','gui','config','about','help','whoami','date','ver']; }
+  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','cli','gui','config','about','help','whoami','date','ver']; }
   // only complete against what's in the CURRENT directory (what's actually available)
   _completionNames(){
     const set=new Set();
@@ -570,6 +572,40 @@ export default class Engine {
     });
     return picked.filter((n,i)=>picked.indexOf(n)===i);
   }
+  // command history persisted across visits
+  _loadHistory(){ try{ const r=localStorage.getItem('rohanHist'); if(r){ const a=JSON.parse(r); if(Array.isArray(a)) return a.slice(-50); } }catch(e){} return []; }
+  _saveHistory(){ try{ localStorage.setItem('rohanHist', JSON.stringify((this._cmdHistory||[]).slice(-50))); }catch(e){} }
+  // man pages (also used by  help <cmd> )
+  _manPages(){ return {
+    'cd': { d:'change directory', s:'cd <dir> | cd .. | cd \\', l:['Descends into a subfolder of the current directory. cd .. goes up a level,','cd \\ returns to C:\\ROHAN.'] },
+    'ls|dir': { d:'list directory', s:'ls', l:['Lists the files and folders in the current directory.'] },
+    'tree': { d:'print the directory tree', s:'tree', l:['Prints the folder tree from the current directory downward.'] },
+    'cat|open': { d:'show a file', s:'cat <file> | cat *.txt', l:['Prints a file. A glob reads every match in the current folder.'] },
+    'find': { d:'find files by name', s:'find <name> | find *.ext', l:['Searches the whole tree and prints the full path of each match.'] },
+    'grep': { d:'search inside files', s:'grep <term> [file|*.ext]', l:['Searches file contents across the whole tree - titles, text and tags.','Pass a file or glob to narrow the search.'] },
+    'wc': { d:'word / line / char count', s:'wc <file> [file2 …]', l:['Counts lines, words and characters; prints a total across many files.'] },
+    'head|tail': { d:'show the start / end of a file', s:'head <file> [n]', l:['Prints the first (head) or last (tail) n lines. Default n = 10.'] },
+    'stat': { d:'file details', s:'stat <file>', l:['Shows a file’s type, size, line count and date.'] },
+    'edit|vim': { d:'edit a file', s:'edit <file>', l:['Opens a vim-style editor. Your MY-FILES files save with :w, :q to quit.'] },
+    'make|touch|mkdir': { d:'create files / folders', s:'make <name> | touch <name> | mkdir <name>', l:['Create files and folders under MY-FILES.'] },
+    'echo': { d:'print text / write a file', s:'echo <text> [> file]', l:['Prints text, or writes it to a MY-FILES file with > (>> appends).'] },
+    'rm|rename|cp': { d:'manage your files', s:'rm <name> | rename <a> <b> | cp <a> <b>', l:['Delete, rename or copy files in MY-FILES.'] },
+    '6502': { d:'the 6502 CPU emulator', s:'6502 [help|list|run|step|speed|mem]', l:['Launches the scalar-pipeline 6502 VM. In CLI, 6502 help lists subcommands.'] },
+    'mail': { d:'compose an email', s:'mail', l:['Opens the email composer; sends through the contact backend.'] },
+    'go': { d:'open a link', s:'go <github|linkedin|marist>', l:['Opens an external link in a new tab.'] },
+    'copy': { d:'copy to clipboard', s:'copy <email|github|linkedin|resume>', l:['Copies a contact detail to the clipboard.'] },
+    'sysinfo|neofetch': { d:'system summary', s:'sysinfo', l:['Prints a neofetch-style summary of this machine.'] },
+    'cli|gui': { d:'toggle CLI mode', s:'cli | gui', l:['Switches between the full-screen terminal and the file browser.'] },
+    'clear': { d:'clear the screen', s:'clear', l:['Clears the terminal scrollback.'] },
+  }; }
+  _manPage(name){
+    const k=(name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const M=this._manPages();
+    const key=Object.keys(M).find(kk=>kk.split('|').includes(k));
+    if(!key) return ['man: no manual entry for '+name+'   (try  help )'];
+    const m=M[key];
+    return ['NAME','  '+key.split('|')[0]+' - '+m.d, '', 'SYNOPSIS', '  '+m.s, '', 'DESCRIPTION'].concat(m.l.map(x=>'  '+x));
+  }
   // return the stack [root, ...dirs] ending at target's PARENT dir, or null
   _stackTo(target){
     let result=null;
@@ -619,7 +655,7 @@ export default class Engine {
   runCommand(raw){
     const line=(raw||'').trim();
     if(!line){ return; }
-    if(line && line[0]!=='!'){ if(!this._cmdHistory) this._cmdHistory=[]; this._cmdHistory.push(line); if(this._cmdHistory.length>50) this._cmdHistory.shift(); }
+    if(line && line[0]!=='!'){ if(!this._cmdHistory) this._cmdHistory=[]; this._cmdHistory.push(line); if(this._cmdHistory.length>50) this._cmdHistory.shift(); this._saveHistory(); }
     if(this.state.cliMode) this.echo(line);
     const parts=line.split(/\s+/);
     const cmd=parts[0].toLowerCase();
@@ -738,8 +774,42 @@ export default class Engine {
       if(files.length>1) rows.push(String(TL).padStart(5)+' '+String(TW).padStart(6)+' '+String(TC).padStart(7)+'  total');
       this.out(rows); return;
     }
+    if(cmd==='head' || cmd==='tail'){
+      if(!arg){ this.say('usage: '+cmd+' <file> [n]'); return; }
+      const parts=arg.split(/\s+/); let n=10; if(/^\d+$/.test(parts[parts.length-1])){ n=Math.max(1,parseInt(parts.pop(),10)); }
+      const files=this._matchFiles(parts.join(' ')); if(!files.length){ this.say(cmd+': not found: '+parts.join(' ')); return; }
+      const lines=this._nodeText(files[0]).split('\n');
+      this.out(cmd==='head'?lines.slice(0,n):lines.slice(Math.max(0,lines.length-n))); return;
+    }
+    if(cmd==='stat'){
+      if(!arg){ this.say('usage: stat <file>'); return; }
+      const files=this._matchFiles(arg); if(!files.length){ this.say('stat: not found: '+arg); return; }
+      const nd=files[0], b=this._nodeText(nd);
+      const kind=nd.user?'user file':(nd.doc?('document ('+(nd.doc.kind||'doc')+')'):'file');
+      this.out(['  File: '+nd.name.replace(/\s+/g,''), '  Type: '+kind,
+        '  Size: '+b.length+' bytes    Lines: '+b.split('\n').length,
+        '  Date: '+(nd.date||'\u2014')+(nd.user?'    (yours, editable)':'    (read-only)')]); return;
+    }
+    if(cmd==='echo'){
+      const m=arg.match(/^([\s\S]*?)\s*(>>|>)\s*(\S+)\s*$/);
+      if(m){ const text=m[1].replace(/^["']|["']$/g,''); const append=m[2]==='>>'; const fnode=this.makeFile(m[3]); if(!fnode){ this.say('echo: bad filename'); return; } fnode.body=append?((fnode.body||'')+(fnode.body?'\n':'')+text):text; if(fnode._provisional) delete fnode._provisional; this._saveFS(); this.forceUpdate(); this.out([(append?'appended to ':'wrote ')+fnode.name.replace(/\s+/g,'')]); return; }
+      this.out([arg]); return;
+    }
+    if(cmd==='sysinfo' || cmd==='neofetch'){
+      const logo=['   ___   ','  | _ \\  ','  |   /  ','  |_|_\\  ','         '];
+      const info=['guest@ROHAN-DOS','---------------','OS      : ROHAN-DOS 5.51','Host    : Portfolio Commander','CPU     : MOS 6502 @ 1.79 MHz','Memory  : 640K conventional','Shell   : COMMAND.COM','Files   : '+this._allFiles().length+' on C:\\ROHAN','Stack   : React \u00b7 Vite \u00b7 Tailwind','Contact : rohanplante@gmail.com'];
+      const out=[]; for(let i=0;i<Math.max(logo.length,info.length);i++){ out.push((logo[i]||'         ')+'  '+(info[i]||'')); }
+      this.out(out); return;
+    }
+    if(cmd==='man'){ if(!arg){ this.say('usage: man <command>   (e.g.  man grep )'); return; } this.out(this._manPage(arg)); return; }
+    if(cmd==='copy'){
+      const map={ email:'rohanplante@gmail.com', github:'https://github.com/RPlante28', linkedin:'https://linkedin.com/in/rohan-plante', resume:'uploads/Rohan_Plante_resume.pdf' };
+      const v=map[(arg||'').toLowerCase()]; if(!v){ this.say('usage: copy <email|github|linkedin|resume>'); return; }
+      try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(()=>this.out(['copied: '+v]), ()=>this.out([v])); return; } }catch(e){}
+      this.out([v]); return;
+    }
     if(cmd==='history'){ const h=this._cmdHistory||[]; this.out(h.length?h.map((c,i)=>('  '+(i+1)+'  '+c)):['(no history)']); return; }
-    if(cmd==='help' || cmd==='?'){ if(this.state.cliMode){ this.print(this._helpLines()); } else { this.openMenu('commands'); this.say('commands listed above \u2191'); } return; }
+    if(cmd==='help' || cmd==='?'){ if(arg){ this.out(this._manPage(arg)); return; } if(this.state.cliMode){ this.print(this._helpLines()); } else { this.openMenu('commands'); this.say('commands listed above \u2191'); } return; }
     if(cmd==='home' || cmd==='cls' || cmd==='cd\\' || (cmd==='cd' && (arg==='\\'||arg==='/'))){ this.goRoot(); this.say(''); return; }
     if(cmd==='cd'){
       if(arg==='..'){ if(this.state.stack.length>1){ this._upDir(); this.say(''); } else this.say('already at C:\\ROHAN'); return; }
@@ -838,17 +908,16 @@ export default class Engine {
     this.say('bad command: '+cmd+'   (type help)');
   }
   _helpLines(){ return [
-    'COMMANDS',
+    'COMMANDS   ( man <cmd>  for detail )',
     '  cd <dir> / ..     open a folder / go up      ls · dir · tree',
     '  open <file>       read a file   ( cat ,  also  cat *.txt )',
-    '  edit <file>       vim editor    ( make <name>  = new + edit )',
-    '  touch <name>      new file      mkdir <name>   new folder',
-    '  rm / rename / cp  manage your MY-FILES files',
+    '  head / tail / stat <file>        peek at a file',
     '  find <t> · grep <t> · wc <file> · pwd · history · clear',
+    '  edit <file>       vim editor    ( make <name>  = new + edit )',
+    '  touch · mkdir · rm · rename · cp · echo <text> > file',
     '  6502              launch the CPU VM   ( in CLI:  6502 help )',
-    '  viz               open the analytics dashboards',
-    '  mail · resume · go <github|linkedin|marist>',
-    '  cli / gui         toggle CLI mode      config · about · help',
+    '  viz · mail · resume · go <github|linkedin> · copy <email>',
+    '  sysinfo · man <cmd> · cli / gui · config · about',
     '  keys:  ↑ / ↓  recall history      Tab  completes commands & files',
     '  psst: there may be an easter egg or two hidden around, especially in here.',
   ]; }
