@@ -210,7 +210,7 @@ window.VIZ = (function () {
         const temp = 2400 + (blowing?300:120) + (Math.floor(f/2)%60);
         const L=[' SAUGUS IRON WORKS \u00b7 WATER-POWERED BLAST FURNACE'];
         g.forEach(r=>L.push(' '+r.join('').replace(/\s+$/,'')));
-        L.push(' WHEEL \u27f3 drives BELLOWS '+(blowing?'\u25bc blast':'\u25b2 draw')+'   STACK ['+heat+'] '+temp+'\u00b0F');
+        L.push(' WHEEL \u27f3 drives BELLOWS '+(blowing?'\u25bc blast':'\u25b2 draw')+'   FURNACE ['+heat+'] '+temp+'\u00b0F');
         return L.join('\n');
       },
       // MCW Starz - a little basketball game: shots arc in, make or miss, running score per game
