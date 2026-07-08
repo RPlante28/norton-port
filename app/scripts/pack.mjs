@@ -14,7 +14,7 @@ const dist = join(root, 'dist');
 const out = join(root, 'site.zip');
 
 if (!existsSync(dist)) {
-  console.error('No dist/ folder — run `npm run build` first (or just use `npm run deploy`).');
+  console.error('No dist/ folder - run `npm run build` first (or just use `npm run deploy`).');
   process.exit(1);
 }
 

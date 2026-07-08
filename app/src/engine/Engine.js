@@ -842,9 +842,20 @@ export default class Engine {
       this.out([arg]); return;
     }
     if(cmd==='sysinfo' || cmd==='neofetch'){
-      const logo=['   ___   ','  | _ \\  ','  |   /  ','  |_|_\\  ','         '];
-      const info=['guest@ROHAN-DOS','---------------','OS      : ROHAN-DOS 5.51','Host    : Portfolio Commander','CPU     : MOS 6502 @ 1.79 MHz','Memory  : 640K conventional','Shell   : COMMAND.COM','Files   : '+this._allFiles().length+' on C:\\ROHAN','Stack   : React \u00b7 Vite \u00b7 Tailwind','Contact : rohanplante@gmail.com'];
-      const out=[]; for(let i=0;i<Math.max(logo.length,info.length);i++){ out.push((logo[i]||'         ')+'  '+(info[i]||'')); }
+      const logo=[
+        '  +-----------+',
+        '  | +-------+ |',
+        '  | | ROHAN | |',
+        '  | |  DOS  | |',
+        '  | | >_    | |',
+        '  | +-------+ |',
+        '  +-----------+',
+        '     |_____|   ',
+        '   _/=======\\_ ',
+      ];
+      const info=['guest@ROHAN-DOS','===============','OS      : ROHAN-DOS 5.51','Host    : Portfolio Commander','CPU     : MOS 6502 @ 1.79 MHz','Memory  : 640K conventional','Shell   : COMMAND.COM','Uptime  : since you booted','Files   : '+this._allFiles().length+' on C:\\ROHAN','Stack   : React \u00b7 Vite \u00b7 Tailwind','Contact : rohanplante@gmail.com'];
+      const W=Math.max.apply(null, logo.map(l=>l.length));
+      const out=[]; for(let i=0;i<Math.max(logo.length,info.length);i++){ out.push((logo[i]||'').padEnd(W)+'   '+(info[i]||'')); }
       this.out(out); return;
     }
     if(cmd==='theme' || cmd==='color' || cmd==='monitor'){ const t=(arg||'').toLowerCase(); if(['blue','amber','green','white'].includes(t)){ this.setTheme(t); this.say('monitor: '+t+' phosphor'); } else { this.say('monitor themes:  blue · amber · green · white   (e.g.  theme amber )'); } return; }
@@ -1307,6 +1318,12 @@ export default class Engine {
     this._onKey = (e)=>{
       this._bootSound();
       this.keyClick(e);
+      // Konami code -> MINESWEEPER.EXE
+      { const KON=['arrowup','arrowup','arrowdown','arrowdown','arrowleft','arrowright','arrowleft','arrowright','b','a'];
+        if(!this._kon) this._kon=[];
+        this._kon.push((e.key||'').toLowerCase()); if(this._kon.length>KON.length) this._kon.shift();
+        if(this._kon.length===KON.length && KON.every((v,i)=>this._kon[i]===v)){ this._kon=[]; e.preventDefault(); this.setState({ showGame:true, dialog:null, activeMenu:null, bossMode:false }); return; } }
+      if(this.state.showGame){ if(e.key==='Escape'){ e.preventDefault(); this.setState({ showGame:false }); setTimeout(()=>{ const el=this.state.cliMode?this._cli:this._cmd; if(el) el.focus(); }, 20); } return; }
       if(this.state.booting){ this.finishBoot(); return; }
       if(this.state.bossMode){ if(e.key==='Escape'){ e.preventDefault(); this.setState({ bossMode:false }); setTimeout(()=>{ const el=this.state.cliMode?this._cli:this._cmd; if(el) el.focus(); }, 20); } return; }
       if(e.key==='F1'){ e.preventDefault(); if(this.state.dialog==='help') this.closeDialog(); else this.openHelp(); return; }
@@ -1665,6 +1682,8 @@ export default class Engine {
       fConfig: ()=>this.setState({ dialog:'config', activeMenu:null }),
       closeDialog: ()=>this.closeDialog(),
       resetCfg: ()=>this.resetCfg(),
+      showGame: !!this.state.showGame,
+      closeGame: ()=>this.setState({ showGame:false }),
       stop: (e)=>{ if(e&&e.stopPropagation) e.stopPropagation(); },
       cfgRows: [
         { k:'hidden',  label:'Show hidden files',      on:this.cfg.hidden },

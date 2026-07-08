@@ -1,0 +1,2 @@
+# Serve the on-theme DOS 404 page for missing paths (Apache / cPanel / GoDaddy).
+ErrorDocument 404 /404.html

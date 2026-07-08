@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>404 · File Not Found · ROHAN-DOS</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --blue:#0000a8; --cyan:#54fcfc; --yellow:#fcfc54; --ink:#d4d8dc; --edge:#2f6fd0; }
+    * { box-sizing:border-box; }
+    html,body { height:100%; margin:0; }
+    body {
+      background:var(--blue); color:var(--ink);
+      font-family:'Space Mono',monospace; -webkit-font-smoothing:antialiased;
+      display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .win { width:640px; max-width:96vw; border:3px double var(--cyan); position:relative; padding:26px 26px 22px; }
+    .title { position:absolute; top:-11px; left:0; right:0; text-align:center; }
+    .title span { background:var(--blue); color:#fff; padding:0 12px; font-size:13px; }
+    pre { color:var(--cyan); font-size:12px; line-height:1.15; margin:0 0 14px; white-space:pre; overflow:auto; }
+    h1 { color:#fff; font-size:22px; letter-spacing:.04em; margin:0 0 4px; }
+    .meta { color:var(--yellow); font-size:12px; margin-bottom:14px; }
+    p { font-size:13.5px; line-height:1.6; margin:0 0 10px; max-width:56ch; }
+    .dim { color:#9fc0f0; font-size:12px; }
+    a.btn {
+      display:inline-block; margin-top:10px; text-decoration:none; color:var(--blue);
+      background:var(--cyan); border:2px solid #000; padding:5px 16px; font-weight:700; font-size:13px;
+      box-shadow:2px 2px 0 #00005a;
+    }
+    a.btn:hover { background:#fff; }
+    .cursor { display:inline-block; width:9px; height:15px; background:var(--ink); vertical-align:-2px; animation:bl .9s steps(1) infinite; }
+    @keyframes bl { 50% { opacity:0; } }
+    .bar { margin-top:16px; border-top:1px solid var(--edge); padding-top:10px; }
+  </style>
+</head>
+<body>
+  <div class="win">
+    <div class="title"><span>C:\ROHAN · SYSTEM ERROR</span></div>
+    <pre>
+   _  _    ___  _  _
+  | || |  / _ \| || |
+  | || |_| | | | || |_
+  |__   _| |_| |__   _|
+     |_|  \___/   |_|
+</pre>
+    <h1>FILE NOT FOUND</h1>
+    <div class="meta">ERROR 404 · Bad command or file name</div>
+    <p>The sector you requested isn't on this disk. It may have been moved, renamed, or it never existed in the first place.</p>
+    <p class="dim">Abort, Retry, Fail? <span class="cursor"></span></p>
+    <a class="btn" href="/">◄ RETURN TO C:\ROHAN</a>
+    <div class="bar dim">Tip: back on the main screen, the <strong style="color:var(--ink)">↑ ↑ ↓ ↓ ← → ← → B A</strong> code unlocks something.</div>
+  </div>
+</body>
+</html>

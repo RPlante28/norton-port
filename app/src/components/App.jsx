@@ -12,6 +12,7 @@ import Dialogs from '../dialogs/Dialogs.jsx';
 import BossMode from './BossMode.jsx';
 import ImageViewer from './ImageViewer.jsx';
 import CrtOverlay from './CrtOverlay.jsx';
+import Minesweeper from './Minesweeper.jsx';
 
 // The ROHAN-DOS screen, composed from the shell chrome + feature/dialog
 // components. All application logic lives in Engine; React reads the single
@@ -67,6 +68,7 @@ export default function App() {
 
       <Dialogs v={v} />
       {v.bossMode && <BossMode v={v} />}
+      {v.showGame && <Minesweeper onClose={v.closeGame} />}
       {v.imgViewOpen && <ImageViewer v={v} />}
       <CrtOverlay crt={v.crt} scanBg={v.crtScanBg} />
     </div>
