@@ -71,7 +71,7 @@ export default function InfoCard({ v }) {
       <div className="border-t border-edge-dim mb-2.5"></div>
       <div className="flex gap-3.5 flex-wrap text-[11px] text-dim mb-2">
         <span>MEM 640K OK</span>
-        <span>7 DIRS · 9 PROJECTS</span>
+        <span>8 DIRS · 9 PROJECTS</span>
         <span>SYS 6502 @ 1.79MHz</span>
         <span>READY ▮</span>
       </div>

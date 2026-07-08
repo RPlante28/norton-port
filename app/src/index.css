@@ -105,6 +105,16 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 /* ASCII animation heroes: use a complete monospace so box/block glyphs align */
 .nc-viz { font-family: var(--art); }
 
+/* Accessibility: honour a reduced-motion preference by settling animations
+   (cursors, blinks, progress) instead of looping them. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
 /* Monitor phosphor themes: desaturate the whole UI to monochrome; the amber /
    green tint is a body-level multiply overlay (added by the engine) on top.
    'blue' is the untouched default; 'white' is monochrome with no tint. */

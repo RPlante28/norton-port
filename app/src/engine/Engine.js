@@ -1185,11 +1185,14 @@ export default class Engine {
   }
 
   // ===== project ASCII visualizations (animated heroes) =====
+  _reduceMotion(){ try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; } }
   _startViz(type){
     this._stopViz();
     const gen = this._vizGens[type];
     if(!gen || !this._vizEl){ this._curViz=type; return; }
     this._curViz=type;
+    // Respect "reduce motion": draw one settled frame and don't animate.
+    if(this._reduceMotion()){ try{ this._vizEl.textContent=gen(40); }catch(e){} return; }
     const clock=()=> (typeof performance!=='undefined' ? performance.now() : Date.now());
     const start=clock(); let last=null, lastF=-1;
     // Drive with requestAnimationFrame but hand the generators an INTEGER frame
