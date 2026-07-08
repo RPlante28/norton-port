@@ -1186,6 +1186,23 @@ export default class Engine {
 
   // ===== project ASCII visualizations (animated heroes) =====
   _reduceMotion(){ try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; } }
+  // ----- visitor counter (counter.php when deployed; localStorage fallback) -----
+  _fetchHits(){
+    const set=(n)=>{ if(typeof n==='number' && !isNaN(n)){ this._hits=n; this.forceUpdate(); } };
+    try{
+      fetch('counter.php', { cache:'no-store' })
+        .then(r=>r.json())
+        .then(d=>{ if(d && typeof d.count==='number') set(d.count); else set(this._localHits()); })
+        .catch(()=>set(this._localHits()));
+    }catch(e){ set(this._localHits()); }
+  }
+  _localHits(){
+    try{
+      let n=parseInt(localStorage.getItem('rohanVisits')||'0',10)||0;
+      if(!sessionStorage.getItem('rohanCounted')){ n++; localStorage.setItem('rohanVisits', String(n)); sessionStorage.setItem('rohanCounted','1'); }
+      return n;
+    }catch(e){ return null; }
+  }
   _startViz(type){
     this._stopViz();
     const gen = this._vizGens[type];
@@ -1383,6 +1400,7 @@ export default class Engine {
     // idle screensaver: after ~60s with no input, drift the logo DVD-style
     this._lastActivity=Date.now();
     this._idleTimer=setInterval(()=>{ if(!this.state.saver && !this.state.booting && !this._reduceMotion() && (Date.now()-this._lastActivity)>60000) this.setState({ saver:true }); }, 1000);
+    this._fetchHits();
     this._bootStep();
   }
   _bootStep(){
@@ -1685,6 +1703,7 @@ export default class Engine {
       closeDialog: ()=>this.closeDialog(),
       resetCfg: ()=>this.resetCfg(),
       saver: !!this.state.saver,
+      hitLabel: (this._hits!=null) ? ('VISITOR '+String(this._hits).padStart(6,'0')) : '',
       stop: (e)=>{ if(e&&e.stopPropagation) e.stopPropagation(); },
       cfgRows: [
         { k:'hidden',  label:'Show hidden files',      on:this.cfg.hidden },

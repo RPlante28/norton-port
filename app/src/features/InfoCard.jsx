@@ -73,6 +73,7 @@ export default function InfoCard({ v }) {
         <span>MEM 640K OK</span>
         <span>8 DIRS · 9 PROJECTS</span>
         <span>SYS 6502 @ 1.79MHz</span>
+        {v.hitLabel && <span>{v.hitLabel}</span>}
         <span>READY ▮</span>
       </div>
       <div className="text-[11.5px] text-dim leading-[1.55]">
