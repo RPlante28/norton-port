@@ -1,7 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
   <rect width="32" height="32" fill="#0000a8"/>
-  <rect x="2.5" y="2.5" width="27" height="27" fill="none" stroke="#54fcfc" stroke-width="1.5"/>
-  <rect x="4.5" y="4.5" width="23" height="23" fill="none" stroke="#2f6fd0" stroke-width="1"/>
-  <path d="M9 11 L15 16 L9 21" fill="none" stroke="#54fcfc" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
-  <rect x="17" y="19.5" width="7.5" height="3" fill="#fcfc54"/>
+  <!-- CRT monitor bezel + screen -->
+  <rect x="3" y="3.5" width="26" height="18" rx="2" fill="#001b6e" stroke="#54fcfc" stroke-width="2"/>
+  <!-- >_ terminal prompt on the screen -->
+  <path d="M7.5 9 L11 12.5 L7.5 16" fill="none" stroke="#54fcfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="13" y="13.6" width="6.5" height="2.4" fill="#fcfc54"/>
+  <!-- stand + base -->
+  <rect x="13.5" y="21.5" width="5" height="3.2" fill="#54fcfc"/>
+  <rect x="8" y="24.5" width="16" height="2.8" rx="1.2" fill="#54fcfc"/>
 </svg>
