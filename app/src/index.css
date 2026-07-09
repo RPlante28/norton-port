@@ -101,6 +101,9 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 .nc-mtab:hover { background: var(--dos-blue) !important; color: var(--cyan) !important; }
 .nc-mitem:hover { background: var(--dos-blue); color: var(--cyan) !important; }
 .nc-cfg:hover { background: var(--dos-blue); color: var(--cyan); }
+/* the [x]/(o) marks carry an inline dark-blue colour so they read on the grey
+   dialog; on hover the row goes dark blue, so force the marks bright to stay legible */
+.nc-cfg:hover span { color: var(--cyan) !important; }
 
 /* ASCII animation heroes: use a complete monospace so box/block glyphs align */
 .nc-viz { font-family: var(--art); }
