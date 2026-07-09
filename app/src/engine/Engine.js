@@ -42,6 +42,9 @@ export default class Engine {
     ].join("\n");
 
     this.goRoot = ()=>{ this.setState({ stack:[this.root], sel:0, activeMenu:null, cmdMsg:'', editing:null }); };
+    // activate the idle screensaver in a given mode; _saverAt guards the launching
+    // key/click from instantly dismissing it (that same event bubbles to window).
+    this._startSaver = (mode)=>{ this._saverAt=Date.now(); this.setState({ saver:true, saverMode:mode }); };
     this.cfg = this._loadCfg();
     this._cmdHistory = this._loadHistory();
     // user filesystem (nested, persisted)
@@ -1105,7 +1108,10 @@ export default class Engine {
     if(cmd==='fortune'){ this.out(this.art.fortune.split('\n')); return; }
     if(cmd==='coffee' || cmd==='brew'){ this.out(this.art.coffee.split('\n')); return; }
     if(cmd==='sound' || cmd==='keysound'){ const on = arg ? /^(on|1|yes|true)$/i.test(arg) : !this.cfg.keysound; this.cfg.keysound=on; this.forceUpdate(); this.say('keyboard sound '+(on?'ON':'OFF')); return; }
-    if(cmd==='matrix'){ const cols='01@#%&$ABCDEF'.split(''); const rows=[]; for(let i=0;i<10;i++){ let s=''; for(let j=0;j<48;j++) s+=cols[(Math.random()*cols.length)|0]; rows.push(s); } this.out(['wake up, Neo...'].concat(rows)); return; }
+    if(cmd==='matrix'){ if(this._reduceMotion()){ this.out(['(reduced motion is on - the matrix rain is disabled)']); return; } this.say('wake up, Neo...'); this._startSaver('matrix'); return; }
+    if(cmd==='starfield' || cmd==='stars' || cmd==='warp'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('engaging warp …'); this._startSaver('stars'); return; }
+    if(cmd==='pipes'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('laying pipe …'); this._startSaver('pipes'); return; }
+    if(cmd==='screensaver' || cmd==='saver' || cmd==='ss'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } const M=['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0]); return; }
     if(cmd==='date' || cmd==='time'){ this.out([new Date().toString()]); return; }
     if(cmd==='ver' || cmd==='version'){ this.out(['ROHAN-DOS 5.51 - Portfolio Commander - (c) MMXXVI']); return; }
     if(cmd==='hire' || cmd==='hireme' || (cmd==='hire'&&arg==='me')){ this.out(['> Rohan is open to internships & new-grad SWE roles.', '  resume: F4   \u00b7   mail: type  mail    \u00b7   github: go github']); return; }
@@ -1509,7 +1515,7 @@ export default class Engine {
     this._onKey = (e)=>{
       this._bootSound();
       this._lastActivity=Date.now();
-      if(this.state.saver){ this.setState({ saver:false }); return; }   // any key wakes the screensaver
+      if(this.state.saver){ if(Date.now()-(this._saverAt||0)>250) this.setState({ saver:false }); return; }   // any key wakes the screensaver (after a brief guard so the launching key doesn't instantly close it)
       this.keyClick(e);
       if(this.state.booting){ this.finishBoot(); return; }
       if(this.state.bossMode){ if(e.key==='Escape'){ e.preventDefault(); this.setState({ bossMode:false }); setTimeout(()=>{ const el=this.state.cliMode?this._cli:this._cmd; if(el) el.focus(); }, 20); } return; }
@@ -1564,7 +1570,7 @@ export default class Engine {
     this._tint.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483000;mix-blend-mode:multiply;display:none';
     document.body.appendChild(this._tint);
     this._applyTheme();
-    this._onPointer = (e)=>{ this._lastActivity=Date.now(); if(this.state.saver){ this.setState({ saver:false }); } this._bootSound(); this.clickSound(); };
+    this._onPointer = (e)=>{ this._lastActivity=Date.now(); if(this.state.saver && Date.now()-(this._saverAt||0)>250){ this.setState({ saver:false }); } this._bootSound(); this.clickSound(); };
     window.addEventListener('pointerdown', this._onPointer);
     // DOS block mouse cursor: a character-cell block that inverts what's under it
     document.documentElement.classList.add('nc-blockcur');
@@ -1574,7 +1580,7 @@ export default class Engine {
     // on its own layer.
     this._mouseXY = null;
     this._drawCursor = ()=>{ this._cursorRaf=0; const m=this._mouse, p=this._mouseXY; if(!m||!p) return; m.style.display='block'; m.style.transform='translate3d('+p.x+'px,'+(p.y-2)+'px,0)'; };
-    this._onMouseMove = (e)=>{ this._lastActivity=Date.now(); if(this.state.saver){ this.setState({ saver:false }); } this._mouseXY={ x:e.clientX, y:e.clientY }; if(!this._cursorRaf) this._cursorRaf=requestAnimationFrame(this._drawCursor); };
+    this._onMouseMove = (e)=>{ this._lastActivity=Date.now(); if(this.state.saver && Date.now()-(this._saverAt||0)>250){ this.setState({ saver:false }); } this._mouseXY={ x:e.clientX, y:e.clientY }; if(!this._cursorRaf) this._cursorRaf=requestAnimationFrame(this._drawCursor); };
     this._onMouseOut = (e)=>{ if(!e.relatedTarget && !e.toElement && this._mouse){ this._mouse.style.display='none'; } };
     this._onWinBlur = ()=>{ if(this._mouse) this._mouse.style.display='none'; };
     window.addEventListener('mousemove', this._onMouseMove);
@@ -1586,7 +1592,7 @@ export default class Engine {
     // handlers call _bootSound() to resume it then. (Browser autoplay policy.)
     // idle screensaver: after ~60s with no input, drift the logo DVD-style
     this._lastActivity=Date.now();
-    this._idleTimer=setInterval(()=>{ if(!this.state.saver && !this.state.booting && !this._reduceMotion() && (Date.now()-this._lastActivity)>60000) this.setState({ saver:true }); }, 1000);
+    this._idleTimer=setInterval(()=>{ if(!this.state.saver && !this.state.booting && !this._reduceMotion() && (Date.now()-this._lastActivity)>60000){ const M=['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0]); } }, 1000);
     this._fetchHits();
     this._bootStep();
   }
@@ -1890,6 +1896,7 @@ export default class Engine {
       closeDialog: ()=>this.closeDialog(),
       resetCfg: ()=>this.resetCfg(),
       saver: !!this.state.saver,
+      saverMode: this.state.saverMode||null,
       hitLabel: (this._hits!=null) ? ('VISITOR '+String(this._hits).padStart(6,'0')) : '',
       stop: (e)=>{ if(e&&e.stopPropagation) e.stopPropagation(); },
       cfgRows: [

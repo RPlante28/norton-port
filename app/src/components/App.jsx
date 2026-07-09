@@ -68,7 +68,7 @@ export default function App() {
 
       <Dialogs v={v} />
       {v.bossMode && <BossMode v={v} />}
-      {v.saver && <Screensaver logo={v.bootLogo} />}
+      {v.saver && <Screensaver logo={v.bootLogo} mode={v.saverMode} />}
       {v.imgViewOpen && <ImageViewer v={v} />}
       <CrtOverlay crt={v.crt} scanBg={v.crtScanBg} />
     </div>
