@@ -73,7 +73,7 @@
       // ----- grid geometry (pure ASCII, monospace) --------------------
       var COLS = 58, ROWS = 12;
       var FEET = 9, GROUND = 10, SUB = 11;   // wheel row, road row, gravel row
-      var RIDE_TOP = 7, BIKE_COL = 4;
+      var RIDE_TOP = 6, BIKE_COL = 3;        // 4-row bike, wheels land on FEET
 
       // soft phosphor palette, easy on the eyes
       var C = { world:'#7ea6b8', bike:'#8ac79a', dim:'#4f6f8a', msg:'#c2a76a' };
@@ -121,12 +121,14 @@
       }
 
       function bikeSprite() {
-        var w = wheelF === 0 ? 'O' : '+';      // spinning-spoke wheels
-        // a rider hunched over a cafe-racer: helmet, body, tank, two wheels
+        var w = wheelF === 0 ? 'O' : 'o';      // spinning wheels
+        // derived from the classic ASCII motorcycle, mirrored to face right:
+        // rider tucked behind the fairing, curved tank, two wheels on an axle
         var rows = [
-          "    _o  ",
-          "  _/#\\_ ",
-          " (" + w + ")=(" + w + ")"
+          "        _,   ",
+          "      _(D)   ",
+          "   __/'-.\\_  ",
+          "_(" + w + ") `--'(" + w + ")_"
         ];
         return { rows: rows, top: RIDE_TOP - Math.round(y), col: BIKE_COL };
       }
