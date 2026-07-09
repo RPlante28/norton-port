@@ -285,7 +285,7 @@ export default class Engine {
   closeDialog(){ this.setState({ dialog:null }); setTimeout(()=>{ const el=this.state.cliMode?this._cli:this._cmd; if(el) el.focus(); }, 30); }
   cur(){ return this.state.stack[this.state.stack.length-1]; }
   curDoc(){ const its=this.items(); const sel=its[this.state.sel]; return (sel&&sel.doc)?sel.doc:null; }
-  say(msg){ if(this.state.cliMode && msg){ this.setState(s=>({ cmdMsg:msg, term:s.term.concat([msg]) })); } else { this.setState({ cmdMsg:msg }); } }
+  say(msg){ if(this._capture){ if(msg) this._capture.push(msg); return; } if(this.state.cliMode && msg){ this.setState(s=>({ cmdMsg:msg, term:s.term.concat([msg]) })); } else { this.setState({ cmdMsg:msg }); } }
 
   // ----- user filesystem (nested, localStorage) -----
   _loadFS(){
@@ -310,10 +310,10 @@ export default class Engine {
   _removeNode(parent, node){ if(!parent.children) return false; const i=parent.children.indexOf(node); if(i>=0){ parent.children.splice(i,1); return true; } return parent.children.some(c=>c.kind==='dir'&&this._removeNode(c,node)); }
 
   // ----- terminal scrollback -----
-  print(lines){ const arr=Array.isArray(lines)?lines:[lines]; this.setState(s=>({ term:s.term.concat(arr) })); }
+  print(lines){ const arr=Array.isArray(lines)?lines:[lines]; if(this._capture){ arr.forEach(l=>this._capture.push(l)); return; } this.setState(s=>({ term:s.term.concat(arr) })); }
   echo(cmd){ this.setState(s=>({ term:s.term.concat([ this._promptStr()+'> '+cmd ]) })); }
   _promptStr(){ return this.state.stack.map((n,i)=> i===0 ? n.path : n.name).join('\\'); }
-  out(lines){ const a=Array.isArray(lines)?lines:[lines]; if(this.state.cliMode) this.print(a); else this.say(a.join('   ')); }
+  out(lines){ const a=Array.isArray(lines)?lines:[lines]; if(this._capture){ a.forEach(l=>this._capture.push(l)); return; } if(this.state.cliMode) this.print(a); else this.say(a.join('   ')); }
   // Norton-style block cursor: position a 1ch box over the char at the caret
   _moveCursor(box, input){
     if(!box || !input) return;
@@ -818,11 +818,61 @@ export default class Engine {
     if(it.act) it.act();
   }
 
-  runCommand(raw){
+  // ----- real pipes:  stage0 generates lines, later stages filter them -----
+  _runPipeline(stages){
+    let buf=this._captureRun(stages[0]);
+    for(let i=1;i<stages.length;i++) buf=this._applyFilter(stages[i], buf);
+    this.print(buf.length?buf:['']);
+  }
+  // run one command with its output captured into an array instead of printed
+  _captureRun(stageLine){
+    const prev=this._capture; this._capture=[];
+    try{ this.runCommand(stageLine, { silent:true }); }
+    catch(e){ this._capture.push('pipe: '+(e&&e.message||e)); }
+    const b=this._capture; this._capture=prev; return b;
+  }
+  // apply a stdin-aware filter stage (wc/grep/head/tail/sort/uniq/nl/rev/tac/cat)
+  _applyFilter(stageLine, lines){
+    const args=stageLine.split(/\s+/); const cmd=(args.shift()||'').toLowerCase();
+    const flags=args.filter(a=>/^-/.test(a)), rest=args.filter(a=>!/^-/.test(a));
+    const hasF=(ch)=>flags.some(f=>f.indexOf(ch)>=0);
+    const getN=(def)=>{ let n=def; for(let i=0;i<args.length;i++){ const a=args[i]; if(/^-\d+$/.test(a)) n=parseInt(a.slice(1),10); else if(a==='-n'&&args[i+1]){ n=parseInt(args[i+1],10); i++; } else if(/^\d+$/.test(a)) n=parseInt(a,10); } return Math.max(0,n); };
+    switch(cmd){
+      case 'wc': {
+        const L=lines.length, W=lines.reduce((n,l)=>n+(l.trim()?l.trim().split(/\s+/).length:0),0), C=lines.join('\n').length;
+        if(hasF('l')) return [String(L)]; if(hasF('w')) return [String(W)]; if(hasF('c')) return [String(C)];
+        return [String(L).padStart(6)+' '+String(W).padStart(6)+' '+String(C).padStart(7)];
+      }
+      case 'grep': {
+        const inv=hasF('v'), ic=hasF('i'), nn=hasF('n'), ct=hasF('c'); const pat=rest.join(' ');
+        const test=(l)=>ic?l.toLowerCase().includes(pat.toLowerCase()):l.includes(pat);
+        const out=[]; lines.forEach((l,i)=>{ let m=test(l); if(inv) m=!m; if(m) out.push(nn?((i+1)+': '+l):l); });
+        return ct?[String(out.length)]:out;
+      }
+      case 'head': { const n=getN(10); return lines.slice(0,n); }
+      case 'tail': { const n=getN(10); return lines.slice(Math.max(0,lines.length-n)); }
+      case 'sort': { let out=lines.slice(); if(hasF('n')) out.sort((a,b)=>parseFloat(a)-parseFloat(b)); else out.sort(); if(hasF('r')) out.reverse(); return out; }
+      case 'uniq': { const out=[]; let prev=null,run=0; const push=()=>{ if(prev!==null) out.push(hasF('c')?(String(run).padStart(4)+' '+prev):prev); }; lines.forEach(l=>{ if(l===prev){ run++; } else { push(); prev=l; run=1; } }); push(); return out; }
+      case 'nl': return lines.map((l,i)=>String(i+1).padStart(5)+'  '+l);
+      case 'rev': return lines.map(l=>l.split('').reverse().join(''));
+      case 'tac': return lines.slice().reverse();
+      case 'cat': return lines;
+      default: return this._captureRun(stageLine);   // unknown stage: treat as a fresh source
+    }
+  }
+  runCommand(raw, opts){
+    opts=opts||{};
     const line=(raw||'').trim();
     if(!line){ return; }
-    if(line && line[0]!=='!'){ if(!this._cmdHistory) this._cmdHistory=[]; this._cmdHistory.push(line); if(this._cmdHistory.length>50) this._cmdHistory.shift(); this._saveHistory(); }
-    if(this.state.cliMode) this.echo(line);
+    if(!opts.silent){
+      if(line[0]!=='!'){ if(!this._cmdHistory) this._cmdHistory=[]; this._cmdHistory.push(line); if(this._cmdHistory.length>50) this._cmdHistory.shift(); this._saveHistory(); }
+      if(this.state.cliMode) this.echo(line);
+      // real pipes:  grep foo | wc -l  ,  cat *.txt | grep x | sort | uniq
+      if(line.indexOf('|')>=0 && !/(>>|>)\s*\S/.test(line)){
+        const stages=line.split('|').map(s=>s.trim()).filter(Boolean);
+        if(stages.length>1){ this._runPipeline(stages); return; }
+      }
+    }
     const parts=line.split(/\s+/);
     const cmd=parts[0].toLowerCase();
     const arg=parts.slice(1).join(' ');
@@ -1096,6 +1146,7 @@ export default class Engine {
     '  6502              launch the CPU VM   ( in CLI:  6502 help )',
     '  viz · mail · resume · go <github|linkedin> · copy <email>',
     '  sysinfo · theme <amber|green|white> · man <cmd> · cli / gui',
+    '  pipes:  grep foo | wc -l  ·  ls | sort  ·  cat *.txt | head 5',
     '  keys:  ↑ / ↓  recall history      Tab  completes commands & files',
     '  psst: there may be an easter egg or two hidden around, especially in here.',
   ]; }
