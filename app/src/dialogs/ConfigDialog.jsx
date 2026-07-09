@@ -150,6 +150,12 @@ export default function ConfigDialog({ v }) {
                 <div className="flex gap-x-[11px] gap-y-[6px] items-baseline flex-wrap">
                   <span className="whitespace-nowrap">Matrix colour:</span>{Radio(v.matrixColors)}
                 </div>
+                <div className="flex gap-x-2 gap-y-[6px] items-center flex-wrap mt-2">
+                  <span className="whitespace-nowrap">Pipes busyness:</span>
+                  <select className="nc-sel" value={v.pipeBusy} onClick={(e) => e.stopPropagation()} onChange={(e) => v.setPipeBusy(e.target.value)}>
+                    {v.pipeBusyOpts.map((o, j) => <option key={j} value={o.v}>{o.label}</option>)}
+                  </select>
+                </div>
                 <div className="flex gap-x-[11px] gap-y-[6px] items-baseline flex-wrap mt-2">
                   <span className="whitespace-nowrap">Star colour:</span>{Radio(v.starColors)}
                 </div>

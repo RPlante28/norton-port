@@ -72,7 +72,7 @@ function CanvasSaver({ mode, speed, cfg }) {
     let tick;
     if (mode === 'stars') tick = starsMode(ctx, w, h, sp, cfg);
     else if (mode === 'matrix') tick = matrixMode(ctx, w, h, sp, cfg);
-    else tick = pipesMode(ctx, w, h, sp);
+    else tick = pipesMode(ctx, w, h, sp, cfg);
 
     const loop = (t) => {
       if (!last) last = t;
@@ -157,9 +157,13 @@ function matrixMode(ctx, w, h, sp, cfg) {
 // with spherical ball-joints at every start and turn, confined to the box, that
 // grow, cross over one another, occasionally finish (a new pipe then begins), and
 // reset once the screen fills.
-function pipesMode(ctx, w, h, sp) {
+function pipesMode(ctx, w, h, sp, cfg) {
   const PC = ['#54fcfc', '#fcfc54', '#fc7cf0', '#54fc7c', '#7ca8fc', '#fca85c', '#c07cfc', '#7cfcb0'];
   const grid = 24, seg = 10, half = grid / 2;    // seg = pipe thickness, so joints (radius ~half) read bigger
+  // one "busy" knob sets how many pipes grow at once AND how gently each layer
+  // fades, so busier = denser build-up before the back recedes
+  const busy = (cfg && cfg.pipes && cfg.pipes.busy) || 'normal';
+  const BZ = { calm: { count: 2, fade: 0.20 }, normal: { count: 4, fade: 0.10 }, busy: { count: 7, fade: 0.06 }, frantic: { count: 11, fade: 0.035 } }[busy] || { count: 4, fade: 0.10 };
   const cols = () => Math.floor(w() / grid), rows = () => Math.floor(h() / grid);
   const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1];
   const inb = (x, y) => x >= 0 && y >= 0 && x < cols() && y < rows();
@@ -185,7 +189,7 @@ function pipesMode(ctx, w, h, sp) {
     pipes.push({ cx: x, cy: y, dir, color, len: 0, maxLen: 16 + (Math.random() * 48 | 0) });   // each pipe grows a random, sensible length
   }
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w(), h());
-  for (let i = 0; i < 4; i++) spawn();
+  for (let i = 0; i < BZ.count; i++) spawn();
 
   return (dt) => {
     acc += 11 * sp * dt;                           // cells/sec per pipe (calm; slowest setting is very gentle)
@@ -211,6 +215,6 @@ function pipesMode(ctx, w, h, sp) {
     // progressively dim the older layers so each new pipe sits brighter over the
     // ones receding into the background; clear occupancy so pipes cross fresh over them
     fadeAcc += dt;
-    if (fadeAcc > 1.1) { fadeAcc = 0; ctx.fillStyle = 'rgba(0,0,0,0.10)'; ctx.fillRect(0, 0, w(), h()); occ.clear(); }
+    if (fadeAcc > 1.1) { fadeAcc = 0; ctx.fillStyle = 'rgba(0,0,0,' + BZ.fade + ')'; ctx.fillRect(0, 0, w(), h()); occ.clear(); }
   };
 }

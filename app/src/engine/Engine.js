@@ -181,7 +181,8 @@ export default class Engine {
     speed:{ logo:1, stars:1, matrix:1, pipes:1 },       // per-mode multiplier
     matrixColor:'green',                                 // green|amber|cyan|rainbow
     starColor:'white',                                   // white|cyan|amber|green|rainbow
-    stars:{ shooting:true }
+    stars:{ shooting:true },
+    pipes:{ busy:'normal' }                              // busy: how many pipes grow at once
   }; }
   // ----- monitor phosphor theme (blue default, or amber / green / white) -----
   setTheme(name){ this.cfg.theme=name; this._saveCfg(); this._applyTheme(); this.forceUpdate(); }
@@ -193,7 +194,7 @@ export default class Engine {
     }catch(e){}
   }
   _loadCfg(){ const d=this._cfgDefaults(); try{ const r=localStorage.getItem('rohanCfg'); if(r){ const o=JSON.parse(r); if(o&&typeof o==='object'){ const sv=o.saver; const merged=Object.assign(d, o); // deep-merge the nested saver object so new keys keep their defaults
-        merged.saver=Object.assign({}, d.saver, sv||{}, { modes:Object.assign({}, d.saver.modes, (sv&&sv.modes)||{}), speed:Object.assign({}, d.saver.speed, (sv&&sv.speed)||{}), stars:Object.assign({}, d.saver.stars, (sv&&sv.stars)||{}) }); return merged; } } }catch(e){} return d; }
+        merged.saver=Object.assign({}, d.saver, sv||{}, { modes:Object.assign({}, d.saver.modes, (sv&&sv.modes)||{}), speed:Object.assign({}, d.saver.speed, (sv&&sv.speed)||{}), stars:Object.assign({}, d.saver.stars, (sv&&sv.stars)||{}), pipes:Object.assign({}, d.saver.pipes, (sv&&sv.pipes)||{}) }); return merged; } } }catch(e){} return d; }
   // ----- screensaver configuration -----
   setMotion(m){ this.cfg.motion=m; this._saveCfg(); if(m==='reduced' && this.state.saver) this.setState({ saver:false }); this.forceUpdate(); }
   toggleSaver(){ this.cfg.saver.enabled=!this.cfg.saver.enabled; if(!this.cfg.saver.enabled && this.state.saver) this.setState({ saver:false }); this._saveCfg(); this.forceUpdate(); }
@@ -202,6 +203,7 @@ export default class Engine {
   setSaverSpeed(k, v){ this.cfg.saver.speed[k]=v; this._saveCfg(); this.forceUpdate(); }
   setMatrixColor(c){ this.cfg.saver.matrixColor=c; this._saveCfg(); this.forceUpdate(); }
   setStarColor(c){ this.cfg.saver.starColor=c; this._saveCfg(); this.forceUpdate(); }
+  setPipeOpt(k, v){ this.cfg.saver.pipes[k]=v; this._saveCfg(); this.forceUpdate(); }
   toggleStarOpt(k){ const s=this.cfg.saver.stars; s[k]=!s[k]; this._saveCfg(); this.forceUpdate(); }
   _enabledSaverModes(){ const m=this.cfg.saver.modes||{}; return Object.keys(m).filter(k=>m[k]); }
   _speedLabel(v){ if(v<=0.4) return 'slowest'; if(v<=0.7) return 'slow'; if(v<1.2) return 'normal'; if(v<1.8) return 'fast'; return 'fastest'; }
@@ -2007,6 +2009,9 @@ export default class Engine {
       matrixColors: [ {id:'green',name:'green'},{id:'amber',name:'amber'},{id:'cyan',name:'cyan'},{id:'rainbow',name:'rainbow'} ].map(p=>{ const sel=(this.cfg.saver.matrixColor||'green')===p.id; return { name:p.name, mark: sel?'(o) ':'( ) ', color: sel?'#0000a8':'#06457a', weight: sel?'700':'400', onClick:()=>this.setMatrixColor(p.id) }; }),
       starColors: [ {id:'white',name:'white'},{id:'cyan',name:'cyan'},{id:'amber',name:'amber'},{id:'green',name:'green'},{id:'rainbow',name:'rainbow'} ].map(p=>{ const sel=(this.cfg.saver.starColor||'white')===p.id; return { name:p.name, mark: sel?'(o) ':'( ) ', color: sel?'#0000a8':'#06457a', weight: sel?'700':'400', onClick:()=>this.setStarColor(p.id) }; }),
       starOpts: [ {k:'shooting',label:'Shooting stars'} ].map(o=>{ const on=!!this.cfg.saver.stars[o.k]; return { key:o.k, label:o.label, box:on?'[x]':'[ ]', boxColor:on?'#0000a8':'#06457a', on, onClick:()=>this.toggleStarOpt(o.k) }; }),
+      pipeBusyOpts: [ {v:'calm',label:'calm'},{v:'normal',label:'normal'},{v:'busy',label:'busy'},{v:'frantic',label:'frantic'} ],
+      pipeBusy: this.cfg.saver.pipes.busy,
+      setPipeBusy:(v)=>this.setPipeOpt('busy', v),
       saverTimeouts: [15,30,60,120,300,600].map(s=>({ label:this._timeoutLabel(s), sel:this.cfg.saver.timeout===s, color:this.cfg.saver.timeout===s?'#0000a8':'#06457a', weight:this.cfg.saver.timeout===s?'700':'400', onClick:()=>this.setSaverTimeout(s) })),
       // mobile: draggable split between the file browser and the info pane
       navPct: this.state.navPct||52,
