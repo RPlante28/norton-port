@@ -263,7 +263,9 @@ export default class Engine {
   _mkSlider(setter, min, max){
     const apply=(e, preview)=>{ const bar=e.currentTarget; if(!bar) return; const r=bar.getBoundingClientRect(); if(r.width<=0) return; const frac=Math.max(0, Math.min(1, (e.clientX-r.left)/r.width)); setter(min+frac*(max-min), preview); };
     return {
-      down:(e)=>{ this._sliding=true; apply(e, false); },
+      // pointer events so mouse and touch both work; capture keeps the drag
+      // tracking even when the finger slides off the thin bar
+      down:(e)=>{ this._sliding=true; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){ } if(e.preventDefault) e.preventDefault(); apply(e, false); },
       move:(e)=>{ if(this._sliding) apply(e, false); },
       up:(e)=>{ if(this._sliding){ this._sliding=false; apply(e, true); } },
     };

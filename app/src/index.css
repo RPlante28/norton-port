@@ -137,7 +137,7 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
   .nc-panels { display: flex; flex-direction: column; }
   /* file browser -> bottom; never shrink below the header + a row or two + the
      status line, so collapsing it can't squeeze the command line / F-keys */
-  .nc-panels > *:nth-child(1) { order: 3; flex: 0 0 var(--navPct, 52%); min-height: 128px; }
+  .nc-panels > *:nth-child(1) { order: 3; flex: 0 0 var(--navPct, 52%); min-height: 104px; }
   .nc-panels > *:nth-child(3) { order: 1; flex: 1 1 0; min-height: 0; }                    /* info pane -> top */
   .nc-navgrip {
     order: 2; display: flex; align-items: center; justify-content: space-between;

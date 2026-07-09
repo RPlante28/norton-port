@@ -5,7 +5,7 @@ import { useState } from 'react';
 // values (opacity, chosen colors/weights) come from the engine; layout is Tailwind.
 export default function ConfigDialog({ v }) {
   const [tab, setTab] = useState('panels');
-  const bar = 'flex shrink-0 cursor-ew-resize select-none text-dos-blue text-[15px] leading-none';
+  const bar = 'flex shrink-0 cursor-ew-resize select-none touch-none py-1 text-dos-blue text-[15px] leading-none';
   const seg = 'px-[0.5px] pointer-events-none';
   const val = 'text-[#06457a] whitespace-nowrap text-[12px]';
 
@@ -24,7 +24,7 @@ export default function ConfigDialog({ v }) {
   const Slider = (b, segs, label, w) => (
     <div className="flex gap-[9px] items-center mt-1">
       {w && <span className="whitespace-nowrap shrink-0" style={{ width: w }}>{label}</span>}
-      <span className={bar} onMouseDown={b.down} onMouseMove={b.move} onMouseUp={b.up} onMouseLeave={b.up}>
+      <span className={bar} onPointerDown={b.down} onPointerMove={b.move} onPointerUp={b.up} onPointerCancel={b.up}>
         {segs.map((s, i) => <span key={i} className={seg}>{s.ch}</span>)}
       </span>
     </div>
@@ -62,7 +62,7 @@ export default function ConfigDialog({ v }) {
               {byKey(['crt']).map(Toggle)}
               <div className="flex gap-[9px] items-center mt-1" style={{ opacity: v.crtOpacity }}>
                 <span className="whitespace-nowrap w-[148px] shrink-0">CRT line intensity</span>
-                <span className={bar} onMouseDown={v.crtBar.down} onMouseMove={v.crtBar.move} onMouseUp={v.crtBar.up} onMouseLeave={v.crtBar.up}>
+                <span className={bar} onPointerDown={v.crtBar.down} onPointerMove={v.crtBar.move} onPointerUp={v.crtBar.up} onPointerCancel={v.crtBar.up}>
                   {v.crtSegs.map((s, i) => <span key={i} className={seg}>{s.ch}</span>)}
                 </span>
                 <span className={val}>{v.crtPct}</span>
@@ -88,10 +88,10 @@ export default function ConfigDialog({ v }) {
               {v.kbAdv && (
                 <div className="mt-[3px] mb-0.5 ml-3.5" style={{ opacity: v.soundOpacity }}>
                   <div className="flex gap-[9px] items-center mt-1"><span className="whitespace-nowrap w-[92px] shrink-0">Pitch</span>
-                    <span className={bar} onMouseDown={v.pitchBar.down} onMouseMove={v.pitchBar.move} onMouseUp={v.pitchBar.up} onMouseLeave={v.pitchBar.up}>{v.pitchSegs.map((s, i) => <span key={i} className={seg}>{s.ch}</span>)}</span>
+                    <span className={bar} onPointerDown={v.pitchBar.down} onPointerMove={v.pitchBar.move} onPointerUp={v.pitchBar.up} onPointerCancel={v.pitchBar.up}>{v.pitchSegs.map((s, i) => <span key={i} className={seg}>{s.ch}</span>)}</span>
                     <span className={val}>{v.pitchLabel}</span></div>
                   <div className="flex gap-[9px] items-center mt-[5px]"><span className="whitespace-nowrap w-[92px] shrink-0">Clickiness</span>
-                    <span className={bar} onMouseDown={v.clickBar.down} onMouseMove={v.clickBar.move} onMouseUp={v.clickBar.up} onMouseLeave={v.clickBar.up}>{v.clickSegs.map((s, i) => <span key={i} className={seg}>{s.ch}</span>)}</span>
+                    <span className={bar} onPointerDown={v.clickBar.down} onPointerMove={v.clickBar.move} onPointerUp={v.clickBar.up} onPointerCancel={v.clickBar.up}>{v.clickSegs.map((s, i) => <span key={i} className={seg}>{s.ch}</span>)}</span>
                     <span className={val}>{v.clickLabel}</span></div>
                 </div>
               )}
@@ -105,10 +105,10 @@ export default function ConfigDialog({ v }) {
               {v.mouseAdv && (
                 <div className="mt-[3px] mb-0.5 ml-3.5">
                   <div className="flex gap-[9px] items-center mt-1"><span className="whitespace-nowrap w-[92px] shrink-0">Pitch</span>
-                    <span className={bar} onMouseDown={v.mPitchBar.down} onMouseMove={v.mPitchBar.move} onMouseUp={v.mPitchBar.up} onMouseLeave={v.mPitchBar.up}>{v.mPitchSegs.map((s, i) => <span key={i} className={seg}>{s.ch}</span>)}</span>
+                    <span className={bar} onPointerDown={v.mPitchBar.down} onPointerMove={v.mPitchBar.move} onPointerUp={v.mPitchBar.up} onPointerCancel={v.mPitchBar.up}>{v.mPitchSegs.map((s, i) => <span key={i} className={seg}>{s.ch}</span>)}</span>
                     <span className={val}>{v.mPitchLabel}</span></div>
                   <div className="flex gap-[9px] items-center mt-[5px]"><span className="whitespace-nowrap w-[92px] shrink-0">Clickiness</span>
-                    <span className={bar} onMouseDown={v.mClickBar.down} onMouseMove={v.mClickBar.move} onMouseUp={v.mClickBar.up} onMouseLeave={v.mClickBar.up}>{v.mClickSegs.map((s, i) => <span key={i} className={seg}>{s.ch}</span>)}</span>
+                    <span className={bar} onPointerDown={v.mClickBar.down} onPointerMove={v.mClickBar.move} onPointerUp={v.mClickBar.up} onPointerCancel={v.mClickBar.up}>{v.mClickSegs.map((s, i) => <span key={i} className={seg}>{s.ch}</span>)}</span>
                     <span className={val}>{v.mClickLabel}</span></div>
                 </div>
               )}
