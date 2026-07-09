@@ -80,8 +80,12 @@ try {
   console.log(`\n  connected to ${host} as ${user}`);
   console.log(`  uploading ${totalFiles} files in ${dirs.size} folder(s) (${human(totalBytes)}) -> ${path}\n`);
 
-  await client.ensureDir(path);
+  // "." / "" / "/" mean: upload straight into the FTP login directory (don't
+  // create a sub-folder). Otherwise ensureDir into it (absolute paths work too).
+  const useLogin = !path || path === '.' || path === './' || path === '/';
+  if (!useLogin) await client.ensureDir(path);
   const base = await client.pwd();
+  console.log(`  target directory on server: ${base}\n`);
 
   let done = 0, bytesDone = 0;
   bar(0, 0, '');
