@@ -162,7 +162,14 @@ export default class Engine {
     this._moveCursor(this._cliCurs, el);
   }
   // ----- persisted configuration (all settings remembered across visits) -----
-  _cfgDefaults(){ return { hidden:false, ins:true, autodir:true, automenu:false, mini:true, crt:false, crtIntensity:0.22, keysound:true, soundProfile:'thock', pitch:1.0, click:0.6, bootSound:true, clickProfile:'tick', mousePitch:1.0, mouseClick:0.6, theme:'blue' }; }
+  _cfgDefaults(){ return { hidden:false, ins:true, autodir:true, automenu:false, mini:true, crt:false, crtIntensity:0.22, keysound:true, soundProfile:'thock', pitch:1.0, click:0.6, bootSound:true, clickProfile:'tick', mousePitch:1.0, mouseClick:0.6, theme:'blue', motion:'auto', saver:this._saverDefaults() }; }
+  _saverDefaults(){ return {
+    enabled:true, timeout:60,
+    modes:{ logo:true, stars:true, matrix:true, pipes:true },
+    speed:{ logo:1, stars:1, matrix:1, pipes:1 },       // per-mode multiplier
+    matrixColor:'green',                                 // green|amber|cyan|rainbow
+    stars:{ shooting:true, asteroids:true, galaxies:true, planets:true }
+  }; }
   // ----- monitor phosphor theme (blue default, or amber / green / white) -----
   setTheme(name){ this.cfg.theme=name; this._saveCfg(); this._applyTheme(); this.forceUpdate(); }
   _applyTheme(){
@@ -172,7 +179,19 @@ export default class Engine {
       if(this._tint){ const bg={ amber:'#ffb400', green:'#3bff70' }[t]||''; this._tint.style.background=bg; this._tint.style.display=bg?'block':'none'; }
     }catch(e){}
   }
-  _loadCfg(){ const d=this._cfgDefaults(); try{ const r=localStorage.getItem('rohanCfg'); if(r){ const o=JSON.parse(r); if(o&&typeof o==='object') return Object.assign(d, o); } }catch(e){} return d; }
+  _loadCfg(){ const d=this._cfgDefaults(); try{ const r=localStorage.getItem('rohanCfg'); if(r){ const o=JSON.parse(r); if(o&&typeof o==='object'){ const sv=o.saver; const merged=Object.assign(d, o); // deep-merge the nested saver object so new keys keep their defaults
+        merged.saver=Object.assign({}, d.saver, sv||{}, { modes:Object.assign({}, d.saver.modes, (sv&&sv.modes)||{}), speed:Object.assign({}, d.saver.speed, (sv&&sv.speed)||{}), stars:Object.assign({}, d.saver.stars, (sv&&sv.stars)||{}) }); return merged; } } }catch(e){} return d; }
+  // ----- screensaver configuration -----
+  setMotion(m){ this.cfg.motion=m; this._saveCfg(); if(m==='reduced' && this.state.saver) this.setState({ saver:false }); this.forceUpdate(); }
+  toggleSaver(){ this.cfg.saver.enabled=!this.cfg.saver.enabled; if(!this.cfg.saver.enabled && this.state.saver) this.setState({ saver:false }); this._saveCfg(); this.forceUpdate(); }
+  setSaverTimeout(sec){ this.cfg.saver.timeout=Math.max(10, Math.min(1800, Math.round(sec))); this._saveCfg(); this.forceUpdate(); }
+  toggleSaverMode(k){ const m=this.cfg.saver.modes; m[k]=!m[k]; this._saveCfg(); this.forceUpdate(); }
+  cycleSaverSpeed(k){ const order=[0.4,0.7,1,1.5,2.2]; const cur=this.cfg.saver.speed[k]||1; let i=order.findIndex(x=>Math.abs(x-cur)<0.01); i=(i+1)%order.length; this.cfg.saver.speed[k]=order[i]; this._saveCfg(); this.forceUpdate(); }
+  setMatrixColor(c){ this.cfg.saver.matrixColor=c; this._saveCfg(); this.forceUpdate(); }
+  toggleStarOpt(k){ const s=this.cfg.saver.stars; s[k]=!s[k]; this._saveCfg(); this.forceUpdate(); }
+  _enabledSaverModes(){ const m=this.cfg.saver.modes||{}; return Object.keys(m).filter(k=>m[k]); }
+  _speedLabel(v){ if(v<=0.4) return 'slowest'; if(v<=0.7) return 'slow'; if(v<1.2) return 'normal'; if(v<1.8) return 'fast'; return 'fastest'; }
+  _timeoutLabel(s){ return s<60 ? (s+'s') : (s%60===0 ? (s/60+'m') : (Math.floor(s/60)+'m '+(s%60)+'s')); }
   _saveCfg(){ try{ localStorage.setItem('rohanCfg', JSON.stringify(this.cfg)); }catch(e){} }
   // The second arg `preview` plays the sample sound. It's true on a click or
   // at the end of a drag, and false during a drag (so it doesn't machine-gun).
@@ -1111,7 +1130,7 @@ export default class Engine {
     if(cmd==='matrix'){ if(this._reduceMotion()){ this.out(['(reduced motion is on - the matrix rain is disabled)']); return; } this.say('wake up, Neo...'); this._startSaver('matrix'); return; }
     if(cmd==='starfield' || cmd==='stars' || cmd==='warp'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('engaging warp …'); this._startSaver('stars'); return; }
     if(cmd==='pipes'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('laying pipe …'); this._startSaver('pipes'); return; }
-    if(cmd==='screensaver' || cmd==='saver' || cmd==='ss'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } const M=['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0]); return; }
+    if(cmd==='screensaver' || cmd==='saver' || cmd==='ss'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } const en=this._enabledSaverModes(); const M=en.length?en:['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0]); return; }
     if(cmd==='date' || cmd==='time'){ this.out([new Date().toString()]); return; }
     if(cmd==='ver' || cmd==='version'){ this.out(['ROHAN-DOS 5.51 - Portfolio Commander - (c) MMXXVI']); return; }
     if(cmd==='hire' || cmd==='hireme' || (cmd==='hire'&&arg==='me')){ this.out(['> Rohan is open to internships & new-grad SWE roles.', '  resume: F4   \u00b7   mail: type  mail    \u00b7   github: go github']); return; }
@@ -1362,7 +1381,7 @@ export default class Engine {
   }
 
   // ===== project ASCII visualizations (animated heroes) =====
-  _reduceMotion(){ try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; } }
+  _reduceMotion(){ const m=this.cfg&&this.cfg.motion; if(m==='reduced') return true; if(m==='full') return false; try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; } }
   // ----- visitor counter (counter.php when deployed; localStorage fallback) -----
   _fetchHits(){
     const set=(n)=>{ if(typeof n==='number' && !isNaN(n)){ this._hits=n; this.forceUpdate(); } };
@@ -1592,7 +1611,7 @@ export default class Engine {
     // handlers call _bootSound() to resume it then. (Browser autoplay policy.)
     // idle screensaver: after ~60s with no input, drift the logo DVD-style
     this._lastActivity=Date.now();
-    this._idleTimer=setInterval(()=>{ if(!this.state.saver && !this.state.booting && !this._reduceMotion() && (Date.now()-this._lastActivity)>60000){ const M=['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0]); } }, 1000);
+    this._idleTimer=setInterval(()=>{ const sv=this.cfg.saver||{}; if(!sv.enabled || this.state.saver || this.state.booting || this._reduceMotion()) return; const to=(sv.timeout||60)*1000; if(Date.now()-this._lastActivity>to){ const en=this._enabledSaverModes(); if(en.length) this._startSaver(en[(Math.random()*en.length)|0]); } }, 1000);
     this._fetchHits();
     this._bootStep();
   }
@@ -1897,6 +1916,18 @@ export default class Engine {
       resetCfg: ()=>this.resetCfg(),
       saver: !!this.state.saver,
       saverMode: this.state.saverMode||null,
+      saverCfg: this.cfg.saver,
+      // ----- Configuration dialog: Display / Screensaver sections -----
+      motionOpts: [ {id:'auto',name:'auto'},{id:'full',name:'full'},{id:'reduced',name:'reduced'} ].map(p=>{ const sel=(this.cfg.motion||'auto')===p.id; return { name:p.name, mark: sel?'(o) ':'( ) ', color: sel?'#0000a8':'#06457a', weight: sel?'700':'400', onClick:()=>this.setMotion(p.id) }; }),
+      saverEnabled: !!this.cfg.saver.enabled,
+      saverEnabledBox: this.cfg.saver.enabled?'[x]':'[ ]',
+      saverToggle: ()=>this.toggleSaver(),
+      saverOpacity: this.cfg.saver.enabled?1:0.4,
+      saverModes: [ {k:'logo',label:'Bouncing logo'},{k:'stars',label:'Starfield'},{k:'matrix',label:'Matrix rain'},{k:'pipes',label:'Pipes'} ].map(m=>{ const on=!!this.cfg.saver.modes[m.k]; return { key:m.k, label:m.label, box:on?'[x]':'[ ]', boxColor:on?'#0000a8':'#06457a', on, onClick:()=>this.toggleSaverMode(m.k) }; }),
+      saverSpeeds: [ {k:'logo',label:'Logo'},{k:'stars',label:'Stars'},{k:'matrix',label:'Matrix'},{k:'pipes',label:'Pipes'} ].map(m=>{ const v=this.cfg.saver.speed[m.k]||1; return { key:m.k, label:m.label, speedLabel:this._speedLabel(v), onClick:()=>this.cycleSaverSpeed(m.k) }; }),
+      matrixColors: [ {id:'green',name:'green'},{id:'amber',name:'amber'},{id:'cyan',name:'cyan'},{id:'rainbow',name:'rainbow'} ].map(p=>{ const sel=(this.cfg.saver.matrixColor||'green')===p.id; return { name:p.name, mark: sel?'(o) ':'( ) ', color: sel?'#0000a8':'#06457a', weight: sel?'700':'400', onClick:()=>this.setMatrixColor(p.id) }; }),
+      starOpts: [ {k:'shooting',label:'Shooting stars'},{k:'asteroids',label:'Asteroids'},{k:'galaxies',label:'Galaxies'},{k:'planets',label:'Planets'} ].map(o=>{ const on=!!this.cfg.saver.stars[o.k]; return { key:o.k, label:o.label, box:on?'[x]':'[ ]', boxColor:on?'#0000a8':'#06457a', on, onClick:()=>this.toggleStarOpt(o.k) }; }),
+      saverTimeouts: [15,30,60,120,300,600].map(s=>({ label:this._timeoutLabel(s), sel:this.cfg.saver.timeout===s, color:this.cfg.saver.timeout===s?'#0000a8':'#06457a', weight:this.cfg.saver.timeout===s?'700':'400', onClick:()=>this.setSaverTimeout(s) })),
       hitLabel: (this._hits!=null) ? ('VISITOR '+String(this._hits).padStart(6,'0')) : '',
       stop: (e)=>{ if(e&&e.stopPropagation) e.stopPropagation(); },
       cfgRows: [
@@ -1908,7 +1939,7 @@ export default class Engine {
         { k:'keysound',label:'Keyboard click sound',     on:this.cfg.keysound },
         { k:'bootSound',label:'Startup sound',          on:this.cfg.bootSound },
         { k:'crt',     label:'CRT scanlines',          on:this.cfg.crt },
-      ].map(r=>({ label:r.label, box: r.on?'[x]':'[ ]', boxColor: r.on?'#0000a8':'#06457a', onClick:()=>this.toggleCfg(r.k) })),
+      ].map(r=>({ k:r.k, label:r.label, on:r.on, box: r.on?'[x]':'[ ]', boxColor: r.on?'#0000a8':'#06457a', onClick:()=>this.toggleCfg(r.k) })),
       soundOpacity: this.cfg.keysound ? 1 : 0.4,
       themes: [
         { id:'blue', name:'blue' }, { id:'amber', name:'amber' }, { id:'green', name:'green' }, { id:'white', name:'white' },
