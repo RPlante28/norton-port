@@ -4,3 +4,6 @@ site.zip
 .DS_Store
 *.local
 .vite
+
+# local deploy secrets
+deploy.json

@@ -1,0 +1,8 @@
+{
+  "host": "your-server.hostgator.com",
+  "user": "api8x0g7vhe7",
+  "path": "public_html",
+  "port": 22,
+  "key": "~/.ssh/rohanplante_deploy",
+  "delete": false
+}

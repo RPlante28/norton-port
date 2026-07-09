@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "pack": "node scripts/pack.mjs",
-    "deploy": "vite build && node scripts/pack.mjs"
+    "deploy": "vite build && node scripts/deploy-ssh.mjs",
+    "deploy:zip": "vite build && node scripts/pack.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
