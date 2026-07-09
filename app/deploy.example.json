@@ -1,5 +1,15 @@
 {
-  "host": "your-server.hostgator.com",
+  "_note": "Copy to deploy.json (git-ignored) and fill in ONE of the blocks below.",
+
+  "ftp": {
+    "host": "rohanplante.com",
+    "user": "deploy@rohanplante.com",
+    "password": "your-ftp-account-password",
+    "path": "public_html",
+    "secure": true
+  },
+
+  "host": "rohanplante.com",
   "user": "api8x0g7vhe7",
   "path": "public_html",
   "port": 22,
