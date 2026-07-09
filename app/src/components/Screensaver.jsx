@@ -164,42 +164,57 @@ function matrixMode(ctx, w, h, sp, cfg) {
   };
 }
 
-// ---- Windows-style pipes: several worms, varied speeds/depths, elbows + joints
+// ---- Blocky pipes: connected square tiles that grow from an edge, turn, branch
+// at junctions, and run to the ends of the screen (never a lone pop-in/out).
 function pipesMode(ctx, w, h, sp) {
   const PC = ['#54fcfc', '#fcfc54', '#fc7cf0', '#54fc7c', '#7ca8fc', '#fca85c'];
-  const G = 20, DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w(), h());
-  const worms = [];
-  function mkWorm(x, y, di, color, thick, speed) { return { gx: x, gy: y, dir: di, color, thick, speed, px: x * G + G / 2, py: y * G + G / 2, tx: x, ty: y, prog: 1 }; }
-  function seed() {
-    const gx = (Math.random() * (w() / G)) | 0, gy = (Math.random() * (h() / G)) | 0, depth = Math.random();
-    worms.push(mkWorm(gx, gy, (Math.random() * 4) | 0, PC[(Math.random() * PC.length) | 0], 4 + depth * 8, (2.2 + depth * 4.5) * sp));
+  const G = 18, DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+  const cols = () => Math.floor(w() / G), rows = () => Math.floor(h() / G);
+  ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, w(), h());
+  let heads = [], trail = [], drawn = 0, sinceReset = 0;
+
+  function cell(gx, gy, color) {          // one connected square with a little 3D shading
+    const x = gx * G, y = gy * G;
+    ctx.fillStyle = color; ctx.fillRect(x, y, G, G);
+    ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fillRect(x + 2, y + 2, G - 4, 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.30)'; ctx.fillRect(x + 2, y + G - 4, G - 4, 2);
   }
-  for (let i = 0; i < 3; i++) seed();
-  let sinceReset = 0;
-  function joint(wm, big) { ctx.fillStyle = wm.color; ctx.beginPath(); ctx.arc(wm.px, wm.py, wm.thick / 2 * (big ? 1.5 : 1), 0, 7); ctx.fill(); }
+  function newHead(gx, gy, dir, color) { return { gx, gy, dir, color, acc: 0, speed: (3 + Math.random() * 6) * sp }; }
+  function seedEdge() {                   // start on a screen edge, heading inward
+    const side = (Math.random() * 4) | 0, C = cols(), R = rows(); let gx, gy, dir;
+    if (side === 0) { gx = 0; gy = (Math.random() * R) | 0; dir = 0; }
+    else if (side === 1) { gx = C - 1; gy = (Math.random() * R) | 0; dir = 2; }
+    else if (side === 2) { gx = (Math.random() * C) | 0; gy = 0; dir = 1; }
+    else { gx = (Math.random() * C) | 0; gy = R - 1; dir = 3; }
+    heads.push(newHead(gx, gy, dir, PC[(Math.random() * PC.length) | 0]));
+  }
+  function branchFromTrail() {            // a new pipe grows out of an existing one (stays connected)
+    if (!trail.length) { seedEdge(); return; }
+    const c = trail[(Math.random() * trail.length) | 0];
+    heads.push(newHead(c.gx, c.gy, (Math.random() * 4) | 0, PC[(Math.random() * PC.length) | 0]));
+  }
+  seedEdge(); seedEdge();
 
   return (dt) => {
     sinceReset += dt;
-    for (let i = worms.length - 1; i >= 0; i--) {
-      const wm = worms[i];
-      wm.prog += wm.speed * dt;
-      let dead = false;
-      while (wm.prog >= 1) {
-        wm.prog -= 1; wm.gx = wm.tx; wm.gy = wm.ty; joint(wm, false);
-        let dir = wm.dir; const r = Math.random();
-        if (r < 0.22) dir = (wm.dir + 1) % 4; else if (r < 0.44) dir = (wm.dir + 3) % 4;
-        if (Math.random() < 0.05 && worms.length < 9) { joint(wm, true); const bd = (wm.dir + (Math.random() < 0.5 ? 1 : 3)) % 4; worms.push(mkWorm(wm.gx, wm.gy, bd, wm.color, Math.max(3, wm.thick * 0.7), wm.speed * (0.7 + Math.random() * 0.6))); }
-        const nx = wm.gx + DIRS[dir][0], ny = wm.gy + DIRS[dir][1];
-        if (nx < 0 || ny < 0 || nx * G > w() || ny * G > h()) { worms.splice(i, 1); if (worms.length < 4) seed(); dead = true; break; }
-        wm.dir = dir; wm.tx = nx; wm.ty = ny;
+    for (let i = heads.length - 1; i >= 0; i--) {
+      const hd = heads[i]; hd.acc += hd.speed * dt; let steps = 0, dead = false;
+      while (hd.acc >= 1 && steps < 4) {
+        hd.acc -= 1; steps++;
+        cell(hd.gx, hd.gy, hd.color); drawn++;
+        if (trail.length < 700) trail.push({ gx: hd.gx, gy: hd.gy }); else trail[(Math.random() * trail.length) | 0] = { gx: hd.gx, gy: hd.gy };
+        let dir = hd.dir; const r = Math.random();
+        if (r < 0.18) dir = (hd.dir + 1) % 4; else if (r < 0.36) dir = (hd.dir + 3) % 4;
+        if (Math.random() < 0.04 && heads.length < 7) { const bd = (hd.dir + (Math.random() < 0.5 ? 1 : 3)) % 4; heads.push(newHead(hd.gx, hd.gy, bd, hd.color)); }   // junction
+        const nx = hd.gx + DIRS[dir][0], ny = hd.gy + DIRS[dir][1];
+        if (nx < 0 || ny < 0 || nx >= cols() || ny >= rows()) {   // reached an edge: end here, sprout a connected branch
+          heads.splice(i, 1); if (heads.length < 3) branchFromTrail(); dead = true; break;
+        }
+        hd.dir = dir; hd.gx = nx; hd.gy = ny;
       }
       if (dead) continue;
-      const sx = wm.gx * G + G / 2, sy = wm.gy * G + G / 2, txp = wm.tx * G + G / 2, typ = wm.ty * G + G / 2;
-      wm.px = sx + (txp - sx) * wm.prog; wm.py = sy + (typ - sy) * wm.prog;
-      ctx.strokeStyle = wm.color; ctx.lineWidth = wm.thick; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(wm.px, wm.py); ctx.stroke();
     }
-    if (sinceReset > 26) { sinceReset = 0; ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, w(), h()); worms.length = 0; for (let i = 0; i < 3; i++) seed(); }
+    if (!heads.length) branchFromTrail();
+    if (sinceReset > 34 || drawn > cols() * rows() * 1.5) { sinceReset = 0; drawn = 0; ctx.fillStyle = 'rgba(5,6,10,0.9)'; ctx.fillRect(0, 0, w(), h()); trail = []; heads = []; seedEdge(); seedEdge(); }
   };
 }
