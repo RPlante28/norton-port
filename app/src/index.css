@@ -199,3 +199,35 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 
 /* clickable rows in the folder-preview pane */
 .nc-dprow:hover { background: #0030c8; }
+
+/* ---- print: Ctrl+P produces a clean one-page resume -------------- */
+.print-resume { display: none; }
+@media print {
+  /* hide the DOS UI, show only the resume */
+  body { overflow: visible !important; background: #fff !important; }
+  #root, .nc-mouse, .nc-crt-lines, .nc-crt-sweep { display: none !important; }
+  html.nc-blockcur, html.nc-blockcur * { cursor: auto !important; }
+  .print-resume {
+    display: block; position: absolute; inset: 0; margin: 0; padding: 0;
+    color: #111; background: #fff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 10.5pt; line-height: 1.34; -webkit-print-color-adjust: exact;
+  }
+  .print-resume .pr-head { text-align: center; border-bottom: 2px solid #111; padding-bottom: 6px; margin-bottom: 10px; }
+  .print-resume h1 { font-size: 22pt; letter-spacing: 0.06em; margin: 0 0 3px; font-weight: 700; }
+  .print-resume .pr-contact { font-size: 9pt; color: #333; }
+  .print-resume section { margin: 0 0 9px; }
+  .print-resume h2 {
+    font-size: 11pt; text-transform: uppercase; letter-spacing: 0.08em;
+    border-bottom: 1px solid #999; margin: 0 0 5px; padding-bottom: 1px; font-weight: 700;
+  }
+  .print-resume .pr-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+  .print-resume .pr-l { flex: 1; }
+  .print-resume .pr-r { white-space: nowrap; color: #333; font-size: 9pt; padding-top: 1px; }
+  .print-resume .pr-note { color: #444; font-size: 9.2pt; }
+  .print-resume .pr-list { margin: 0; padding-left: 15px; }
+  .print-resume .pr-list li { margin-bottom: 2.5px; }
+  .print-resume .pr-skills > div { margin-bottom: 2px; }
+  .print-resume .pr-foot { margin-top: 10px; text-align: center; font-size: 8.5pt; color: #666; }
+  @page { margin: 0.5in; }
+}
