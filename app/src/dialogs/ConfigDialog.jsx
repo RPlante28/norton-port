@@ -37,7 +37,7 @@ export default function ConfigDialog({ v }) {
       <div className="bg-dos-blue text-cyan text-center p-[3px] font-bold">Configuration</div>
 
       {/* clickable section tabs, styled like the dialog buttons; active = pressed */}
-      <div className="flex gap-2 px-2.5 pt-2.5">
+      <div className="flex justify-center gap-2 px-2.5 pt-3">
         {tabs.map(([id, label]) => (
           <span key={id} onClick={() => setTab(id)}
             className={'nc-dlgbtn px-3 py-[3px] text-[12.5px] ' + (tab === id ? 'nc-dlgbtn-on font-bold' : '')}>
@@ -46,7 +46,7 @@ export default function ConfigDialog({ v }) {
         ))}
       </div>
 
-      <div className="border-2 border-black m-2.5 min-h-[232px]">
+      <div className="m-2.5 min-h-[232px]" style={{ borderStyle: 'solid', borderWidth: '2px', borderColor: '#7a7a7a #ffffff #ffffff #7a7a7a' }}>
         <div className="px-4 py-3">
 
           {tab === 'panels' && (
