@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <style>
-    :root { --blue:#0000a8; --cyan:#54fcfc; --yellow:#fcfc54; --ink:#d4d8dc; --edge:#2f6fd0; --green:#54fc54; }
+    :root { --blue:#0000a8; --cyan:#54fcfc; --yellow:#fcfc54; --ink:#d4d8dc; --edge:#2f6fd0; --green:#3cf06a; }
     * { box-sizing:border-box; }
     html,body { min-height:100%; margin:0; }
     body {
@@ -32,19 +32,17 @@
       box-shadow:2px 2px 0 #00005a;
     }
     a.btn:hover { background:#fff; }
-    a.mini { color:var(--cyan); font-size:11.5px; text-decoration:none; border-bottom:1px dotted var(--edge); }
-    a.mini:hover { color:#fff; }
     .cursor { display:inline-block; width:9px; height:15px; background:var(--ink); vertical-align:-2px; animation:bl .9s steps(1) infinite; }
     @keyframes bl { 50% { opacity:0; } }
     .bar { margin-top:16px; border-top:1px solid var(--edge); padding-top:12px; }
     .game h2 { color:var(--cyan); font-size:12px; letter-spacing:.1em; margin:0 0 3px; }
-    pre#maze {
-      font-family:'DejaVu Sans Mono','Cascadia Mono','Consolas','Menlo','Liberation Mono',monospace;
-      font-size:13px; line-height:1.0; margin:9px 0 6px; white-space:pre;
+    .game .hint { color:#9fc0f0; font-size:12px; margin:0 0 8px; }
+    .game .hint b { color:var(--ink); font-weight:700; }
+    canvas#run {
+      display:block; width:100%; max-width:612px; height:auto;
+      border:1px solid var(--edge); background:rgba(0,0,20,0.28);
+      image-rendering:pixelated; touch-action:none; cursor:pointer;
     }
-    #mstatus { color:var(--ink); font-size:12px; min-height:16px; margin-bottom:6px; }
-    #mstatus b { color:var(--yellow); }
-    #mstatus .good { color:var(--green); }
     @media (prefers-reduced-motion: reduce) { .cursor { animation:none; } }
   </style>
 </head>
@@ -62,99 +60,267 @@
     <div class="meta">ERROR 404 · Bad command or file name</div>
     <p>The sector you requested isn't on this disk. It may have been moved, renamed, or it never existed in the first place.</p>
     <p class="dim">Abort, Retry, Fail? <span class="cursor"></span></p>
-    <a id="home" class="btn" href="/">◄ RETURN TO C:\ROHAN</a>
+    <a id="home" class="btn" href="/">&#9668; RETURN TO C:\ROHAN</a>
 
     <div class="bar game">
-      <h2>LOST SECTOR</h2>
-      <p class="dim" style="margin:0 0 4px">You've wandered off the disk. Steer with the <strong style="color:var(--ink)">arrow keys</strong> (or WASD) to the exit
-        <span style="color:var(--green)">&#8962;</span>, scooping up the scattered <span style="color:var(--yellow)">$</span> lost bytes along the way.</p>
-      <pre id="maze"></pre>
-      <div id="mstatus"></div>
-      <a id="newmaze" class="mini" href="#">&#8635; new maze</a>
+      <h2>DISK RUNNER</h2>
+      <p class="hint">While the disk spins down, take the read head for a run.
+        <b>SPACE</b> / <b>&#9650;</b> / tap to jump, <b>&#9660;</b> / hold-low to duck.
+        Clear the bad sectors and see how far you get.</p>
+      <canvas id="run" width="612" height="176" aria-label="endless runner mini-game"></canvas>
     </div>
   </div>
 
   <script>
     (function () {
-      var R = 8, C = 14, BYTES = 6;
-      var H = 2 * R + 1, W = 2 * C + 1;
-      var g, pr, pc, er, ec, bytes, trail, moves, got, won;
+      var cv = document.getElementById('run');
+      var ctx = cv.getContext('2d');
+      var W = 612, H = 176;                 // logical size
+      var dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+      cv.width = W * dpr; cv.height = H * dpr;
+      ctx.scale(dpr, dpr);
+      ctx.imageSmoothingEnabled = false;
+      ctx.textBaseline = 'top';
 
-      function gen() {
-        g = [];
-        for (var y = 0; y < H; y++) { g[y] = []; for (var x = 0; x < W; x++) g[y][x] = '#'; }
-        var vis = {}, stack = [[0, 0]];
-        vis['0,0'] = 1; g[1][1] = ' ';
-        while (stack.length) {
-          var cur = stack[stack.length - 1], r = cur[0], c = cur[1];
-          var opts = [[0, 1], [0, -1], [1, 0], [-1, 0]].filter(function (d) {
-            var nr = r + d[0], nc = c + d[1];
-            return nr >= 0 && nr < R && nc >= 0 && nc < C && !vis[nr + ',' + nc];
-          });
-          if (!opts.length) { stack.pop(); continue; }
-          var d = opts[(Math.random() * opts.length) | 0], nr = r + d[0], nc = c + d[1];
-          g[2 * r + 1 + d[0]][2 * c + 1 + d[1]] = ' ';
-          g[2 * nr + 1][2 * nc + 1] = ' ';
-          vis[nr + ',' + nc] = 1; stack.push([nr, nc]);
-        }
-        pr = 1; pc = 1; er = 2 * R - 1; ec = 2 * C - 1;
-        trail = {}; moves = 0; got = 0; won = false;
-        bytes = {}; var placed = 0, guard = 0;
-        while (placed < BYTES && guard++ < 400) {
-          var rr = (Math.random() * R) | 0, cc = (Math.random() * C) | 0, y = 2 * rr + 1, x = 2 * cc + 1;
-          var key = y + ',' + x;
-          if ((y === pr && x === pc) || (y === er && x === ec) || bytes[key]) continue;
-          bytes[key] = 1; placed++;
-        }
-        draw();
+      var COL = { cyan:'#54fcfc', yellow:'#fcfc54', ink:'#d4d8dc', green:'#3cf06a', edge:'#2f6fd0', dim:'#6f93d8' };
+      var groundY = H - 26;
+      var u = 3;                            // dino pixel unit
+      var DINO_X = 46;
+
+      // physics (units per second)
+      var GRAV = 2500, JUMP_V = 860;
+      var startSpeed = 320, maxSpeed = 780, accel = 14;   // px/s, +accel per second
+
+      var hi = 0;
+      try { hi = parseInt(localStorage.getItem('rohanRunHi') || '0', 10) || 0; } catch (e) {}
+
+      var state, speed, score, dino, obs, spawnT, pebbles, blink, legT, legFrame, wingT, wingFrame;
+
+      function reset() {
+        state = 'ready';
+        speed = startSpeed; score = 0;
+        dino = { y: 0, vy: 0, jumping: false, ducking: false };
+        obs = [];
+        spawnT = 0.9;
+        pebbles = [];
+        for (var i = 0; i < 26; i++) pebbles.push({ x: Math.random() * W, y: groundY + 4 + Math.random() * 14, s: 1 + (Math.random() * 2 | 0) });
+        blink = 0; legT = 0; legFrame = 0; wingT = 0; wingFrame = 0;
+      }
+      reset();
+
+      function start() { reset(); state = 'run'; }
+      function jump() {
+        if (!dino.jumping) { dino.vy = -JUMP_V; dino.jumping = true; dino.ducking = false; }
       }
 
-      function draw() {
-        var out = '';
-        for (var y = 0; y < H; y++) {
-          for (var x = 0; x < W; x++) {
-            var key = y + ',' + x;
-            if (x === pc && y === pr) out += '<span style="color:#fcfc54">&#9646;</span>';
-            else if (x === ec && y === er) out += '<span style="color:#54fc54">' + (won ? '&#9733;' : '&#8962;') + '</span>';
-            else if (bytes[key]) out += '<span style="color:#fcfc54">$</span>';
-            else if (g[y][x] === '#') out += '<span style="color:#3fb0d0">&#9608;</span>';
-            else if (trail[key]) out += '<span style="color:#2f6fd0">&#183;</span>';
-            else out += ' ';
-          }
-          out += '\n';
-        }
-        document.getElementById('maze').innerHTML = out;
-        var st = document.getElementById('mstatus');
-        if (won) {
-          st.innerHTML = got === BYTES
-            ? '<span class="good">&#9733; SECTOR FULLY RECOVERED</span> &#183; all <b>' + BYTES + '</b> bytes reclaimed in <b>' + moves + '</b> moves.'
-            : '<span class="good">you made it back</span> &#183; recovered <b>' + got + '/' + BYTES + '</b> bytes in <b>' + moves + '</b> moves.';
-        } else {
-          st.innerHTML = 'bytes <b>' + got + '/' + BYTES + '</b> &#183; moves <b>' + moves + '</b>';
-        }
+      // ---- input ------------------------------------------------------
+      function press() {
+        if (state === 'run') jump();
+        else start();
       }
-
-      function move(dy, dx) {
-        if (won) return;
-        if (g[pr + dy] && g[pr + dy][pc + dx] === ' ') {
-          trail[pr + ',' + pc] = 1;
-          pr += dy * 2; pc += dx * 2; moves++;
-          var key = pr + ',' + pc;
-          if (bytes[key]) { delete bytes[key]; got++; }
-          if (pr === er && pc === ec) won = true;
-          draw();
-        }
-      }
-
-      document.addEventListener('keydown', function (e) {
+      window.addEventListener('keydown', function (e) {
         var k = e.key;
-        if (k === 'ArrowUp' || k === 'w' || k === 'W') { move(-1, 0); e.preventDefault(); }
-        else if (k === 'ArrowDown' || k === 's' || k === 'S') { move(1, 0); e.preventDefault(); }
-        else if (k === 'ArrowLeft' || k === 'a' || k === 'A') { move(0, -1); e.preventDefault(); }
-        else if (k === 'ArrowRight' || k === 'd' || k === 'D') { move(0, 1); e.preventDefault(); }
+        if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') { press(); e.preventDefault(); }
+        else if (k === 'ArrowDown' || k === 's' || k === 'S') {
+          if (state === 'run') { dino.ducking = !dino.jumping; e.preventDefault(); }
+        }
       });
-      document.getElementById('newmaze').addEventListener('click', function (e) { e.preventDefault(); gen(); });
-      gen();
+      window.addEventListener('keyup', function (e) {
+        if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') dino.ducking = false;
+      });
+      // pointer: tap upper area = jump/start, hold lower area = duck
+      cv.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        var r = cv.getBoundingClientRect();
+        var py = (e.clientY - r.top) / r.height * H;
+        if (state === 'run' && py > H * 0.58) dino.ducking = !dino.jumping;
+        else press();
+      });
+      function endDuck() { dino.ducking = false; }
+      cv.addEventListener('pointerup', endDuck);
+      cv.addEventListener('pointercancel', endDuck);
+      cv.addEventListener('pointerleave', endDuck);
+
+      // ---- spawning ---------------------------------------------------
+      function spawn() {
+        var airOk = score > 180;
+        var type = (airOk && Math.random() < 0.32) ? 'air' : 'ground';
+        if (type === 'ground') {
+          var big = Math.random() < 0.4;
+          var w = big ? 34 : 20, h = big ? 42 : 30;
+          if (Math.random() < 0.25) { w += 16; }        // a wide double pillar
+          obs.push({ type: 'ground', x: W + 10, w: w, h: h });
+        } else {
+          // fly at a duck-height or a jump-height, randomly
+          var low = Math.random() < 0.5;
+          var cy = low ? groundY - 26 : groundY - 62;
+          obs.push({ type: 'air', x: W + 10, w: 30, h: 20, cy: cy });
+        }
+      }
+
+      // ---- collision --------------------------------------------------
+      function hit(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      }
+      function dinoBox() {
+        if (dino.ducking && !dino.jumping) {
+          return { x: DINO_X + 2, y: groundY - 12 * u + 6, w: 18 * u - 4, h: 12 * u - 6 };
+        }
+        return { x: DINO_X + 3, y: groundY - 20 * u + dino.y + 3, w: 13 * u, h: 20 * u - 6 };
+      }
+
+      // ---- update -----------------------------------------------------
+      function update(dt) {
+        if (state !== 'run') { blink += dt; return; }
+        speed = Math.min(maxSpeed, speed + accel * dt);
+        score += speed * dt * 0.028;
+
+        // dino vertical
+        dino.vy += GRAV * dt;
+        dino.y += dino.vy * dt;
+        if (dino.y >= 0) { dino.y = 0; dino.vy = 0; dino.jumping = false; }
+
+        // running legs / wing flap
+        legT += dt; if (legT > 0.09) { legT = 0; legFrame ^= 1; }
+        wingT += dt; if (wingT > 0.13) { wingT = 0; wingFrame ^= 1; }
+
+        // obstacles
+        for (var i = 0; i < obs.length; i++) obs[i].x -= speed * dt;
+        while (obs.length && obs[0].x + obs[0].w < -20) obs.shift();
+
+        spawnT -= dt;
+        if (spawnT <= 0) {
+          spawn();
+          var base = 0.85 + Math.random() * 0.9;
+          spawnT = base * (startSpeed / speed) + 0.25;   // more room as it speeds up
+        }
+
+        // pebbles parallax
+        for (var p = 0; p < pebbles.length; p++) {
+          pebbles[p].x -= speed * dt * 0.6;
+          if (pebbles[p].x < -4) { pebbles[p].x = W + Math.random() * 40; pebbles[p].y = groundY + 4 + Math.random() * 14; }
+        }
+
+        // collision
+        var db = dinoBox();
+        for (var c = 0; c < obs.length; c++) {
+          var o = obs[c];
+          var ob = o.type === 'air'
+            ? { x: o.x + 3, y: o.cy + 3, w: o.w - 6, h: o.h - 6 }
+            : { x: o.x + 3, y: groundY - o.h + 2, w: o.w - 6, h: o.h - 2 };
+          if (hit(db, ob)) {
+            state = 'over';
+            if ((score | 0) > hi) { hi = score | 0; try { localStorage.setItem('rohanRunHi', String(hi)); } catch (e) {} }
+          }
+        }
+      }
+
+      // ---- drawing ----------------------------------------------------
+      function px(x, y, w, h, color) { ctx.fillStyle = color; ctx.fillRect(x | 0, y | 0, w, h); }
+
+      function drawDino() {
+        var top = groundY - 20 * u + dino.y;
+        var x = DINO_X;
+        var C = COL.yellow;
+        if (dino.ducking && !dino.jumping) {
+          // crouched: long low body + head forward
+          var dt2 = groundY - 12 * u;
+          px(x, dt2 + 4 * u, 16 * u, 5 * u, C);            // body
+          px(x + 14 * u, dt2 + 3 * u, 6 * u, 6 * u, C);    // head
+          px(x, dt2 + 3 * u, 3 * u, 3 * u, C);             // tail stub
+          px(x + 17 * u, dt2 + 5 * u, 2 * u, 2 * u, COL.edge); // eye
+          // legs
+          var lf = legFrame;
+          px(x + 4 * u, dt2 + 9 * u, 3 * u, 3 * u, C);
+          px(x + 11 * u, dt2 + 9 * u, 3 * u, 3 * u, C);
+          void lf;
+          return;
+        }
+        // standing dino, built from blocks
+        px(x + 8 * u, top + 0 * u, 8 * u, 7 * u, C);        // head
+        px(x + 15 * u, top + 3 * u, 3 * u, 3 * u, C);       // snout
+        px(x + 8 * u, top + 6 * u, 5 * u, 4 * u, C);        // neck
+        px(x + 0 * u, top + 6 * u, 4 * u, 3 * u, C);        // tail upper
+        px(x + 2 * u, top + 8 * u, 4 * u, 3 * u, C);        // tail lower
+        px(x + 3 * u, top + 9 * u, 11 * u, 6 * u, C);       // body
+        px(x + 11 * u, top + 11 * u, 3 * u, 2 * u, C);      // arm
+        px(x + 4 * u, top + 14 * u, 9 * u, 3 * u, C);       // hip
+        // eye (knock-out)
+        px(x + 12 * u, top + 2 * u, 2 * u, 2 * u, COL.edge);
+        // running legs (alternate); when airborne, tuck both
+        if (dino.jumping) {
+          px(x + 5 * u, top + 16 * u, 3 * u, 3 * u, C);
+          px(x + 10 * u, top + 16 * u, 3 * u, 3 * u, C);
+        } else if (legFrame === 0) {
+          px(x + 5 * u, top + 16 * u, 3 * u, 4 * u, C);
+          px(x + 10 * u, top + 16 * u, 3 * u, 3 * u, C);
+        } else {
+          px(x + 5 * u, top + 16 * u, 3 * u, 3 * u, C);
+          px(x + 10 * u, top + 16 * u, 3 * u, 4 * u, C);
+        }
+      }
+
+      function drawGroundObs(o) {
+        var x = o.x, baseTop = groundY - o.h;
+        px(x, baseTop, o.w, o.h, COL.cyan);
+        // a couple of knocked-out notches so it reads like a bad-sector pillar
+        px(x + 4, baseTop + 6, o.w - 8, 3, COL.edge);
+        px(x + 4, baseTop + o.h - 12, o.w - 8, 3, COL.edge);
+        if (o.w > 40) px(x + o.w / 2 - 1, baseTop, 2, o.h, COL.edge);
+      }
+      function drawAirObs(o) {
+        var x = o.x, y = o.cy, C = COL.green;
+        px(x + 10, y + 6, 12, 8, C);                        // body
+        px(x + 20, y + 7, 6, 5, C);                         // head
+        if (wingFrame === 0) { px(x, y, 12, 5, C); }        // wings up
+        else { px(x, y + 12, 12, 5, C); }                   // wings down
+        px(x + 23, y + 8, 2, 2, COL.blue || '#0000a8');
+      }
+
+      function drawGround() {
+        px(0, groundY + 20, W, 2, COL.edge);
+        for (var p = 0; p < pebbles.length; p++) px(pebbles[p].x, pebbles[p].y, pebbles[p].s, 1, COL.dim);
+      }
+
+      function text(str, x, y, color, size, align) {
+        ctx.fillStyle = color;
+        ctx.font = (size || 12) + "px 'Space Mono', monospace";
+        ctx.textAlign = align || 'left';
+        ctx.fillText(str, x, y);
+        ctx.textAlign = 'left';
+      }
+
+      function pad(n) { n = '' + (n | 0); while (n.length < 5) n = '0' + n; return n; }
+
+      function render() {
+        ctx.clearRect(0, 0, W, H);
+        drawGround();
+        for (var i = 0; i < obs.length; i++) obs[i].type === 'air' ? drawAirObs(obs[i]) : drawGroundObs(obs[i]);
+        drawDino();
+
+        // score / hi
+        text('HI ' + pad(hi) + '   ' + pad(score), W - 8, 8, COL.dim, 12, 'right');
+
+        if (state === 'ready') {
+          if ((blink % 1.1) < 0.7) text('PRESS SPACE OR TAP TO RUN', W / 2, H / 2 - 6, COL.cyan, 13, 'center');
+        } else if (state === 'over') {
+          text('G A M E   O V E R', W / 2, H / 2 - 22, COL.yellow, 15, 'center');
+          text('sector ' + pad(score) + ' reached', W / 2, H / 2 - 2, COL.ink, 12, 'center');
+          if ((blink % 1.1) < 0.7) text('space / tap to retry', W / 2, H / 2 + 16, COL.cyan, 12, 'center');
+        }
+      }
+
+      // ---- loop -------------------------------------------------------
+      var last = 0;
+      function frame(t) {
+        if (!last) last = t;
+        var dt = Math.min(0.05, (t - last) / 1000);
+        last = t;
+        update(dt);
+        render();
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
     })();
   </script>
 </body>

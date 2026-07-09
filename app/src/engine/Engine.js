@@ -1462,8 +1462,24 @@ export default class Engine {
       this.keyClick(e);
       if(this.state.booting){ this.finishBoot(); return; }
       if(this.state.bossMode){ if(e.key==='Escape'){ e.preventDefault(); this.setState({ bossMode:false }); setTimeout(()=>{ const el=this.state.cliMode?this._cli:this._cmd; if(el) el.focus(); }, 20); } return; }
-      if(e.key==='F1'){ e.preventDefault(); if(this.state.dialog==='help') this.closeDialog(); else this.openHelp(); return; }
-      if(e.key==='F4'){ e.preventDefault(); if(this.state.dialog==='resume') this.closeDialog(); else this.openResume(); return; }
+      // Function keys F1..F10 mirror the on-screen bar. preventDefault stops the
+      // browser from hijacking them (F1 help, F3 find, F5 reload, F6 address bar).
+      if(/^F([1-9]|10)$/.test(e.key)){
+        e.preventDefault();
+        switch(e.key){
+          case 'F1': if(this.state.dialog==='help') this.closeDialog(); else this.openHelp(); break;
+          case 'F2': this.openMenu('commands'); break;
+          case 'F3': if(!this.state.editing) this.editSelected(); break;
+          case 'F4': if(this.state.dialog==='resume') this.closeDialog(); else this.openResume(); break;
+          case 'F5': this.setState({ dialog:'config', activeMenu:null }); break;
+          case 'F6': this.openContact(); break;
+          case 'F7': this.toggleCli(); break;
+          case 'F8': window.open('https://github.com/RPlante28', '_blank', 'noopener'); break;
+          case 'F9': this.goRoot(); break;
+          case 'F10': this.goRoot(); break;
+        }
+        return;
+      }
       // route gameplay keys to the active arcade game
       if(this._game && !this.state.cliMode && !this.state.dialog && !this.state.editing){
         if(/^(Arrow(Up|Down|Left|Right)|[wasdWASD]|[1-9]| )$/.test(e.key) || e.key==='r' || e.key==='R'){

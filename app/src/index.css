@@ -126,12 +126,19 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 /* the two NC panels sit side-by-side on desktop; stack them on narrow screens */
 .nc-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 @media (max-width: 700px) {
-  .nc-panels { display: flex; flex-direction: column; }
-  .nc-panels > *:first-child { height: 40vh; flex: 0 0 auto; }   /* file browser */
-  .nc-panels > *:last-child { flex: 1 1 auto; min-height: 0; }    /* content pane */
-  /* file rows: show just the name (size/date columns don't fit a phone) */
-  .nc-frow { grid-template-columns: 1fr; }
+  /* Stack the panels, but reverse DOM order so the passive info/content pane
+     sits on TOP and the interactive file list falls into the bottom thumb zone,
+     right above the command line and function keys. Feels far more natural to
+     browse with one hand. */
+  .nc-panels { display: flex; flex-direction: column-reverse; }
+  .nc-panels > *:first-child { flex: 1 1 auto; min-height: 0; }        /* file browser -> bottom, fills */
+  .nc-panels > *:last-child { height: 40vh; flex: 0 0 auto; min-height: 0; } /* content pane -> top, capped */
+  /* file rows: show just the name (size/date columns don't fit a phone) and
+     give each row a taller, thumb-friendly tap target */
+  .nc-frow { grid-template-columns: 1fr; line-height: 2.1; }
   .nc-frow > span:nth-child(2), .nc-frow > span:nth-child(3) { display: none; }
+  /* roomier function-key hit areas for touch */
+  .nc-fkey > span { padding-top: 6px; padding-bottom: 6px; }
 }
 /* touch devices: no fake block cursor, use the real one */
 @media (pointer: coarse) {
