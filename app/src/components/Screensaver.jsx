@@ -159,19 +159,35 @@ function pipesMode(ctx, w, h, sp) {
   const PC = ['#54fcfc', '#fcfc54', '#fc7cf0', '#54fc7c', '#7ca8fc'];
   const grid = 22;
   let cx = 0, cy = 0, dir = 0, color = PC[0], steps = 0, acc = 0;
+  let occ = new Set();                          // which cells already have pipe, for over/under crossings
   const reseed = () => { cx = (Math.random() * (w() / grid)) | 0; cy = (Math.random() * (h() / grid)) | 0; color = PC[(Math.random() * PC.length) | 0]; dir = (Math.random() * 4) | 0; };
   reseed(); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w(), h());
   return (dt) => {
     acc += 180 * sp * dt;                       // ~3 steps per frame at 60fps, scaled by the speed setting
     let n = acc | 0; acc -= n; if (n > 24) n = 24;
     for (let k = 0; k < n; k++) {
-      if (Math.random() < 0.16) dir = (dir + (Math.random() < 0.5 ? 1 : 3)) % 4;
+      if (Math.random() < 0.14) dir = (dir + (Math.random() < 0.5 ? 1 : 3)) % 4;   // longer straight runs, like the real screensaver
       const dx = [1, 0, -1, 0][dir], dy = [0, 1, 0, -1][dir];
       cx += dx; cy += dy;
-      if (cx < 0 || cy < 0 || cx * grid > w() || cy * grid > h()) reseed();
-      ctx.fillStyle = color;
-      ctx.fillRect(cx * grid, cy * grid, grid - 4, grid - 4);
-      if (++steps % 260 === 0) { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, w(), h()); reseed(); }   // half-fade dims older pipes into the background
+      let jumped = false;
+      if (cx < 0 || cy < 0 || cx * grid > w() || cy * grid > h()) { reseed(); jumped = true; }
+      const key = cx + ',' + cy, overlap = occ.has(key);
+      if (overlap) {
+        // crossing existing pipe: darken what's underneath first so the older
+        // layer dims and this pipe reads as passing cleanly over it
+        ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(cx * grid, cy * grid, grid, grid);
+        ctx.fillStyle = color; ctx.fillRect(cx * grid + 2, cy * grid + 2, grid - 4, grid - 4);
+      } else if (jumped) {
+        ctx.fillStyle = color; ctx.fillRect(cx * grid + 2, cy * grid + 2, grid - 4, grid - 4);
+      } else {
+        // one rect spanning the previous cell and this one -> the pipe flows
+        // cleanly and continuously from itself, still blocky
+        ctx.fillStyle = color;
+        const ax = Math.min(cx, cx - dx), ay = Math.min(cy, cy - dy);
+        ctx.fillRect(ax * grid + 2, ay * grid + 2, (Math.abs(dx) + 1) * grid - 4, (Math.abs(dy) + 1) * grid - 4);
+      }
+      occ.add(key);
+      if (++steps % 260 === 0) { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, w(), h()); occ.clear(); reseed(); }   // half-fade dims older pipes into the background
     }
   };
 }

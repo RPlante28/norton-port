@@ -196,10 +196,13 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 .nc-mcell { font-size: 11px; text-align: center; padding: 1px 0; }
 
 /* ---- CRT effect: drifting scanlines + a slow refresh sweep -------- */
-@keyframes nc-crt-roll  { from { background-position: 0 0; }  to { background-position: 0 3px; } }
+/* Roll the scanlines a long, seamless distance (a multiple of the 3px line
+   period) at a constant velocity so they flow smoothly down the screen instead
+   of snapping every 3px (which read as a jitter). */
+@keyframes nc-crt-roll  { from { background-position: 0 0; }  to { background-position: 0 96px; } }
 @keyframes nc-crt-sweep { from { transform: translateY(0); }  to { transform: translateY(150vh); } }
-.nc-crt-lines { animation: nc-crt-roll 0.7s linear infinite; will-change: background-position; }
-.nc-crt-sweep { animation: nc-crt-sweep 6.5s linear infinite; will-change: transform; }
+.nc-crt-lines { animation: nc-crt-roll 9s linear infinite; will-change: background-position; }
+.nc-crt-sweep { animation: nc-crt-sweep 7.5s linear infinite; will-change: transform; }
 @media (prefers-reduced-motion: reduce) { .nc-crt-lines, .nc-crt-sweep { animation: none; } }
 
 /* photo thumbnails are pre-dithered (like the profile portrait). Rendered

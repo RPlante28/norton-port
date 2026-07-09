@@ -89,10 +89,10 @@
 
       var MOON = [" .--. ", "(  ' )", "( .  )", " `--' "];
       var BIKE = [
-        "        _,   ",
-        "      _(D)   ",
-        "   __/'-.\\_  ",
-        "_(W) `--'(W)_"
+        "      _",
+        "    _(D)",
+        "  _/'-.\\",
+        " (W)==(W)"
       ];
 
       var puffs = [];
@@ -109,17 +109,14 @@
         for (var s=0;s<stars.length;s++){ var st=stars[s]; var b=Math.sin(t*0.06+st.ph); if(b>-0.3) put(st.y, st.x, b>0.7?'+':'.', CODES.star); }
         // moon, top-right
         stamp(MOON, 0, COLS-8, CODES.moon);
-        // distant peaks along the horizon, scrolling slowly
+        // a simple distant ridge line along the horizon, scrolling slowly
         var off = t*0.12;
         for (var c=0;c<COLS;c++){
-          var hh = 1.4*Math.sin((c+off)*0.33) + 0.9*Math.sin((c+off)*0.13+1.7);
-          var top = HORIZON - Math.max(0, Math.round(hh+1));
-          for (var r=top;r<=HORIZON;r++) put(r, c, r===top?'^':'.', CODES.peak);
+          var hh = Math.sin((c+off)*0.3) + 0.55*Math.sin((c+off)*0.13+1.7);
+          put(HORIZON - Math.max(0, Math.round(hh)), c, '^', CODES.peak);
         }
         // road: a solid edge plus scrolling gravel
         for (var c2=0;c2<COLS;c2++){ put(ROAD, c2, '_', CODES.road); if(((c2 + Math.floor(t*0.9))%7)===0) put(GRAVEL, c2, '-', CODES.dash); }
-        // speed lines behind the bike (left of it), fast scroll
-        for (var k=0;k<7;k++){ var sy=BIKE_TOP+(k%3); var sx=((BIKE_COL-3) - ((t*1.6 + k*9)|0)) % (BIKE_COL+2); if(sx<0) sx+=(BIKE_COL+2); if(sx< BIKE_COL-1) put(sy, sx, '-', CODES.speed); }
         // exhaust puffs drifting back and up
         if (t%4===0) puffs.push({ x:BIKE_COL-1, y:FEET-1, life:0 });
         for (var p=puffs.length-1;p>=0;p--){ var pf=puffs[p]; pf.life++; pf.x-=0.6; if(pf.life%3===0) pf.y-=1; if(pf.x<0||pf.y<HORIZON||pf.life>18){ puffs.splice(p,1); continue; } put(Math.round(pf.y), Math.round(pf.x), pf.life<8?'o':'.', CODES.puff); }
