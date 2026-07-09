@@ -36,13 +36,29 @@
     @keyframes bl { 50% { opacity:0; } }
     .bar { margin-top:18px; border-top:1px solid var(--edge); padding-top:14px; }
     /* A quiet little runner. No label, no fanfare, it just sits here. */
+    #stage { position:relative; }
     pre#run {
       margin:0; font-family:'Space Mono',monospace; font-size:15px; line-height:1.08;
       letter-spacing:0; white-space:pre; overflow:hidden; cursor:pointer;
       color:#7ea6b8; user-select:none; touch-action:none;
       padding:10px 12px; background:#040914; border:1px solid #1d3350;
     }
-    @media (prefers-reduced-motion: reduce) { .cursor { animation:none; } }
+    /* pop-up restart button, in the spirit of the Chrome dino game */
+    #retry {
+      position:absolute; left:50%; top:62%; transform:translate(-50%,-50%) scale(1);
+      display:none; align-items:center; justify-content:center;
+      width:46px; height:46px; border-radius:50%;
+      background:#081226; color:#8ac79a; border:2px solid #8ac79a;
+      font-size:24px; line-height:1; cursor:pointer; font-family:inherit;
+      box-shadow:0 0 0 5px rgba(4,9,20,0.9), 0 5px 16px rgba(0,0,0,0.55);
+    }
+    #retry:hover { background:#8ac79a; color:#081226; }
+    #retry.pop { animation:pop .34s cubic-bezier(.2,1.5,.4,1); }
+    @keyframes pop {
+      0% { transform:translate(-50%,-50%) scale(0) rotate(-120deg); }
+      100% { transform:translate(-50%,-50%) scale(1) rotate(0); }
+    }
+    @media (prefers-reduced-motion: reduce) { .cursor { animation:none; } #retry.pop { animation:none; } }
   </style>
 </head>
 <body>
@@ -62,28 +78,26 @@
     <a id="home" class="btn" href="/">&#9668; RETURN TO C:\ROHAN</a>
 
     <div class="bar">
-      <pre id="run" aria-label="a small text runner"></pre>
+      <div id="stage">
+        <pre id="run" aria-label="a small motorcycle runner"></pre>
+        <button id="retry" type="button" aria-label="restart">&#8635;</button>
+      </div>
     </div>
   </div>
 
   <script>
     (function () {
       var el = document.getElementById('run');
+      var btn = document.getElementById('retry');
 
       // ----- grid geometry (pure ASCII, monospace) --------------------
       var COLS = 58, ROWS = 12;
-      var FEET = 9, GROUND = 10, SUB = 11;   // dino feet row, terrain row, pebble row
-      var STAND_TOP = 7, DINO_COL = 4;
+      var FEET = 9, GROUND = 10, SUB = 11;   // wheel row, road row, gravel row
+      var RIDE_TOP = 7, BIKE_COL = 4;
 
       // soft phosphor palette, easy on the eyes
-      var C = { world:'#7ea6b8', dino:'#8ac79a', dim:'#4f6f8a', msg:'#c2a76a' };
-      var CODE = [C.world, C.dino, C.dim, C.msg];   // 0 world, 1 dino, 2 dim, 3 msg
-
-      // sprites (pure ASCII so every monospace font aligns them)
-      var STAND0 = ["  __  ", " /oo\\_"];
-      var LEGS_A = " /  \\ ", LEGS_B = "  /\\  ", LEGS_J = " (__) ";
-      var DUCK = ["  ___  ", " <oo__\\"];
-      var BUG_A = "\\o/", BUG_B = "-o-";
+      var C = { world:'#7ea6b8', bike:'#8ac79a', dim:'#4f6f8a', msg:'#c2a76a' };
+      var CODE = [C.world, C.bike, C.dim, C.msg];   // 0 world, 1 bike, 2 dim, 3 msg
 
       // physics (row units)
       var G = 62, JV = 25;
@@ -92,60 +106,43 @@
       var hi = 0;
       try { hi = parseInt(localStorage.getItem('rohanRunHi') || '0', 10) || 0; } catch (e) {}
 
-      var state, speed, score, y, vy, jumping, ducking, obs, spawnT, legT, legF, wingT, wingF, pebOff, blink;
+      var state, speed, score, y, vy, airborne, obs, spawnT, wheelT, wheelF, pebOff, blink;
 
       function reset() {
         state = 'ready'; speed = startSpeed; score = 0;
-        y = 0; vy = 0; jumping = false; ducking = false;
-        obs = []; spawnT = 1.0; legT = 0; legF = 0; wingT = 0; wingF = 0; pebOff = 0; blink = 0;
+        y = 0; vy = 0; airborne = false;
+        obs = []; spawnT = 1.0; wheelT = 0; wheelF = 0; pebOff = 0; blink = 0;
+        hideRetry();
       }
       reset();
 
       function start() { reset(); state = 'run'; }
-      function jump() { if (!jumping) { vy = JV; jumping = true; ducking = false; } }
+      function jump() { if (!airborne) { vy = JV; airborne = true; } }
       function press() { if (state === 'run') jump(); else start(); }
 
       window.addEventListener('keydown', function (e) {
-        var k = e.key;
-        if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') { press(); e.preventDefault(); }
-        else if (k === 'ArrowDown' || k === 's' || k === 'S') { if (state === 'run' && !jumping) { ducking = true; e.preventDefault(); } }
+        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { press(); e.preventDefault(); }
       });
-      window.addEventListener('keyup', function (e) {
-        if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') ducking = false;
-      });
-      el.addEventListener('pointerdown', function (e) {
-        e.preventDefault();
-        var r = el.getBoundingClientRect();
-        var frac = (e.clientY - r.top) / r.height;
-        if (state === 'run' && frac > 0.6 && !jumping) ducking = true;
-        else press();
-      });
-      function endDuck() { ducking = false; }
-      el.addEventListener('pointerup', endDuck);
-      el.addEventListener('pointercancel', endDuck);
-      el.addEventListener('pointerleave', endDuck);
+      el.addEventListener('pointerdown', function (e) { e.preventDefault(); press(); });
+      btn.addEventListener('click', function (e) { e.stopPropagation(); start(); });
 
-      // ----- obstacles -------------------------------------------------
+      function showRetry() { btn.style.display = 'flex'; btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
+      function hideRetry() { btn.style.display = 'none'; }
+
+      // ----- obstacles (road hazards) ---------------------------------
       function spawn() {
-        var airOk = score > 160;
-        if (airOk && Math.random() < 0.3) {
-          obs.push({ kind: 'air', x: COLS + 1, top: 7, w: 3 });     // head-height bug -> duck
-        } else {
-          var r = Math.random();
-          if (r < 0.45) obs.push({ kind: 'g', x: COLS + 1, top: FEET - 1, w: 3, s: [" _ ", "|#|"] });
-          else if (r < 0.8) obs.push({ kind: 'g', x: COLS + 1, top: FEET - 2, w: 3, s: [" _ ", "|#|", "|#|"] });
-          else obs.push({ kind: 'g', x: COLS + 1, top: FEET - 1, w: 5, s: [" _ _ ", "|#|#|"] });
-        }
+        var r = Math.random();
+        if (r < 0.4) obs.push({ x: COLS + 1, top: FEET - 1, w: 3, s: [" ^ ", "/#\\"] });        // cone
+        else if (r < 0.72) obs.push({ x: COLS + 1, top: FEET - 1, w: 3, s: [" _ ", "|#|"] });    // barrel
+        else if (r < 0.9) obs.push({ x: COLS + 1, top: FEET - 2, w: 3, s: [" _ ", "|#|", "|#|"] }); // stack
+        else obs.push({ x: COLS + 1, top: FEET - 1, w: 5, s: [" _ _ ", "/#|#\\"] });              // wide
       }
 
-      function dinoSprite() {
-        if (ducking && !jumping) return { rows: DUCK, top: FEET - 1, col: DINO_COL };
-        var legs = jumping ? LEGS_J : (legF === 0 ? LEGS_A : LEGS_B);
-        var lift = Math.round(y);
-        return { rows: [STAND0[0], STAND0[1], legs], top: STAND_TOP - lift, col: DINO_COL };
+      function bikeSprite() {
+        var wc = wheelF === 0 ? 'O' : 'o';     // spinning wheels
+        var rows = ["   ___", "  /oo_\\", " (" + wc + ")=(" + wc + ")"];
+        return { rows: rows, top: RIDE_TOP - Math.round(y), col: BIKE_COL };
       }
-      function bugRows() { return [wingF === 0 ? BUG_A : BUG_B]; }
-
       function cellsOf(rows, top, col) {
         var set = [];
         for (var r = 0; r < rows.length; r++)
@@ -163,10 +160,9 @@
         pebOff += speed * dt;
 
         vy -= G * dt; y += vy * dt;
-        if (y <= 0) { y = 0; vy = 0; jumping = false; }
+        if (y <= 0) { y = 0; vy = 0; airborne = false; }
 
-        legT += dt; if (legT > 0.1) { legT = 0; legF ^= 1; }
-        wingT += dt; if (wingT > 0.16) { wingT = 0; wingF ^= 1; }
+        wheelT += dt; if (wheelT > 0.07) { wheelT = 0; wheelF ^= 1; }
 
         for (var i = 0; i < obs.length; i++) obs[i].x -= speed * dt;
         while (obs.length && obs[0].x + obs[0].w < 0) obs.shift();
@@ -175,19 +171,18 @@
         if (spawnT <= 0) { spawn(); spawnT = (0.9 + Math.random() * 1.1) * (startSpeed / speed) + 0.45; }
 
         // collision (grid-cell overlap)
-        var d = dinoSprite();
+        var d = bikeSprite();
         var dc = cellsOf(d.rows, d.top, d.col);
         var occ = {};
         for (var o = 0; o < obs.length; o++) {
-          var ob = obs[o];
-          var rows = ob.kind === 'air' ? bugRows() : ob.s;
-          var cs = cellsOf(rows, ob.top, Math.round(ob.x));
+          var cs = cellsOf(obs[o].s, obs[o].top, Math.round(obs[o].x));
           for (var k = 0; k < cs.length; k++) occ[cs[k][0] + ',' + cs[k][1]] = 1;
         }
         for (var m = 0; m < dc.length; m++) {
           if (occ[dc[m][0] + ',' + dc[m][1]]) {
             state = 'over';
             if ((score | 0) > hi) { hi = score | 0; try { localStorage.setItem('rohanRunHi', String(hi)); } catch (e) {} }
+            showRetry();
             break;
           }
         }
@@ -212,25 +207,19 @@
 
       function render() {
         clear();
-        // terrain + scrolling pebbles
+        // road + scrolling gravel
         for (var c = 0; c < COLS; c++) { put(GROUND, c, '=', 2); if (((c + Math.floor(pebOff)) % 6) === 0) put(SUB, c, '.', 2); }
-        // obstacles
-        for (var o = 0; o < obs.length; o++) {
-          var ob = obs[o]; var rows = ob.kind === 'air' ? bugRows() : ob.s;
-          stamp(rows, ob.top, Math.round(ob.x), 0);
-        }
-        // dino
-        var d = dinoSprite();
+        for (var o = 0; o < obs.length; o++) stamp(obs[o].s, obs[o].top, Math.round(obs[o].x), 0);
+        var d = bikeSprite();
         stamp(d.rows, d.top, d.col, 1);
-        // score (top corners) then any message
+        // score in the top corners
         var hs = 'HI ' + pad(hi), sc = pad(score);
         for (var i = 0; i < hs.length; i++) put(0, i, hs[i], 2);
         for (var j = 0; j < sc.length; j++) put(0, COLS - sc.length + j, sc[j], 2);
-        if (state === 'ready') { if ((blink % 1.1) < 0.75) stampText(4, 'press space or tap to run', 3); }
+        if (state === 'ready') { if ((blink % 1.1) < 0.75) stampText(4, 'press space or tap to ride', 3); }
         else if (state === 'over') {
-          stampText(3, 'G A M E   O V E R', 3);
-          stampText(5, 'sector ' + pad(score) + ' reached', 2);
-          if ((blink % 1.1) < 0.75) stampText(7, 'space / tap to retry', 3);
+          stampText(2, 'G A M E   O V E R', 3);
+          stampText(3, 'sector ' + pad(score) + ' reached', 2);
         }
         // build html with color runs
         var html = '';
