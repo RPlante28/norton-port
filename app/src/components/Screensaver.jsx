@@ -158,12 +158,12 @@ function matrixMode(ctx, w, h, sp, cfg) {
 // grow, cross over one another, occasionally finish (a new pipe then begins), and
 // reset once the screen fills.
 function pipesMode(ctx, w, h, sp) {
-  const PC = ['#54fcfc', '#fcfc54', '#fc7cf0', '#54fc7c', '#7ca8fc', '#fca85c'];
+  const PC = ['#54fcfc', '#fcfc54', '#fc7cf0', '#54fc7c', '#7ca8fc', '#fca85c', '#c07cfc', '#7cfcb0'];
   const grid = 24, seg = 10, half = grid / 2;    // seg = pipe thickness, so joints (radius ~half) read bigger
   const cols = () => Math.floor(w() / grid), rows = () => Math.floor(h() / grid);
   const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1];
   const inb = (x, y) => x >= 0 && y >= 0 && x < cols() && y < rows();
-  let occ = new Set(), pipes = [], acc = 0;
+  let occ = new Set(), pipes = [], acc = 0, fadeAcc = 0;
 
   function joint(gx, gy, color) {                 // a square junction fitting (bigger than the pipe)
     const s = seg + 6, x = gx * grid + half - s / 2, y = gy * grid + half - s / 2;
@@ -182,7 +182,7 @@ function pipesMode(ctx, w, h, sp) {
     const x = (Math.random() * cols()) | 0, y = (Math.random() * rows()) | 0;
     const color = PC[(Math.random() * PC.length) | 0], dir = (Math.random() * 4) | 0;
     joint(x, y, color); occ.add(x + ',' + y);
-    pipes.push({ cx: x, cy: y, dir, color });
+    pipes.push({ cx: x, cy: y, dir, color, len: 0, maxLen: 16 + (Math.random() * 48 | 0) });   // each pipe grows a random, sensible length
   }
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w(), h());
   for (let i = 0; i < 4; i++) spawn();
@@ -205,9 +205,12 @@ function pipesMode(ctx, w, h, sp) {
         const key = p.cx + ',' + p.cy;
         tube(p.cx, p.cy, opx, opy, p.color, occ.has(key));
         occ.add(key);
-        if (Math.random() < 0.004) { joint(p.cx, p.cy, p.color); pipes.splice(pi, 1); spawn(); }            // this pipe finishes; a new one begins with a joint
+        if (++p.len >= p.maxLen) { joint(p.cx, p.cy, p.color); pipes.splice(pi, 1); spawn(); }              // pipe reached its length; a new one begins with a joint
       }
-      if (occ.size > cols() * rows() * 0.78) { ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, w(), h()); occ.clear(); pipes = []; for (let i = 0; i < 4; i++) spawn(); }   // screen filled: reset
     }
+    // progressively dim the older layers so each new pipe sits brighter over the
+    // ones receding into the background; clear occupancy so pipes cross fresh over them
+    fadeAcc += dt;
+    if (fadeAcc > 1.1) { fadeAcc = 0; ctx.fillStyle = 'rgba(0,0,0,0.10)'; ctx.fillRect(0, 0, w(), h()); occ.clear(); }
   };
 }
