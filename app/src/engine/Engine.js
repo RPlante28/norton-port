@@ -180,6 +180,7 @@ export default class Engine {
     modes:{ logo:true, stars:true, matrix:true, pipes:true },
     speed:{ logo:1, stars:1, matrix:1, pipes:1 },       // per-mode multiplier
     matrixColor:'green',                                 // green|amber|cyan|rainbow
+    starColor:'white',                                   // white|cyan|amber|green|rainbow
     stars:{ shooting:true }
   }; }
   // ----- monitor phosphor theme (blue default, or amber / green / white) -----
@@ -200,6 +201,7 @@ export default class Engine {
   toggleSaverMode(k){ const m=this.cfg.saver.modes; m[k]=!m[k]; this._saveCfg(); this.forceUpdate(); }
   setSaverSpeed(k, v){ this.cfg.saver.speed[k]=v; this._saveCfg(); this.forceUpdate(); }
   setMatrixColor(c){ this.cfg.saver.matrixColor=c; this._saveCfg(); this.forceUpdate(); }
+  setStarColor(c){ this.cfg.saver.starColor=c; this._saveCfg(); this.forceUpdate(); }
   toggleStarOpt(k){ const s=this.cfg.saver.stars; s[k]=!s[k]; this._saveCfg(); this.forceUpdate(); }
   _enabledSaverModes(){ const m=this.cfg.saver.modes||{}; return Object.keys(m).filter(k=>m[k]); }
   _speedLabel(v){ if(v<=0.4) return 'slowest'; if(v<=0.7) return 'slow'; if(v<1.2) return 'normal'; if(v<1.8) return 'fast'; return 'fastest'; }
@@ -1939,6 +1941,7 @@ export default class Engine {
       saverSpeedOpts: [ {v:0.4,label:'slowest'},{v:0.7,label:'slow'},{v:1,label:'normal'},{v:1.5,label:'fast'},{v:2.2,label:'fastest'} ],
       saverSpeeds: [ {k:'logo',label:'Logo'},{k:'stars',label:'Stars'},{k:'matrix',label:'Matrix'},{k:'pipes',label:'Pipes'} ].map(m=>{ const v=this.cfg.saver.speed[m.k]||1; return { key:m.k, label:m.label, value:v, onChange:(nv)=>this.setSaverSpeed(m.k, nv) }; }),
       matrixColors: [ {id:'green',name:'green'},{id:'amber',name:'amber'},{id:'cyan',name:'cyan'},{id:'rainbow',name:'rainbow'} ].map(p=>{ const sel=(this.cfg.saver.matrixColor||'green')===p.id; return { name:p.name, mark: sel?'(o) ':'( ) ', color: sel?'#0000a8':'#06457a', weight: sel?'700':'400', onClick:()=>this.setMatrixColor(p.id) }; }),
+      starColors: [ {id:'white',name:'white'},{id:'cyan',name:'cyan'},{id:'amber',name:'amber'},{id:'green',name:'green'},{id:'rainbow',name:'rainbow'} ].map(p=>{ const sel=(this.cfg.saver.starColor||'white')===p.id; return { name:p.name, mark: sel?'(o) ':'( ) ', color: sel?'#0000a8':'#06457a', weight: sel?'700':'400', onClick:()=>this.setStarColor(p.id) }; }),
       starOpts: [ {k:'shooting',label:'Shooting stars'} ].map(o=>{ const on=!!this.cfg.saver.stars[o.k]; return { key:o.k, label:o.label, box:on?'[x]':'[ ]', boxColor:on?'#0000a8':'#06457a', on, onClick:()=>this.toggleStarOpt(o.k) }; }),
       saverTimeouts: [15,30,60,120,300,600].map(s=>({ label:this._timeoutLabel(s), sel:this.cfg.saver.timeout===s, color:this.cfg.saver.timeout===s?'#0000a8':'#06457a', weight:this.cfg.saver.timeout===s?'700':'400', onClick:()=>this.setSaverTimeout(s) })),
       // mobile: draggable split between the file browser and the info pane

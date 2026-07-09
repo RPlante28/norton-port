@@ -150,6 +150,9 @@ export default function ConfigDialog({ v }) {
                 <div className="flex gap-x-[11px] gap-y-[6px] items-baseline flex-wrap">
                   <span className="whitespace-nowrap">Matrix colour:</span>{Radio(v.matrixColors)}
                 </div>
+                <div className="flex gap-x-[11px] gap-y-[6px] items-baseline flex-wrap mt-2">
+                  <span className="whitespace-nowrap">Star colour:</span>{Radio(v.starColors)}
+                </div>
                 <div className="flex gap-x-3 gap-y-[6px] items-baseline flex-wrap mt-2">
                   <span className="whitespace-nowrap">Starfield:</span>
                   {v.starOpts.map((o, i) => (
