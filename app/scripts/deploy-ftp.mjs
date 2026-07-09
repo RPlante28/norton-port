@@ -80,12 +80,8 @@ try {
   console.log(`\n  connected to ${host} as ${user}`);
   console.log(`  uploading ${totalFiles} files in ${dirs.size} folder(s) (${human(totalBytes)}) -> ${path}\n`);
 
-  // "." / "" / "/" mean: upload straight into the FTP login directory (don't
-  // create a sub-folder). Otherwise ensureDir into it (absolute paths work too).
-  const useLogin = !path || path === '.' || path === './' || path === '/';
-  if (!useLogin) await client.ensureDir(path);
+  await client.ensureDir(path);
   const base = await client.pwd();
-  console.log(`  target directory on server: ${base}\n`);
 
   let done = 0, bytesDone = 0;
   bar(0, 0, '');
@@ -103,12 +99,7 @@ try {
   console.log('\n  ✓ deployed over FTP - your site is live.\n');
 } catch (e) {
   console.error('\n\n  FTP deploy failed: ' + e.message);
-  if (/home directory|421/i.test(e.message)) {
-    console.error('  The FTP account\'s home folder is missing. Use your MAIN cPanel account for FTP\n  (user = your cPanel username), or recreate the FTP account\'s directory in cPanel.');
-  } else {
-    console.error('  Check host/user/password, and if it is a TLS error, try "secure": false in deploy.json.');
-  }
-  console.error('');
+  console.error('  Check host/user/password, and if it is a TLS error, try "secure": false in deploy.json.\n');
   process.exitCode = 1;
 } finally {
   client.close();
