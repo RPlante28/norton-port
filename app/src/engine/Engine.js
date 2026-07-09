@@ -152,7 +152,7 @@ export default class Engine {
   }
   resetCfg(){ this.cfg = this._cfgDefaults(); this._saveCfg(); this.forceUpdate(); }
   // ----- CLI helpers: command-history recall + tab completion -----
-  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver']; }
+  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sl','matrix','pipes','starfield','screensaver']; }
   // only complete against what's in the CURRENT directory (what's actually available)
   _completionNames(){
     const set=new Set();
@@ -206,6 +206,42 @@ export default class Engine {
   _enabledSaverModes(){ const m=this.cfg.saver.modes||{}; return Object.keys(m).filter(k=>m[k]); }
   _speedLabel(v){ if(v<=0.4) return 'slowest'; if(v<=0.7) return 'slow'; if(v<1.2) return 'normal'; if(v<1.8) return 'fast'; return 'fastest'; }
   _timeoutLabel(s){ return s<60 ? (s+'s') : (s%60===0 ? (s/60+'m') : (Math.floor(s/60)+'m '+(s%60)+'s')); }
+  // the classic sl(1) gag: you typed  sl  instead of  ls
+  _slArt(){ return [
+    '      ====        ________                ___________',
+    '  _D _|  |_______/        \\__I_I_____===__|_________|',
+    '   |(_)---  |   H\\________/ |   |        =|___ ___|',
+    '   /     |  |   H  |  |     |   |         ||_| |_||',
+    '  |      |  |   H  |__--------------------| [___] |',
+    '  | ________|___H__/__|_____/[][]~\\_______|       |',
+    '  |/ |   |-----------I_____I [][] []  D   |=======|__',
+    '__/ =| o |=-~~\\  /~~\\  /~~\\  /~~\\ ____Y___________|__',
+    ' |/-=|___|=    ||    ||    ||    |_____/~\\___/',
+    '  \\_/      \\O=====O=====O=====O_/      \\_/',
+    '',
+    'woo woo!  (you typed  sl  - did you mean  ls ?)' ]; }
+  // a themed fake process table for  ps / top
+  _psList(full){
+    const procs=[
+      ['1','0.0','0.4','init'],
+      ['7','0.3','1.2','command.com'],
+      ['19','1.1','3.4','nc-shell'],
+      ['42','0.9','2.6','render-engine'],
+      ['55','0.4','1.1','crt-overlay'],
+      ['66','0.6','2.8','viz-engine'],
+      ['88','0.1','0.8','hit-counter'],
+      ['101','0.0','0.5','boot-sound'],
+      ['128','13.7','9.9','6502-vm'],
+      ['200','0.0','0.3',(this.state.saver?'screensaver':'screensaver (idle)')],
+    ];
+    const rows=[];
+    if(full){ rows.push('ROHAN-DOS - top - load average 0.42, 0.31, 0.19',
+      'Tasks: '+procs.length+' total, 1 running, '+(procs.length-1)+' sleeping',
+      'CPU: MOS 6502 @ 1.79 MHz    Mem: 640K total, 512K used, 128K free', ''); }
+    rows.push('  PID  %CPU  %MEM  COMMAND');
+    procs.forEach(p=>rows.push(' '+p[0].padStart(4)+'  '+p[1].padStart(4)+'  '+p[2].padStart(4)+'  '+p[3]));
+    return rows;
+  }
   _saveCfg(){ try{ localStorage.setItem('rohanCfg', JSON.stringify(this.cfg)); }catch(e){} }
   // The second arg `preview` plays the sample sound. It's true on a click or
   // at the end of a drag, and false during a drag (so it doesn't machine-gun).
@@ -1145,6 +1181,16 @@ export default class Engine {
     if(cmd==='starfield' || cmd==='stars' || cmd==='warp'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('engaging warp …'); this._startSaver('stars'); return; }
     if(cmd==='pipes'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('laying pipe …'); this._startSaver('pipes'); return; }
     if(cmd==='screensaver' || cmd==='saver' || cmd==='ss'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } const en=this._enabledSaverModes(); const M=en.length?en:['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0]); return; }
+    if(cmd==='bc' || cmd==='calc'){
+      const e=(arg||'').trim();
+      if(!e){ this.out(['usage: bc <expression>    e.g.  bc (2+3)*4    bc 2^10    bc 22/7']); return; }
+      if(!/^[-+*/%^().0-9eE\s]+$/.test(e)){ this.out(['bc: only numbers and + - * / % ^ ( ) are allowed']); return; }
+      try{ const r=Function('"use strict";return ('+e.replace(/\^/g,'**')+')')(); if(typeof r!=='number'||!isFinite(r)){ this.out(['bc: math error']); return; } this.out([String(Math.round(r*1e10)/1e10)]); }
+      catch(_){ this.out(['bc: syntax error']); }
+      return;
+    }
+    if(cmd==='sl'){ this.out(this._slArt()); return; }
+    if(cmd==='ps' || cmd==='top' || cmd==='htop'){ this.out(this._psList(cmd!=='ps')); return; }
     if(cmd==='date' || cmd==='time'){ this.out([new Date().toString()]); return; }
     if(cmd==='ver' || cmd==='version'){ this.out(['ROHAN-DOS 5.51 - Portfolio Commander - (c) MMXXVI']); return; }
     if(cmd==='hire' || cmd==='hireme' || (cmd==='hire'&&arg==='me')){ this.out(['> Rohan is open to internships & new-grad SWE roles.', '  resume: F4   \u00b7   mail: type  mail    \u00b7   github: go github']); return; }
