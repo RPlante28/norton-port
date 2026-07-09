@@ -6,7 +6,7 @@ import { useRef, useEffect, useState } from 'react';
 // dismisses it (handled by the engine).
 const LOGO_COLORS = ['#54fcfc', '#fcfc54', '#fc7cf0', '#54fc7c', '#fc7c54', '#f0f0f0', '#7ca8fc'];
 
-export default function Screensaver({ logo, mode, cfg }) {
+export default function Screensaver({ logo, mode, cfg, manual }) {
   const [chosen] = useState(() => mode || 'logo');
   const reduce = typeof window !== 'undefined' && window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -18,7 +18,7 @@ export default function Screensaver({ logo, mode, cfg }) {
         ? <LogoSaver logo={logo} reduce={reduce} speed={speed} />
         : <CanvasSaver mode={chosen} speed={speed} cfg={cfg} />}
       <div className="absolute bottom-4 left-0 right-0 text-center text-[#3a3a3a] text-[11px]">
-        press any key or move the mouse
+        {manual ? 'press any key or click to exit' : 'press any key or move the mouse'}
       </div>
     </div>
   );

@@ -44,7 +44,9 @@ export default class Engine {
     this.goRoot = ()=>{ this.setState({ stack:[this.root], sel:0, activeMenu:null, cmdMsg:'', editing:null }); };
     // activate the idle screensaver in a given mode; _saverAt guards the launching
     // key/click from instantly dismissing it (that same event bubbles to window).
-    this._startSaver = (mode)=>{ this._saverAt=Date.now(); this.setState({ saver:true, saverMode:mode }); };
+    // manual = launched from a command; those exit only on key or click, not a
+    // stray mouse move (you just typed the command, your hand is on the mouse).
+    this._startSaver = (mode, manual)=>{ this._saverAt=Date.now(); this._saverManual=!!manual; this.setState({ saver:true, saverMode:mode }); };
     this.cfg = this._loadCfg();
     this._cmdHistory = this._loadHistory();
     // user filesystem (nested, persisted)
@@ -152,7 +154,7 @@ export default class Engine {
   }
   resetCfg(){ this.cfg = this._cfgDefaults(); this._saveCfg(); this.forceUpdate(); }
   // ----- CLI helpers: command-history recall + tab completion -----
-  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sl','matrix','pipes','starfield','screensaver']; }
+  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sl','matrix','pipes','starfield','logo','screensaver']; }
   // only complete against what's in the CURRENT directory (what's actually available)
   _completionNames(){
     const set=new Set();
@@ -1179,10 +1181,11 @@ export default class Engine {
     if(cmd==='fortune'){ this.out(this.art.fortune.split('\n')); return; }
     if(cmd==='coffee' || cmd==='brew'){ this.out(this.art.coffee.split('\n')); return; }
     if(cmd==='sound' || cmd==='keysound'){ const on = arg ? /^(on|1|yes|true)$/i.test(arg) : !this.cfg.keysound; this.cfg.keysound=on; this.forceUpdate(); this.say('keyboard sound '+(on?'ON':'OFF')); return; }
-    if(cmd==='matrix'){ if(this._reduceMotion()){ this.out(['(reduced motion is on - the matrix rain is disabled)']); return; } this.say('wake up, Neo...'); this._startSaver('matrix'); return; }
-    if(cmd==='starfield' || cmd==='stars' || cmd==='warp'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('engaging warp …'); this._startSaver('stars'); return; }
-    if(cmd==='pipes'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('laying pipe …'); this._startSaver('pipes'); return; }
-    if(cmd==='screensaver' || cmd==='saver' || cmd==='ss'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } const en=this._enabledSaverModes(); const M=en.length?en:['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0]); return; }
+    if(cmd==='matrix'){ if(this._reduceMotion()){ this.out(['(reduced motion is on - the matrix rain is disabled)']); return; } this.say('wake up, Neo...'); this._startSaver('matrix', true); return; }
+    if(cmd==='starfield' || cmd==='stars' || cmd==='warp'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('engaging warp …'); this._startSaver('stars', true); return; }
+    if(cmd==='pipes'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('laying pipe …'); this._startSaver('pipes', true); return; }
+    if(cmd==='logo' || cmd==='bounce' || cmd==='dvd'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('bouncing …'); this._startSaver('logo', true); return; }
+    if(cmd==='screensaver' || cmd==='saver' || cmd==='ss'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } const en=this._enabledSaverModes(); const M=en.length?en:['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0], true); return; }
     if(cmd==='bc' || cmd==='calc'){
       const e=(arg||'').trim();
       if(!e){ this.out(['usage: bc <expression>    e.g.  bc (2+3)*4    bc 2^10    bc 22/7']); return; }
@@ -1674,7 +1677,7 @@ export default class Engine {
     // on its own layer.
     this._mouseXY = null;
     this._drawCursor = ()=>{ this._cursorRaf=0; const m=this._mouse, p=this._mouseXY; if(!m||!p) return; m.style.display='block'; m.style.transform='translate3d('+p.x+'px,'+(p.y-2)+'px,0)'; };
-    this._onMouseMove = (e)=>{ this._lastActivity=Date.now(); if(this.state.saver && Date.now()-(this._saverAt||0)>250){ this.setState({ saver:false }); } this._mouseXY={ x:e.clientX, y:e.clientY }; if(!this._cursorRaf) this._cursorRaf=requestAnimationFrame(this._drawCursor); };
+    this._onMouseMove = (e)=>{ this._lastActivity=Date.now(); if(this.state.saver && !this._saverManual && Date.now()-(this._saverAt||0)>250){ this.setState({ saver:false }); } this._mouseXY={ x:e.clientX, y:e.clientY }; if(!this._cursorRaf) this._cursorRaf=requestAnimationFrame(this._drawCursor); };
     this._onMouseOut = (e)=>{ if(!e.relatedTarget && !e.toElement && this._mouse){ this._mouse.style.display='none'; } };
     this._onWinBlur = ()=>{ if(this._mouse) this._mouse.style.display='none'; };
     window.addEventListener('mousemove', this._onMouseMove);
@@ -1996,6 +1999,7 @@ export default class Engine {
       resetCfg: ()=>this.resetCfg(),
       saver: !!this.state.saver,
       saverMode: this.state.saverMode||null,
+      saverManual: !!this._saverManual,
       saverCfg: this.cfg.saver,
       // ----- Configuration dialog: Display / Screensaver sections -----
       motionOpts: [ {id:'auto',name:'auto'},{id:'full',name:'full'},{id:'reduced',name:'reduced'} ].map(p=>{ const sel=(this.cfg.motion||'auto')===p.id; return { name:p.name, mark: sel?'(o) ':'( ) ', color: sel?'#0000a8':'#06457a', weight: sel?'700':'400', onClick:()=>this.setMotion(p.id) }; }),
