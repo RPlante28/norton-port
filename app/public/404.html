@@ -36,29 +36,13 @@
     @keyframes bl { 50% { opacity:0; } }
     .bar { margin-top:18px; border-top:1px solid var(--edge); padding-top:14px; }
     /* A quiet little runner. No label, no fanfare, it just sits here. */
-    #stage { position:relative; }
     pre#run {
       margin:0; font-family:'Space Mono',monospace; font-size:15px; line-height:1.08;
       letter-spacing:0; white-space:pre; overflow:hidden; cursor:pointer;
       color:#7ea6b8; user-select:none; touch-action:none;
       padding:10px 12px; background:#040914; border:1px solid #1d3350;
     }
-    /* pop-up restart button, in the spirit of the Chrome dino game */
-    #retry {
-      position:absolute; left:50%; top:62%; transform:translate(-50%,-50%) scale(1);
-      display:none; align-items:center; justify-content:center;
-      width:46px; height:46px; border-radius:50%;
-      background:#081226; color:#8ac79a; border:2px solid #8ac79a;
-      font-size:24px; line-height:1; cursor:pointer; font-family:inherit;
-      box-shadow:0 0 0 5px rgba(4,9,20,0.9), 0 5px 16px rgba(0,0,0,0.55);
-    }
-    #retry:hover { background:#8ac79a; color:#081226; }
-    #retry.pop { animation:pop .34s cubic-bezier(.2,1.5,.4,1); }
-    @keyframes pop {
-      0% { transform:translate(-50%,-50%) scale(0) rotate(-120deg); }
-      100% { transform:translate(-50%,-50%) scale(1) rotate(0); }
-    }
-    @media (prefers-reduced-motion: reduce) { .cursor { animation:none; } #retry.pop { animation:none; } }
+    @media (prefers-reduced-motion: reduce) { .cursor { animation:none; } }
   </style>
 </head>
 <body>
@@ -78,17 +62,13 @@
     <a id="home" class="btn" href="/">&#9668; RETURN TO C:\ROHAN</a>
 
     <div class="bar">
-      <div id="stage">
-        <pre id="run" aria-label="a small motorcycle runner"></pre>
-        <button id="retry" type="button" aria-label="restart">&#8635;</button>
-      </div>
+      <pre id="run" aria-label="a small motorcycle runner"></pre>
     </div>
   </div>
 
   <script>
     (function () {
       var el = document.getElementById('run');
-      var btn = document.getElementById('retry');
 
       // ----- grid geometry (pure ASCII, monospace) --------------------
       var COLS = 58, ROWS = 12;
@@ -112,22 +92,24 @@
         state = 'ready'; speed = startSpeed; score = 0;
         y = 0; vy = 0; airborne = false;
         obs = []; spawnT = 1.0; wheelT = 0; wheelF = 0; pebOff = 0; blink = 0;
-        hideRetry();
       }
       reset();
 
       function start() { reset(); state = 'run'; }
       function jump() { if (!airborne) { vy = JV; airborne = true; } }
-      function press() { if (state === 'run') jump(); else start(); }
 
       window.addEventListener('keydown', function (e) {
-        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { press(); e.preventDefault(); }
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (state === 'over') { start(); e.preventDefault(); return; }   // any key restarts
+        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+          if (state === 'run') jump(); else start();
+          e.preventDefault();
+        }
       });
-      el.addEventListener('pointerdown', function (e) { e.preventDefault(); press(); });
-      btn.addEventListener('click', function (e) { e.stopPropagation(); start(); });
-
-      function showRetry() { btn.style.display = 'flex'; btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
-      function hideRetry() { btn.style.display = 'none'; }
+      el.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        if (state === 'run') jump(); else start();
+      });
 
       // ----- obstacles (road hazards) ---------------------------------
       function spawn() {
@@ -139,8 +121,13 @@
       }
 
       function bikeSprite() {
-        var wc = wheelF === 0 ? 'O' : 'o';     // spinning wheels
-        var rows = ["   ___", "  /oo_\\", " (" + wc + ")=(" + wc + ")"];
+        var w = wheelF === 0 ? 'O' : '+';      // spinning-spoke wheels
+        // a rider hunched over a cafe-racer: helmet, body, tank, two wheels
+        var rows = [
+          "    _o  ",
+          "  _/#\\_ ",
+          " (" + w + ")=(" + w + ")"
+        ];
         return { rows: rows, top: RIDE_TOP - Math.round(y), col: BIKE_COL };
       }
       function cellsOf(rows, top, col) {
@@ -182,7 +169,6 @@
           if (occ[dc[m][0] + ',' + dc[m][1]]) {
             state = 'over';
             if ((score | 0) > hi) { hi = score | 0; try { localStorage.setItem('rohanRunHi', String(hi)); } catch (e) {} }
-            showRetry();
             break;
           }
         }
@@ -220,6 +206,7 @@
         else if (state === 'over') {
           stampText(2, 'G A M E   O V E R', 3);
           stampText(3, 'sector ' + pad(score) + ' reached', 2);
+          if ((blink % 1.1) < 0.75) stampText(5, 'press any key to restart', 3);
         }
         // build html with color runs
         var html = '';
