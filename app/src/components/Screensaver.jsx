@@ -153,41 +153,60 @@ function matrixMode(ctx, w, h, sp, cfg) {
   };
 }
 
-// ---- Blocky pipes: connected square tiles that grow from an edge, turn, branch
-// at junctions, and run to the ends of the screen (never a lone pop-in/out).
+// ---- Pipes: emulates the real 3D Pipes screensaver in 2D. Square pipe segments
+// with spherical ball-joints at every start and turn, confined to the box, that
+// grow, cross over one another, occasionally finish (a new pipe then begins), and
+// reset once the screen fills.
 function pipesMode(ctx, w, h, sp) {
-  const PC = ['#54fcfc', '#fcfc54', '#fc7cf0', '#54fc7c', '#7ca8fc'];
-  const grid = 22;
-  let cx = 0, cy = 0, dir = 0, color = PC[0], steps = 0, acc = 0;
-  let occ = new Set();                          // which cells already have pipe, for over/under crossings
-  const reseed = () => { cx = (Math.random() * (w() / grid)) | 0; cy = (Math.random() * (h() / grid)) | 0; color = PC[(Math.random() * PC.length) | 0]; dir = (Math.random() * 4) | 0; };
-  reseed(); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w(), h());
+  const PC = ['#54fcfc', '#fcfc54', '#fc7cf0', '#54fc7c', '#7ca8fc', '#fca85c'];
+  const grid = 24, seg = 10, half = grid / 2;    // seg = pipe thickness, so joints (radius ~half) read bigger
+  const cols = () => Math.floor(w() / grid), rows = () => Math.floor(h() / grid);
+  const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1];
+  const inb = (x, y) => x >= 0 && y >= 0 && x < cols() && y < rows();
+  let occ = new Set(), pipes = [], acc = 0;
+
+  function joint(gx, gy, color) {                 // a square junction fitting (bigger than the pipe)
+    const s = seg + 6, x = gx * grid + half - s / 2, y = gy * grid + half - s / 2;
+    ctx.fillStyle = color; ctx.fillRect(x, y, s, s);
+    ctx.fillStyle = 'rgba(255,255,255,0.20)'; ctx.fillRect(x + 2, y + 2, s - 4, 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(x + 2, y + s - 4, s - 4, 2);
+  }
+  function tube(gx, gy, px, py, color, over) {    // straight segment from prev cell to this one
+    const dx = gx - px, dy = gy - py;
+    const x = Math.min(gx, px) * grid + half - seg / 2, y = Math.min(gy, py) * grid + half - seg / 2;
+    if (over) { ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.fillRect(gx * grid + half - seg / 2 - 2, gy * grid + half - seg / 2 - 2, seg + 4, seg + 4); }  // dim what's underneath at a crossing
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, Math.abs(dx) * grid + seg, Math.abs(dy) * grid + seg);
+  }
+  function spawn() {
+    const x = (Math.random() * cols()) | 0, y = (Math.random() * rows()) | 0;
+    const color = PC[(Math.random() * PC.length) | 0], dir = (Math.random() * 4) | 0;
+    joint(x, y, color); occ.add(x + ',' + y);
+    pipes.push({ cx: x, cy: y, dir, color });
+  }
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w(), h());
+  for (let i = 0; i < 4; i++) spawn();
+
   return (dt) => {
-    acc += 180 * sp * dt;                       // ~3 steps per frame at 60fps, scaled by the speed setting
-    let n = acc | 0; acc -= n; if (n > 24) n = 24;
+    acc += 11 * sp * dt;                           // cells/sec per pipe (calm; slowest setting is very gentle)
+    let n = acc | 0; acc -= n; if (n > 10) n = 10;
     for (let k = 0; k < n; k++) {
-      if (Math.random() < 0.14) dir = (dir + (Math.random() < 0.5 ? 1 : 3)) % 4;   // longer straight runs, like the real screensaver
-      const dx = [1, 0, -1, 0][dir], dy = [0, 1, 0, -1][dir];
-      cx += dx; cy += dy;
-      let jumped = false;
-      if (cx < 0 || cy < 0 || cx * grid > w() || cy * grid > h()) { reseed(); jumped = true; }
-      const key = cx + ',' + cy, overlap = occ.has(key);
-      if (overlap) {
-        // crossing existing pipe: darken what's underneath first so the older
-        // layer dims and this pipe reads as passing cleanly over it
-        ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(cx * grid, cy * grid, grid, grid);
-        ctx.fillStyle = color; ctx.fillRect(cx * grid + 2, cy * grid + 2, grid - 4, grid - 4);
-      } else if (jumped) {
-        ctx.fillStyle = color; ctx.fillRect(cx * grid + 2, cy * grid + 2, grid - 4, grid - 4);
-      } else {
-        // one rect spanning the previous cell and this one -> the pipe flows
-        // cleanly and continuously from itself, still blocky
-        ctx.fillStyle = color;
-        const ax = Math.min(cx, cx - dx), ay = Math.min(cy, cy - dy);
-        ctx.fillRect(ax * grid + 2, ay * grid + 2, (Math.abs(dx) + 1) * grid - 4, (Math.abs(dy) + 1) * grid - 4);
+      for (let pi = pipes.length - 1; pi >= 0; pi--) {
+        const p = pipes[pi];
+        let turned = false;
+        if (Math.random() < 0.20) { p.dir = (p.dir + (Math.random() < 0.5 ? 1 : 3)) % 4; turned = true; }  // random elbow
+        if (!inb(p.cx + DX[p.dir], p.cy + DY[p.dir])) {                                                     // hit the box wall: pick an inward dir
+          const opts = [0, 1, 2, 3].filter((d) => inb(p.cx + DX[d], p.cy + DY[d]));
+          p.dir = opts[(Math.random() * opts.length) | 0]; turned = true;
+        }
+        if (turned) joint(p.cx, p.cy, p.color);                                                             // ball-joint at the bend
+        const opx = p.cx, opy = p.cy;
+        p.cx += DX[p.dir]; p.cy += DY[p.dir];
+        const key = p.cx + ',' + p.cy;
+        tube(p.cx, p.cy, opx, opy, p.color, occ.has(key));
+        occ.add(key);
+        if (Math.random() < 0.004) { joint(p.cx, p.cy, p.color); pipes.splice(pi, 1); spawn(); }            // this pipe finishes; a new one begins with a joint
       }
-      occ.add(key);
-      if (++steps % 260 === 0) { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, w(), h()); occ.clear(); reseed(); }   // half-fade dims older pipes into the background
-    }
+      if (occ.size > cols() * rows() * 0.78) { ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, w(), h()); occ.clear(); pipes = []; for (let i = 0; i < 4; i++) spawn(); }   // screen filled: reset
   };
 }
