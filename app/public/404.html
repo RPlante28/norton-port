@@ -24,7 +24,7 @@
     pre.art { color:var(--cyan); font-size:12px; line-height:1.15; margin:0 0 14px; white-space:pre; overflow:auto; }
     h1 { color:#fff; font-size:22px; letter-spacing:.04em; margin:0 0 4px; }
     .meta { color:var(--yellow); font-size:12px; margin-bottom:14px; }
-    p { font-size:13.5px; line-height:1.6; margin:0 0 10px; max-width:56ch; }
+    p { font-size:13.5px; line-height:1.6; margin:0 0 10px; max-width:58ch; }
     .dim { color:#9fc0f0; font-size:12px; }
     a.btn {
       display:inline-block; margin-top:10px; text-decoration:none; color:var(--blue);
@@ -32,16 +32,19 @@
       box-shadow:2px 2px 0 #00005a;
     }
     a.btn:hover { background:#fff; }
-    a.btn.glow { background:var(--green); box-shadow:0 0 10px var(--green),2px 2px 0 #00005a; }
+    a.mini { color:var(--cyan); font-size:11.5px; text-decoration:none; border-bottom:1px dotted var(--edge); }
+    a.mini:hover { color:#fff; }
     .cursor { display:inline-block; width:9px; height:15px; background:var(--ink); vertical-align:-2px; animation:bl .9s steps(1) infinite; }
     @keyframes bl { 50% { opacity:0; } }
     .bar { margin-top:16px; border-top:1px solid var(--edge); padding-top:12px; }
     .game h2 { color:var(--cyan); font-size:12px; letter-spacing:.1em; margin:0 0 3px; }
     pre#maze {
       font-family:'DejaVu Sans Mono','Cascadia Mono','Consolas','Menlo','Liberation Mono',monospace;
-      color:var(--cyan); font-size:13px; line-height:1.0; margin:8px 0 6px; white-space:pre; letter-spacing:1px;
+      font-size:13px; line-height:1.0; margin:9px 0 6px; white-space:pre;
     }
-    #mstatus { color:var(--green); font-size:12px; min-height:16px; }
+    #mstatus { color:var(--ink); font-size:12px; min-height:16px; margin-bottom:6px; }
+    #mstatus b { color:var(--yellow); }
+    #mstatus .good { color:var(--green); }
     @media (prefers-reduced-motion: reduce) { .cursor { animation:none; } }
   </style>
 </head>
@@ -63,71 +66,95 @@
 
     <div class="bar game">
       <h2>LOST SECTOR</h2>
-      <p class="dim" style="margin:0">While you're here: you've wandered into a lost sector. Use the <strong style="color:var(--ink)">arrow keys</strong> to find your way back to <strong style="color:var(--ink)">H</strong>ome.</p>
+      <p class="dim" style="margin:0 0 4px">You've wandered off the disk. Steer with the <strong style="color:var(--ink)">arrow keys</strong> (or WASD) to the exit
+        <span style="color:var(--green)">&#8962;</span>, scooping up the scattered <span style="color:var(--yellow)">$</span> lost bytes along the way.</p>
       <pre id="maze"></pre>
       <div id="mstatus"></div>
+      <a id="newmaze" class="mini" href="#">&#8635; new maze</a>
     </div>
   </div>
 
   <script>
     (function () {
-      var R = 7, C = 12;
+      var R = 8, C = 14, BYTES = 6;
       var H = 2 * R + 1, W = 2 * C + 1;
-      var g = [];
-      for (var y = 0; y < H; y++) { g[y] = []; for (var x = 0; x < W; x++) g[y][x] = '#'; }
-      var vis = {};
-      var stack = [[0, 0]];
-      vis['0,0'] = 1; g[1][1] = ' ';
-      while (stack.length) {
-        var cur = stack[stack.length - 1], r = cur[0], c = cur[1];
-        var dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]].filter(function (d) {
-          var nr = r + d[0], nc = c + d[1];
-          return nr >= 0 && nr < R && nc >= 0 && nc < C && !vis[nr + ',' + nc];
-        });
-        if (!dirs.length) { stack.pop(); continue; }
-        var d = dirs[Math.floor(Math.random() * dirs.length)];
-        var nr = r + d[0], nc = c + d[1];
-        g[2 * r + 1 + d[0]][2 * c + 1 + d[1]] = ' ';
-        g[2 * nr + 1][2 * nc + 1] = ' ';
-        vis[nr + ',' + nc] = 1;
-        stack.push([nr, nc]);
-      }
-      var pr = 1, pc = 1, er = 2 * R - 1, ec = 2 * C - 1, won = false;
-      var pre = document.getElementById('maze');
-      var status = document.getElementById('mstatus');
-      function draw() {
-        var out = [];
-        for (var y = 0; y < H; y++) {
-          var row = '';
-          for (var x = 0; x < W; x++) {
-            if (x === pc && y === pr) row += '▮';
-            else if (x === ec && y === er) row += won ? '★' : 'H';
-            else row += g[y][x] === '#' ? '█' : ' ';
-          }
-          out.push(row);
+      var g, pr, pc, er, ec, bytes, trail, moves, got, won;
+
+      function gen() {
+        g = [];
+        for (var y = 0; y < H; y++) { g[y] = []; for (var x = 0; x < W; x++) g[y][x] = '#'; }
+        var vis = {}, stack = [[0, 0]];
+        vis['0,0'] = 1; g[1][1] = ' ';
+        while (stack.length) {
+          var cur = stack[stack.length - 1], r = cur[0], c = cur[1];
+          var opts = [[0, 1], [0, -1], [1, 0], [-1, 0]].filter(function (d) {
+            var nr = r + d[0], nc = c + d[1];
+            return nr >= 0 && nr < R && nc >= 0 && nc < C && !vis[nr + ',' + nc];
+          });
+          if (!opts.length) { stack.pop(); continue; }
+          var d = opts[(Math.random() * opts.length) | 0], nr = r + d[0], nc = c + d[1];
+          g[2 * r + 1 + d[0]][2 * c + 1 + d[1]] = ' ';
+          g[2 * nr + 1][2 * nc + 1] = ' ';
+          vis[nr + ',' + nc] = 1; stack.push([nr, nc]);
         }
-        pre.textContent = out.join('\n');
+        pr = 1; pc = 1; er = 2 * R - 1; ec = 2 * C - 1;
+        trail = {}; moves = 0; got = 0; won = false;
+        bytes = {}; var placed = 0, guard = 0;
+        while (placed < BYTES && guard++ < 400) {
+          var rr = (Math.random() * R) | 0, cc = (Math.random() * C) | 0, y = 2 * rr + 1, x = 2 * cc + 1;
+          var key = y + ',' + x;
+          if ((y === pr && x === pc) || (y === er && x === ec) || bytes[key]) continue;
+          bytes[key] = 1; placed++;
+        }
+        draw();
       }
+
+      function draw() {
+        var out = '';
+        for (var y = 0; y < H; y++) {
+          for (var x = 0; x < W; x++) {
+            var key = y + ',' + x;
+            if (x === pc && y === pr) out += '<span style="color:#fcfc54">&#9646;</span>';
+            else if (x === ec && y === er) out += '<span style="color:#54fc54">' + (won ? '&#9733;' : '&#8962;') + '</span>';
+            else if (bytes[key]) out += '<span style="color:#fcfc54">$</span>';
+            else if (g[y][x] === '#') out += '<span style="color:#3fb0d0">&#9608;</span>';
+            else if (trail[key]) out += '<span style="color:#2f6fd0">&#183;</span>';
+            else out += ' ';
+          }
+          out += '\n';
+        }
+        document.getElementById('maze').innerHTML = out;
+        var st = document.getElementById('mstatus');
+        if (won) {
+          st.innerHTML = got === BYTES
+            ? '<span class="good">&#9733; SECTOR FULLY RECOVERED</span> &#183; all <b>' + BYTES + '</b> bytes reclaimed in <b>' + moves + '</b> moves.'
+            : '<span class="good">you made it back</span> &#183; recovered <b>' + got + '/' + BYTES + '</b> bytes in <b>' + moves + '</b> moves.';
+        } else {
+          st.innerHTML = 'bytes <b>' + got + '/' + BYTES + '</b> &#183; moves <b>' + moves + '</b>';
+        }
+      }
+
       function move(dy, dx) {
         if (won) return;
         if (g[pr + dy] && g[pr + dy][pc + dx] === ' ') {
-          pr += dy * 2; pc += dx * 2;
-          if (pr === er && pc === ec) {
-            won = true;
-            status.textContent = 'SECTOR RECOVERED · you found your way back.';
-            document.getElementById('home').classList.add('glow');
-          }
+          trail[pr + ',' + pc] = 1;
+          pr += dy * 2; pc += dx * 2; moves++;
+          var key = pr + ',' + pc;
+          if (bytes[key]) { delete bytes[key]; got++; }
+          if (pr === er && pc === ec) won = true;
           draw();
         }
       }
+
       document.addEventListener('keydown', function (e) {
         var k = e.key;
-        if (k === 'ArrowUp') { move(-1, 0); e.preventDefault(); }
-        else if (k === 'ArrowDown') { move(1, 0); e.preventDefault(); }
-        else if (k === 'ArrowLeft') { move(0, -1); e.preventDefault(); }
-        else if (k === 'ArrowRight') { move(0, 1); e.preventDefault(); }
+        if (k === 'ArrowUp' || k === 'w' || k === 'W') { move(-1, 0); e.preventDefault(); }
+        else if (k === 'ArrowDown' || k === 's' || k === 'S') { move(1, 0); e.preventDefault(); }
+        else if (k === 'ArrowLeft' || k === 'a' || k === 'A') { move(0, -1); e.preventDefault(); }
+        else if (k === 'ArrowRight' || k === 'd' || k === 'D') { move(0, 1); e.preventDefault(); }
       });
-      draw();
+      document.getElementById('newmaze').addEventListener('click', function (e) { e.preventDefault(); gen(); });
+      gen();
     })();
   </script>
 </body>
