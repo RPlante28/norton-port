@@ -18,32 +18,24 @@
       font-family:'Space Mono',monospace; -webkit-font-smoothing:antialiased;
       display:flex; align-items:center; justify-content:center; padding:20px; min-height:100vh;
     }
-    .win { width:660px; max-width:96vw; border:3px double var(--cyan); position:relative; padding:26px 26px 22px; }
+    .win { width:620px; max-width:96vw; border:3px double var(--cyan); position:relative; padding:28px 28px 26px; }
     .title { position:absolute; top:-11px; left:0; right:0; text-align:center; }
     .title span { background:var(--blue); color:#fff; padding:0 12px; font-size:13px; }
-    pre.art { color:var(--cyan); font-size:12px; line-height:1.15; margin:0 0 14px; white-space:pre; overflow-x:auto; }
+    pre.art { color:var(--cyan); font-size:12px; line-height:1.15; margin:0 0 16px; white-space:pre; overflow-x:auto; }
     h1 { color:#fff; font-size:22px; letter-spacing:.04em; margin:0 0 4px; }
-    .meta { color:var(--yellow); font-size:12px; margin-bottom:14px; }
+    .meta { color:var(--yellow); font-size:12px; margin-bottom:16px; }
     p { font-size:13.5px; line-height:1.6; margin:0 0 10px; max-width:58ch; }
     .dim { color:#9fc0f0; font-size:12px; }
     a.btn {
-      display:inline-block; margin-top:10px; text-decoration:none; color:var(--blue);
+      display:inline-block; margin-top:12px; text-decoration:none; color:var(--blue);
       background:var(--cyan); border:2px solid #000; padding:5px 16px; font-weight:700; font-size:13px;
       box-shadow:2px 2px 0 #00005a;
     }
     a.btn:hover { background:#fff; }
     .cursor { display:inline-block; width:9px; height:15px; background:var(--ink); vertical-align:-2px; animation:bl .9s steps(1) infinite; }
     @keyframes bl { 50% { opacity:0; } }
-    .bar { margin-top:18px; border-top:1px solid var(--edge); padding-top:14px; }
-    /* ambient ASCII night-ride; scales down to fit small screens */
-    pre#ride {
-      margin:0 auto; font-family:'Space Mono',monospace; line-height:1.05; letter-spacing:0;
-      white-space:pre; overflow:hidden; color:#7ea6b8; user-select:none;
-      font-size:clamp(7px, 2.15vw, 15px);
-      padding:12px 10px; background:#04081a; border:1px solid #1d3350; border-radius:2px;
-    }
     @media (max-width:520px) {
-      .win { padding:20px 12px 16px; }
+      .win { padding:22px 14px 18px; }
       pre.art { font-size:10px; }
     }
     @media (prefers-reduced-motion: reduce) { .cursor { animation:none; } }
@@ -64,92 +56,6 @@
     <p>The sector you requested isn't on this disk. It may have been moved, renamed, or it never existed in the first place.</p>
     <p class="dim">Abort, Retry, Fail? <span class="cursor"></span></p>
     <a id="home" class="btn" href="/">&#9668; RETURN TO C:\ROHAN</a>
-
-    <div class="bar">
-      <pre id="ride" aria-label="a motorcycle riding off into the night"></pre>
-    </div>
   </div>
-
-  <script>
-    (function () {
-      var el = document.getElementById('ride');
-      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-      var COLS = 56, ROWS = 15;
-      var HORIZON = 8, FEET = 12, ROAD = 13, GRAVEL = 14;
-      var BIKE_COL = 6, BIKE_TOP = 9;
-
-      // soft night palette, indexed by code
-      var CODES = { sky:0, star:1, moon:2, peak:3, road:4, dash:5, bike:6, light:7, puff:8, speed:9 };
-      var COL = ['#2b3f57','#5b7fa8','#cdd6e6','#33506f','#43617e','#6f93b6','#8ac79a','#d8b25a','#556172','#3c5570'];
-
-      // fixed starfield
-      var stars = [];
-      for (var i = 0; i < 34; i++) stars.push({ x:(Math.random()*COLS)|0, y:(Math.random()*(HORIZON-1))|0, ph:Math.random()*6.28 });
-
-      var MOON = [" .--. ", "(  ' )", "( .  )", " `--' "];
-      // mirrored from the classic ASCII motorcycle so it faces right (the way it rides)
-      var BIKE = [
-        "        _",
-        "      _\\D",
-        "  .-,_.'_)\\",
-        " (W)`--'(W)"
-      ];
-
-      var puffs = [];
-      var t = 0;
-
-      var chars = [], codes = [];
-      function clear(){ for (var r=0;r<ROWS;r++){ chars[r]=new Array(COLS).fill(' '); codes[r]=new Array(COLS).fill(0); } }
-      function put(r,c,ch,code){ if(r>=0&&r<ROWS&&c>=0&&c<COLS){ chars[r][c]=ch; codes[r][c]=code; } }
-      function stamp(rows,top,col,code){ for(var r=0;r<rows.length;r++) for(var c=0;c<rows[r].length;c++){ var ch=rows[r][c]; if(ch!==' ') put(top+r,col+c,ch,code); } }
-
-      function frame(){
-        clear();
-        // stars (twinkle)
-        for (var s=0;s<stars.length;s++){ var st=stars[s]; var b=Math.sin(t*0.06+st.ph); if(b>-0.3) put(st.y, st.x, b>0.7?'+':'.', CODES.star); }
-        // moon, top-right
-        stamp(MOON, 0, COLS-8, CODES.moon);
-        // a simple distant ridge line along the horizon, scrolling slowly
-        var off = t*0.12;
-        for (var c=0;c<COLS;c++){
-          var hh = Math.sin((c+off)*0.3) + 0.55*Math.sin((c+off)*0.13+1.7);
-          put(HORIZON - Math.max(0, Math.round(hh)), c, '^', CODES.peak);
-        }
-        // road: a solid edge plus scrolling gravel
-        for (var c2=0;c2<COLS;c2++){ put(ROAD, c2, '_', CODES.road); if(((c2 + Math.floor(t*0.9))%7)===0) put(GRAVEL, c2, '-', CODES.dash); }
-        // exhaust puffs drifting back and up
-        if (t%4===0) puffs.push({ x:BIKE_COL-1, y:FEET-1, life:0 });
-        for (var p=puffs.length-1;p>=0;p--){ var pf=puffs[p]; pf.life++; pf.x-=0.6; if(pf.life%3===0) pf.y-=1; if(pf.x<0||pf.y<HORIZON||pf.life>18){ puffs.splice(p,1); continue; } put(Math.round(pf.y), Math.round(pf.x), pf.life<8?'o':'.', CODES.puff); }
-        // the bike, wheels spinning, gentle bob
-        var w = (Math.floor(t*0.5)%2===0) ? 'O' : 'o';
-        var bob = (Math.sin(t*0.22)>0.6) ? -1 : 0;
-        var rows = BIKE.map(function(r){ return r.split('W').join(w); });
-        stamp(rows, BIKE_TOP+bob, BIKE_COL, CODES.bike);
-        // headlight cone reaching up the road ahead
-        var fx = BIKE_COL+11;
-        for (var d=0; d<8; d++){ var lx=fx+d; var ly=FEET-2 + Math.round(d*0.35); if(((t+d)%2)===0) put(ly, lx, d<4?'-':'.', CODES.light); }
-
-        // build html with color runs
-        var html='';
-        for (var r3=0;r3<ROWS;r3++){
-          var run='', cur=-1;
-          for (var cc=0;cc<COLS;cc++){
-            var code=codes[r3][cc], ch=chars[r3][cc];
-            ch = ch==='<'?'&lt;':ch==='>'?'&gt;':ch==='&'?'&amp;':ch;
-            if(code!==cur){ if(run) html+='<span style="color:'+COL[cur]+'">'+run+'</span>'; run=''; cur=code; }
-            run+=ch;
-          }
-          if(run) html+='<span style="color:'+COL[cur]+'">'+run+'</span>';
-          html+='\n';
-        }
-        el.innerHTML=html;
-        t++;
-      }
-
-      if (reduce) { frame(); }                      // one static frame, no motion
-      else { setInterval(frame, 90); frame(); }     // ~11fps, calm
-    })();
-  </script>
 </body>
 </html>

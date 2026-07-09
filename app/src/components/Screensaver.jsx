@@ -208,5 +208,6 @@ function pipesMode(ctx, w, h, sp) {
         if (Math.random() < 0.004) { joint(p.cx, p.cy, p.color); pipes.splice(pi, 1); spawn(); }            // this pipe finishes; a new one begins with a joint
       }
       if (occ.size > cols() * rows() * 0.78) { ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, w(), h()); occ.clear(); pipes = []; for (let i = 0; i < 4; i++) spawn(); }   // screen filled: reset
+    }
   };
 }
