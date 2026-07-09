@@ -172,6 +172,8 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 .nc-dlgbtn { cursor: pointer; background: #a0a0a0; color: #000; box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff; }
 .nc-close { cursor: pointer; background: #a0a0a0; color: #000; box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff; padding: 0 7px; line-height: 16px; }
 .nc-dlgbtn:active { box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff !important; }
+/* a dialog button locked in the pressed state (used for the active config tab) */
+.nc-dlgbtn-on { box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff !important; background: #c0c0c0; }
 .nc-dlgbtn:hover { background: #c8c8c8 !important; }
 .nc-field { font-family: var(--mono); font-size: var(--fs-row); color: var(--dos-blue); background: #fff; border: none; box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff; padding: var(--sp-1) 6px; outline: none; width: 100%; }
 .nc-field:focus { box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, 0 0 0 1px var(--dos-blue); }

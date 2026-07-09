@@ -36,11 +36,11 @@ export default function ConfigDialog({ v }) {
     <div onClick={v.stop} className="bg-[#b8b8b8] text-black w-[460px] max-w-[94vw] text-[13.5px]" style={{ boxShadow: '6px 6px 0 rgba(0,0,0,0.45)' }}>
       <div className="bg-dos-blue text-cyan text-center p-[3px] font-bold">Configuration</div>
 
-      {/* clickable section tabs */}
-      <div className="flex gap-1 px-2.5 pt-2">
+      {/* clickable section tabs, styled like the dialog buttons; active = pressed */}
+      <div className="flex gap-2 px-2.5 pt-2.5">
         {tabs.map(([id, label]) => (
           <span key={id} onClick={() => setTab(id)}
-            className={'cursor-pointer px-3 py-[3px] text-[12.5px] border border-black ' + (tab === id ? 'bg-dos-blue text-cyan font-bold' : 'bg-[#a8a8a8] hover:bg-[#c4c4c4]')}>
+            className={'nc-dlgbtn px-3 py-[3px] text-[12.5px] ' + (tab === id ? 'nc-dlgbtn-on font-bold' : '')}>
             {label}
           </span>
         ))}
