@@ -27,7 +27,7 @@ export default function MenuBar({ menus, anyMenuOpen, closeMenu }) {
           <div key={m.id} className="relative" onMouseEnter={m.onEnter}>
             <span
               onClick={m.onClick}
-              className="nc-mtab inline-block cursor-pointer px-3 py-px"
+              className="nc-mtab inline-block cursor-pointer px-3 max-[700px]:px-1.5 py-px"
               style={{ background: m.tabBg, color: m.tabFg }}
             >
               {m.label}
@@ -50,7 +50,7 @@ export default function MenuBar({ menus, anyMenuOpen, closeMenu }) {
         ))}
         <span className="flex-1" />
         <Clock />
-        <span className="px-1.5">ROHAN-DOS</span>
+        <span className="px-1.5 max-[700px]:hidden">ROHAN-DOS</span>
       </div>
       {anyMenuOpen && <div onClick={closeMenu} className="fixed inset-0 z-[55]" />}
     </>

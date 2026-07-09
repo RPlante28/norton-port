@@ -39,8 +39,8 @@ export default function App() {
 
       <MenuBar menus={v.menus} anyMenuOpen={v.anyMenuOpen} closeMenu={v.closeMenu} />
 
-      {/* two panels */}
-      <div className="flex-auto min-h-0 mt-[7px] grid grid-cols-2 gap-2">
+      {/* two panels (side-by-side on desktop, stacked on mobile via .nc-panels) */}
+      <div className="nc-panels flex-auto min-h-0 mt-[7px]">
         <FilePanel v={v} />
 
         <div className="relative flex flex-col min-h-0 border-[3px] border-double border-cyan">

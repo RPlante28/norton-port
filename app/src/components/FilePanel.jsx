@@ -6,10 +6,10 @@ export default function FilePanel({ v }) {
       <div className="absolute -top-[11px] left-0 right-0 text-center pointer-events-none">
         <span className="bg-dos-blue px-3 text-cyan text-[13px]">{v.leftTitle}</span>
       </div>
-      <div className="grid grid-cols-[1fr_104px_92px] text-cyan text-[13px] pt-2 pb-[3px] border-b border-edge-dim">
+      <div className="grid grid-cols-[1fr_104px_92px] max-[700px]:grid-cols-1 text-cyan text-[13px] pt-2 pb-[3px] border-b border-edge-dim">
         <span className="px-1.5 text-center">Name</span>
-        <span className="px-1.5 text-center border-l border-edge-dim">Size</span>
-        <span className="px-1.5 text-center border-l border-edge-dim">Date</span>
+        <span className="px-1.5 text-center border-l border-edge-dim max-[700px]:hidden">Size</span>
+        <span className="px-1.5 text-center border-l border-edge-dim max-[700px]:hidden">Date</span>
       </div>
       <div className="flex-auto overflow-auto pt-0.5">
         {v.rows.map((r, ri) => (

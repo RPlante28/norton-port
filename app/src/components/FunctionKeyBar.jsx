@@ -4,7 +4,7 @@ function FKey({ n, label, onClick, href, grow, first }) {
     <span className={`text-ink py-[3px] pr-[2px] ${first ? 'pl-1' : 'pl-1.5'}`}>{n}</span>
   );
   const lbl = (
-    <span className={`bg-cyan text-dos-blue py-[3px] px-2 ${grow ? 'flex-1' : ''}`}>{label}</span>
+    <span className={`bg-cyan text-dos-blue py-[3px] px-2 ${grow ? 'sm:flex-1' : ''}`}>{label}</span>
   );
   if (href) {
     return (
@@ -15,7 +15,7 @@ function FKey({ n, label, onClick, href, grow, first }) {
     );
   }
   return (
-    <span className={`nc-fkey ${grow ? 'flex-1 cursor-pointer' : ''}`} onClick={onClick}>
+    <span className={`nc-fkey ${grow ? 'sm:flex-1 cursor-pointer' : ''}`} onClick={onClick}>
       {num}
       {lbl}
     </span>
@@ -36,7 +36,7 @@ export default function FunctionKeyBar({ v }) {
     { n: '10', label: 'Quit', onClick: v.goRoot, grow: true },
   ];
   return (
-    <div className="flex flex-none gap-0 text-[12.5px]">
+    <div className="flex flex-none gap-0 text-[12.5px] max-[700px]:flex-wrap max-[700px]:gap-y-px max-[700px]:text-[11px]">
       {keys.map((k, i) => (
         <FKey key={k.n} first={i === 0} {...k} />
       ))}

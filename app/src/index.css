@@ -122,6 +122,23 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 :root[data-theme='green'] #root,
 :root[data-theme='white'] #root { filter: grayscale(1) contrast(1.06) brightness(1.05); }
 
+/* ---- responsive / mobile ------------------------------------------ */
+/* the two NC panels sit side-by-side on desktop; stack them on narrow screens */
+.nc-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 700px) {
+  .nc-panels { display: flex; flex-direction: column; }
+  .nc-panels > *:first-child { height: 40vh; flex: 0 0 auto; }   /* file browser */
+  .nc-panels > *:last-child { flex: 1 1 auto; min-height: 0; }    /* content pane */
+  /* file rows: show just the name (size/date columns don't fit a phone) */
+  .nc-frow { grid-template-columns: 1fr; }
+  .nc-frow > span:nth-child(2), .nc-frow > span:nth-child(3) { display: none; }
+}
+/* touch devices: no fake block cursor, use the real one */
+@media (pointer: coarse) {
+  html.nc-blockcur, html.nc-blockcur * { cursor: auto !important; }
+  .nc-mouse { display: none !important; }
+}
+
 /* ---- command line ------------------------------------------------- */
 .nc-cmd { background: transparent; border: none; outline: none; color: var(--yellow); font-family: var(--mono); font-size: 13.5px; caret-color: var(--yellow); flex: 1; padding: 0; }
 .nc-cmd-bc { caret-color: transparent; }

@@ -9,7 +9,7 @@ export default function ConfigDialog({ v }) {
   return (
     <div
       onClick={v.stop}
-      className="bg-[#b8b8b8] text-black w-[420px] text-[13.5px]"
+      className="bg-[#b8b8b8] text-black w-[420px] max-w-[94vw] text-[13.5px]"
       style={{ boxShadow: '6px 6px 0 rgba(0,0,0,0.45)' }}
     >
       <div className="bg-dos-blue text-cyan text-center p-[3px] font-bold">Configuration</div>
