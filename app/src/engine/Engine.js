@@ -1327,7 +1327,19 @@ export default class Engine {
   openDash(which){ this.setState({ dialog:(which===2?'dash2':'dash1'), activeMenu:null }); }
   openResume(){ this.setState({ dialog:'resume', activeMenu:null }); }
   // open an <img> element in the full-screen image viewer (used by timeline photos)
-  _imgOpen(img){ if(!img) return; const full=img.getAttribute('data-full')||img.getAttribute('src'); const name=(img.getAttribute('alt')||'IMAGE').toUpperCase(); const meta=img.getAttribute('data-full')?'SOURCE: original capture (filters off)':'SOURCE: '+full.split('/').pop(); this.setState({ imgView:{ src:full, name, meta } }); }
+  // describe one <img> for the viewer
+  _imgInfo(img){ const full=img.getAttribute('data-full')||img.getAttribute('src'); const name=(img.getAttribute('alt')||'IMAGE').toUpperCase(); const meta=img.getAttribute('data-full')?'SOURCE: original capture (filters off)':'SOURCE: '+full.split('/').pop(); return { src:full, name, meta }; }
+  // open the viewer as a gallery: gather every image in the current entry so the
+  // user can page through them; start on the one they clicked
+  _imgOpen(img){
+    if(!img) return;
+    const scope=img.closest('.overflow-auto')||img.parentElement||img;
+    const imgs=Array.from(scope.querySelectorAll('img'));
+    const list=(imgs.length?imgs:[img]).map(im=>this._imgInfo(im));
+    let i=imgs.indexOf(img); if(i<0) i=0;
+    this.setState({ imgView:{ list, i } });
+  }
+  _imgNav(d){ const iv=this.state.imgView; if(!iv||!iv.list||iv.list.length<2) return; const n=iv.list.length; const i=((iv.i+d)%n+n)%n; this.setState({ imgView:{ list:iv.list, i } }); }
 
   // ===== 6502 virtual machine - faithful scalar-pipeline core (cpu6502.js) =====
   ensureVM(){
@@ -1628,7 +1640,8 @@ export default class Engine {
         if(e.key==='Escape' && this.state.dialog){ this.closeDialog(); }
         return;
       }
-      if(e.key==='Escape'){ if(this.state.imgView){ this.setState({ imgView:null }); return; } if(this.state.editing){ this.closeEditor(); return; } if(this.state.dialog){ this.closeDialog(); return; } this.closeMenu(); return; }
+      if(this.state.imgView){ if(e.key==='Escape'){ this.setState({ imgView:null }); return; } if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){ e.preventDefault(); this._imgNav(1); return; } if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ e.preventDefault(); this._imgNav(-1); return; } }
+      if(e.key==='Escape'){ if(this.state.editing){ this.closeEditor(); return; } if(this.state.dialog){ this.closeDialog(); return; } this.closeMenu(); return; }
       if(this.state.editing) return;
       if(e.key==='o' || e.key==='O'){ e.preventDefault(); this.toggleCli(); return; }
       if(e.key==='e' || e.key==='E'){ e.preventDefault(); this.editSelected(); return; }
@@ -1917,11 +1930,16 @@ export default class Engine {
       crtPct: Math.round(((this.cfg.crtIntensity==null?0.22:this.cfg.crtIntensity)-0.06)/(0.5-0.06)*100)+'%',
       crtOpacity: this.cfg.crt ? 1 : 0.5,
       imgViewOpen: !!this.state.imgView,
-      imgViewSrc: this.state.imgView ? this.state.imgView.src : '',
-      imgViewNode: this.state.imgView ? React.createElement('img', { src:this.state.imgView.src, alt:this.state.imgView.name, style:{ maxWidth:'86vw', maxHeight:'74vh', width:'auto', height:'auto', display:'block', imageRendering:'auto' } }) : null,
-      imgViewName: this.state.imgView ? this.state.imgView.name : '',
-      imgViewMeta: this.state.imgView ? this.state.imgView.meta : '',
-      viewImg:(e)=>{ const img=e&&e.currentTarget; if(!img) return; const full=img.getAttribute('data-full')||img.getAttribute('src'); const name=(img.getAttribute('alt')||'IMAGE').toUpperCase(); const meta=(img.getAttribute('data-full')?'SOURCE: original capture (filters off)':'SOURCE: '+full.split('/').pop()); this.setState({ imgView:{ src:full, name, meta } }); },
+      imgViewSrc: this.state.imgView ? this.state.imgView.list[this.state.imgView.i].src : '',
+      imgViewNode: this.state.imgView ? React.createElement('img', { key:this.state.imgView.i, src:this.state.imgView.list[this.state.imgView.i].src, alt:this.state.imgView.list[this.state.imgView.i].name, style:{ maxWidth:'86vw', maxHeight:'72vh', width:'auto', height:'auto', display:'block', imageRendering:'auto' } }) : null,
+      imgViewName: this.state.imgView ? this.state.imgView.list[this.state.imgView.i].name : '',
+      imgViewMeta: this.state.imgView ? this.state.imgView.list[this.state.imgView.i].meta : '',
+      imgViewCount: this.state.imgView ? this.state.imgView.list.length : 0,
+      imgViewIndex: this.state.imgView ? this.state.imgView.i : 0,
+      imgPrev:()=>this._imgNav(-1),
+      imgNext:()=>this._imgNav(1),
+      imgGoto:(i)=>{ const iv=this.state.imgView; if(iv) this.setState({ imgView:{ list:iv.list, i } }); },
+      viewImg:(e)=>{ this._imgOpen(e&&e.currentTarget); },
       // Hide an image that fails to load (e.g. a timeline photo not added yet)
       imgError:(e)=>{ const img=e&&e.currentTarget; if(img){ img.style.display='none'; } },
       closeImg:()=>this.setState({ imgView:null }),
