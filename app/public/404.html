@@ -88,11 +88,12 @@
       for (var i = 0; i < 34; i++) stars.push({ x:(Math.random()*COLS)|0, y:(Math.random()*(HORIZON-1))|0, ph:Math.random()*6.28 });
 
       var MOON = [" .--. ", "(  ' )", "( .  )", " `--' "];
+      // mirrored from the classic ASCII motorcycle so it faces right (the way it rides)
       var BIKE = [
-        "      _",
-        "    _(D)",
-        "  _/'-.\\",
-        " (W)==(W)"
+        "        _",
+        "      _\\D",
+        "  .-,_.'_)\\",
+        " (W)`--'(W)"
       ];
 
       var puffs = [];
@@ -126,7 +127,7 @@
         var rows = BIKE.map(function(r){ return r.split('W').join(w); });
         stamp(rows, BIKE_TOP+bob, BIKE_COL, CODES.bike);
         // headlight cone reaching up the road ahead
-        var fx = BIKE_COL+13;
+        var fx = BIKE_COL+11;
         for (var d=0; d<8; d++){ var lx=fx+d; var ly=FEET-2 + Math.round(d*0.35); if(((t+d)%2)===0) put(ly, lx, d<4?'-':'.', CODES.light); }
 
         // build html with color runs
