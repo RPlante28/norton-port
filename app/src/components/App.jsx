@@ -40,8 +40,15 @@ export default function App() {
       <MenuBar menus={v.menus} anyMenuOpen={v.anyMenuOpen} closeMenu={v.closeMenu} />
 
       {/* two panels (side-by-side on desktop, stacked on mobile via .nc-panels) */}
-      <div className="nc-panels flex-auto min-h-0 mt-[7px]">
+      <div className="nc-panels flex-auto min-h-0 mt-[7px]" style={{ '--navPct': v.navPct + '%' }}>
         <FilePanel v={v} />
+
+        {/* mobile-only grip: drag to resize, or tap the chevrons to collapse/expand */}
+        <div className="nc-navgrip" onPointerDown={v.navGrip.down} onPointerMove={v.navGrip.move} onPointerUp={v.navGrip.up} onPointerCancel={v.navGrip.up}>
+          <span className="nc-gbtn" onPointerDown={(e) => e.stopPropagation()} onClick={v.navSmaller}>&#9650; info</span>
+          <span className="nc-ghandle">&#8801;&nbsp; drag &nbsp;&#8801;</span>
+          <span className="nc-gbtn" onPointerDown={(e) => e.stopPropagation()} onClick={v.navBigger}>files &#9660;</span>
+        </div>
 
         <div className="relative flex flex-col min-h-0 border-[3px] border-double border-cyan">
           <div className="absolute -top-[11px] left-0 right-0 text-center pointer-events-none z-[2]">

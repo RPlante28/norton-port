@@ -87,49 +87,26 @@ function CanvasSaver({ mode, speed, cfg }) {
   return <canvas ref={cvRef} className="absolute inset-0 w-full h-full" />;
 }
 
-// ---- warp starfield with optional shooting stars, asteroids, galaxies, planets
+// ---- warp starfield in the site's phosphor palette, with optional shooting stars
 function starsMode(ctx, w, h, sp, cfg) {
-  const opt = (cfg && cfg.stars) || { shooting: true, asteroids: true, galaxies: true, planets: true };
-  const N = 200, stars = [];
+  const opt = (cfg && cfg.stars) || { shooting: true };
+  const N = 220, stars = [];
   for (let i = 0; i < N; i++) stars.push({ x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, z: Math.random() });
-  const shots = [], rocks = [], planets = [], galaxies = [];
-  if (opt.galaxies) for (let i = 0; i < 2; i++) galaxies.push({ x: Math.random() * w(), y: Math.random() * h() * 0.7, r: 40 + Math.random() * 40, vx: (Math.random() - 0.5) * 4, hue: 200 + Math.random() * 120, rot: Math.random() * 6 });
-  function spawnRock() { rocks.push({ x: w() + 20, y: Math.random() * h(), vx: -(18 + Math.random() * 26), size: 4 + Math.random() * 7, rot: 0, vr: (Math.random() - 0.5) * 2 }); }
-  function spawnPlanet() { planets.push({ x: w() + 60, y: 40 + Math.random() * (h() * 0.5), vx: -(10 + Math.random() * 10), r: 16 + Math.random() * 16, hue: Math.random() * 360, ring: Math.random() < 0.5 }); }
-  if (opt.asteroids) for (let i = 0; i < 3; i++) spawnRock();
-  if (opt.planets && Math.random() < 0.6) spawnPlanet();
-
+  const shots = [];
   return (dt) => {
-    ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(0, 0, w(), h());
-    for (const g of galaxies) {
-      g.x += g.vx * dt * sp; g.rot += dt * 0.2; if (g.x < -g.r * 2) g.x = w() + g.r;
-      const grd = ctx.createRadialGradient(g.x, g.y, 2, g.x, g.y, g.r);
-      grd.addColorStop(0, 'hsla(' + g.hue + ',70%,80%,0.5)'); grd.addColorStop(1, 'hsla(' + g.hue + ',70%,40%,0)');
-      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(g.x, g.y, g.r, 0, 7); ctx.fill();
-      ctx.fillStyle = 'hsla(' + g.hue + ',60%,85%,0.5)';
-      for (let a = 0; a < 40; a++) { const rr = (a / 40) * g.r, an = a * 0.5 + g.rot; ctx.fillRect(g.x + Math.cos(an) * rr, g.y + Math.sin(an) * rr, 1, 1); }
-    }
+    ctx.fillStyle = 'rgba(0,0,0,0.30)'; ctx.fillRect(0, 0, w(), h());
     const cx = w() / 2, cy = h() / 2;
     for (let i = 0; i < N; i++) {
       const s = stars[i]; s.z -= 0.0032 * sp; if (s.z <= 0.02) { s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.z = 1; }
-      const px = cx + (s.x / s.z) * cx, py = cy + (s.y / s.z) * cy, pz = 0.9 / s.z, r = Math.min(2.4, pz * 0.6), g = Math.min(255, 130 + pz * 55) | 0;
-      ctx.fillStyle = 'rgb(' + (g * 0.55 | 0) + ',' + g + ',' + g + ')'; ctx.fillRect(px, py, r, r);
+      const px = cx + (s.x / s.z) * cx, py = cy + (s.y / s.z) * cy, pz = 0.9 / s.z, r = Math.min(2.4, pz * 0.6);
+      const b = Math.min(255, 150 + pz * 55) | 0;                    // near stars = brighter cyan-white
+      ctx.fillStyle = 'rgb(' + (b * 0.55 | 0) + ',' + b + ',' + b + ')';
+      ctx.fillRect(px, py, r, r);
     }
-    if (opt.planets) { if (Math.random() < 0.0016) spawnPlanet();
-      for (let i = planets.length - 1; i >= 0; i--) { const p = planets[i]; p.x += p.vx * dt * sp; if (p.x < -80) { planets.splice(i, 1); continue; }
-        ctx.fillStyle = 'hsl(' + p.hue + ',45%,55%)'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
-        ctx.fillStyle = 'hsla(' + p.hue + ',45%,30%,0.6)'; ctx.beginPath(); ctx.arc(p.x + p.r * 0.3, p.y - p.r * 0.2, p.r * 0.7, 0, 7); ctx.fill();
-        if (p.ring) { ctx.strokeStyle = 'hsla(' + p.hue + ',50%,75%,0.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 1.7, p.r * 0.55, 0.5, 0, 7); ctx.stroke(); } }
-    }
-    if (opt.asteroids) { if (Math.random() < 0.02) spawnRock(); ctx.fillStyle = '#8a8f98';
-      for (let i = rocks.length - 1; i >= 0; i--) { const r = rocks[i]; r.x += r.vx * dt * sp; r.rot += r.vr * dt; if (r.x < -20) { rocks.splice(i, 1); continue; }
-        ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(r.rot); ctx.beginPath();
-        for (let a = 0; a < 7; a++) { const an = (a / 7) * 6.28, rr = r.size * (0.7 + (a % 2) * 0.4); ctx[a ? 'lineTo' : 'moveTo'](Math.cos(an) * rr, Math.sin(an) * rr); }
-        ctx.closePath(); ctx.fill(); ctx.restore(); }
-    }
-    if (opt.shooting) { if (Math.random() < 0.014) shots.push({ x: Math.random() * w() * 0.6, y: Math.random() * h() * 0.4, vx: 260 + Math.random() * 180, vy: 120 + Math.random() * 90, life: 0 });
+    if (opt.shooting) {
+      if (Math.random() < 0.012) shots.push({ x: Math.random() * w() * 0.6, y: Math.random() * h() * 0.4, vx: 240 + Math.random() * 170, vy: 110 + Math.random() * 80, life: 0 });
       for (let i = shots.length - 1; i >= 0; i--) { const s = shots[i]; s.life += dt; const nx = s.x + s.vx * dt * sp, ny = s.y + s.vy * dt * sp;
-        ctx.strokeStyle = 'rgba(220,235,255,' + Math.max(0, 0.9 - s.life) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(nx, ny); ctx.stroke();
+        ctx.strokeStyle = 'rgba(120,252,252,' + Math.max(0, 0.85 - s.life) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(nx, ny); ctx.stroke();
         s.x = nx; s.y = ny; if (s.life > 1.1 || s.x > w() || s.y > h()) shots.splice(i, 1); }
     }
   };
@@ -167,18 +144,19 @@ function matrixMode(ctx, w, h, sp, cfg) {
 // ---- Blocky pipes: connected square tiles that grow from an edge, turn, branch
 // at junctions, and run to the ends of the screen (never a lone pop-in/out).
 function pipesMode(ctx, w, h, sp) {
-  const PC = ['#54fcfc', '#fcfc54', '#fc7cf0', '#54fc7c', '#7ca8fc', '#fca85c'];
+  // bright foreground pipes + dimmed background pipes -> a sense of depth
+  const BRIGHT = ['#54fcfc', '#fcfc54', '#fc7cf0', '#54fc7c', '#7ca8fc', '#fca85c'];
+  const DIM = BRIGHT.map((c) => '#' + c.slice(1).match(/../g).map((h2) => Math.round(parseInt(h2, 16) * 0.34).toString(16).padStart(2, '0')).join(''));
   const G = 18, DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
   const cols = () => Math.floor(w() / G), rows = () => Math.floor(h() / G);
+  const MIN = 6;
   ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, w(), h());
   let heads = [], trail = [], drawn = 0, sinceReset = 0;
 
-  function cell(gx, gy, color) {          // one connected square with a little 3D shading
-    const x = gx * G, y = gy * G;
-    ctx.fillStyle = color; ctx.fillRect(x, y, G, G);
-    ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fillRect(x + 2, y + 2, G - 4, 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.30)'; ctx.fillRect(x + 2, y + G - 4, G - 4, 2);
-  }
+  function pickColor() { const i = (Math.random() * BRIGHT.length) | 0; return Math.random() < 0.5 ? DIM[i] : BRIGHT[i]; }
+  // a discrete square with a small gap, the way the pipes were originally drawn;
+  // consecutive squares chain together into a connected pipe, dim vs bright give depth
+  function cell(gx, gy, color) { ctx.fillStyle = color; ctx.fillRect(gx * G + 1, gy * G + 1, G - 3, G - 3); }
   function newHead(gx, gy, dir, color) { return { gx, gy, dir, color, acc: 0, speed: (3 + Math.random() * 6) * sp }; }
   function seedEdge() {                   // start on a screen edge, heading inward
     const side = (Math.random() * 4) | 0, C = cols(), R = rows(); let gx, gy, dir;
@@ -186,14 +164,14 @@ function pipesMode(ctx, w, h, sp) {
     else if (side === 1) { gx = C - 1; gy = (Math.random() * R) | 0; dir = 2; }
     else if (side === 2) { gx = (Math.random() * C) | 0; gy = 0; dir = 1; }
     else { gx = (Math.random() * C) | 0; gy = R - 1; dir = 3; }
-    heads.push(newHead(gx, gy, dir, PC[(Math.random() * PC.length) | 0]));
+    heads.push(newHead(gx, gy, dir, pickColor()));
   }
   function branchFromTrail() {            // a new pipe grows out of an existing one (stays connected)
     if (!trail.length) { seedEdge(); return; }
     const c = trail[(Math.random() * trail.length) | 0];
-    heads.push(newHead(c.gx, c.gy, (Math.random() * 4) | 0, PC[(Math.random() * PC.length) | 0]));
+    heads.push(newHead(c.gx, c.gy, (Math.random() * 4) | 0, pickColor()));
   }
-  seedEdge(); seedEdge();
+  for (let i = 0; i < MIN; i++) seedEdge();
 
   return (dt) => {
     sinceReset += dt;
@@ -202,19 +180,19 @@ function pipesMode(ctx, w, h, sp) {
       while (hd.acc >= 1 && steps < 4) {
         hd.acc -= 1; steps++;
         cell(hd.gx, hd.gy, hd.color); drawn++;
-        if (trail.length < 700) trail.push({ gx: hd.gx, gy: hd.gy }); else trail[(Math.random() * trail.length) | 0] = { gx: hd.gx, gy: hd.gy };
+        if (trail.length < 1200) trail.push({ gx: hd.gx, gy: hd.gy }); else trail[(Math.random() * trail.length) | 0] = { gx: hd.gx, gy: hd.gy };
         let dir = hd.dir; const r = Math.random();
         if (r < 0.18) dir = (hd.dir + 1) % 4; else if (r < 0.36) dir = (hd.dir + 3) % 4;
-        if (Math.random() < 0.04 && heads.length < 7) { const bd = (hd.dir + (Math.random() < 0.5 ? 1 : 3)) % 4; heads.push(newHead(hd.gx, hd.gy, bd, hd.color)); }   // junction
+        if (Math.random() < 0.05 && heads.length < 16) { const bd = (hd.dir + (Math.random() < 0.5 ? 1 : 3)) % 4; heads.push(newHead(hd.gx, hd.gy, bd, hd.color)); }   // junction
         const nx = hd.gx + DIRS[dir][0], ny = hd.gy + DIRS[dir][1];
         if (nx < 0 || ny < 0 || nx >= cols() || ny >= rows()) {   // reached an edge: end here, sprout a connected branch
-          heads.splice(i, 1); if (heads.length < 3) branchFromTrail(); dead = true; break;
+          heads.splice(i, 1); dead = true; break;
         }
         hd.dir = dir; hd.gx = nx; hd.gy = ny;
       }
       if (dead) continue;
     }
-    if (!heads.length) branchFromTrail();
-    if (sinceReset > 34 || drawn > cols() * rows() * 1.5) { sinceReset = 0; drawn = 0; ctx.fillStyle = 'rgba(5,6,10,0.9)'; ctx.fillRect(0, 0, w(), h()); trail = []; heads = []; seedEdge(); seedEdge(); }
+    while (heads.length < MIN) branchFromTrail();
+    if (sinceReset > 55 || drawn > cols() * rows() * 1.7) { sinceReset = 0; drawn = 0; ctx.fillStyle = 'rgba(5,6,10,0.92)'; ctx.fillRect(0, 0, w(), h()); trail = []; heads = []; for (let i = 0; i < MIN; i++) seedEdge(); }
   };
 }

@@ -133,14 +133,16 @@ export default function ConfigDialog({ v }) {
                 {v.saverModes.map((m, i) => {
                   const spd = v.saverSpeeds.find((s) => s.key === m.key);
                   return (
-                    <div key={i} className="flex items-baseline gap-2.5 py-0.5">
+                    <div key={i} className="flex items-center gap-2.5 py-[3px]">
                       <span onClick={m.onClick} className="nc-cfg cursor-pointer flex gap-2 items-baseline w-[150px]">
                         <span className="font-bold" style={{ color: m.boxColor }}>{m.box}</span>
                         <span>{m.label}</span>
                       </span>
-                      <span onClick={spd.onClick} className="nc-cfg cursor-pointer text-[#06457a] text-[12px]" title="click to change speed">
-                        speed: {spd.speedLabel} &#9656;
-                      </span>
+                      <span className="text-[#06457a] text-[12px]">speed</span>
+                      <select className="nc-sel" value={String(spd.value)} onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => spd.onChange(parseFloat(e.target.value))}>
+                        {v.saverSpeedOpts.map((o, j) => <option key={j} value={String(o.v)}>{o.label}</option>)}
+                      </select>
                     </div>
                   );
                 })}

@@ -138,6 +138,18 @@ export default class Engine {
   }
 
   toggleCfg(k){ this.cfg[k]=!this.cfg[k]; this._saveCfg(); this.forceUpdate(); }
+  // mobile: how much of the stacked-panel area the file browser takes (percent).
+  // A draggable grip + quick buttons let you collapse it or make it full-screen.
+  setNavPct(p){ this.setState({ navPct: Math.max(12, Math.min(88, Math.round(p))) }); }
+  _navGripHandlers(){
+    if(this.__navGrip) return this.__navGrip;
+    this.__navGrip = {
+      down:(e)=>{ this._navDrag=true; this._navCont=e.currentTarget.parentNode; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){ } if(e.preventDefault) e.preventDefault(); },
+      move:(e)=>{ if(!this._navDrag||!this._navCont) return; const r=this._navCont.getBoundingClientRect(); if(!r.height) return; this.setNavPct((r.bottom-(e.clientY||0))/r.height*100); },
+      up:()=>{ this._navDrag=false; },
+    };
+    return this.__navGrip;
+  }
   resetCfg(){ this.cfg = this._cfgDefaults(); this._saveCfg(); this.forceUpdate(); }
   // ----- CLI helpers: command-history recall + tab completion -----
   _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver']; }
@@ -168,7 +180,7 @@ export default class Engine {
     modes:{ logo:true, stars:true, matrix:true, pipes:true },
     speed:{ logo:1, stars:1, matrix:1, pipes:1 },       // per-mode multiplier
     matrixColor:'green',                                 // green|amber|cyan|rainbow
-    stars:{ shooting:true, asteroids:true, galaxies:true, planets:true }
+    stars:{ shooting:true }
   }; }
   // ----- monitor phosphor theme (blue default, or amber / green / white) -----
   setTheme(name){ this.cfg.theme=name; this._saveCfg(); this._applyTheme(); this.forceUpdate(); }
@@ -186,7 +198,7 @@ export default class Engine {
   toggleSaver(){ this.cfg.saver.enabled=!this.cfg.saver.enabled; if(!this.cfg.saver.enabled && this.state.saver) this.setState({ saver:false }); this._saveCfg(); this.forceUpdate(); }
   setSaverTimeout(sec){ this.cfg.saver.timeout=Math.max(10, Math.min(1800, Math.round(sec))); this._saveCfg(); this.forceUpdate(); }
   toggleSaverMode(k){ const m=this.cfg.saver.modes; m[k]=!m[k]; this._saveCfg(); this.forceUpdate(); }
-  cycleSaverSpeed(k){ const order=[0.4,0.7,1,1.5,2.2]; const cur=this.cfg.saver.speed[k]||1; let i=order.findIndex(x=>Math.abs(x-cur)<0.01); i=(i+1)%order.length; this.cfg.saver.speed[k]=order[i]; this._saveCfg(); this.forceUpdate(); }
+  setSaverSpeed(k, v){ this.cfg.saver.speed[k]=v; this._saveCfg(); this.forceUpdate(); }
   setMatrixColor(c){ this.cfg.saver.matrixColor=c; this._saveCfg(); this.forceUpdate(); }
   toggleStarOpt(k){ const s=this.cfg.saver.stars; s[k]=!s[k]; this._saveCfg(); this.forceUpdate(); }
   _enabledSaverModes(){ const m=this.cfg.saver.modes||{}; return Object.keys(m).filter(k=>m[k]); }
@@ -1924,10 +1936,16 @@ export default class Engine {
       saverToggle: ()=>this.toggleSaver(),
       saverOpacity: this.cfg.saver.enabled?1:0.4,
       saverModes: [ {k:'logo',label:'Bouncing logo'},{k:'stars',label:'Starfield'},{k:'matrix',label:'Matrix rain'},{k:'pipes',label:'Pipes'} ].map(m=>{ const on=!!this.cfg.saver.modes[m.k]; return { key:m.k, label:m.label, box:on?'[x]':'[ ]', boxColor:on?'#0000a8':'#06457a', on, onClick:()=>this.toggleSaverMode(m.k) }; }),
-      saverSpeeds: [ {k:'logo',label:'Logo'},{k:'stars',label:'Stars'},{k:'matrix',label:'Matrix'},{k:'pipes',label:'Pipes'} ].map(m=>{ const v=this.cfg.saver.speed[m.k]||1; return { key:m.k, label:m.label, speedLabel:this._speedLabel(v), onClick:()=>this.cycleSaverSpeed(m.k) }; }),
+      saverSpeedOpts: [ {v:0.4,label:'slowest'},{v:0.7,label:'slow'},{v:1,label:'normal'},{v:1.5,label:'fast'},{v:2.2,label:'fastest'} ],
+      saverSpeeds: [ {k:'logo',label:'Logo'},{k:'stars',label:'Stars'},{k:'matrix',label:'Matrix'},{k:'pipes',label:'Pipes'} ].map(m=>{ const v=this.cfg.saver.speed[m.k]||1; return { key:m.k, label:m.label, value:v, onChange:(nv)=>this.setSaverSpeed(m.k, nv) }; }),
       matrixColors: [ {id:'green',name:'green'},{id:'amber',name:'amber'},{id:'cyan',name:'cyan'},{id:'rainbow',name:'rainbow'} ].map(p=>{ const sel=(this.cfg.saver.matrixColor||'green')===p.id; return { name:p.name, mark: sel?'(o) ':'( ) ', color: sel?'#0000a8':'#06457a', weight: sel?'700':'400', onClick:()=>this.setMatrixColor(p.id) }; }),
-      starOpts: [ {k:'shooting',label:'Shooting stars'},{k:'asteroids',label:'Asteroids'},{k:'galaxies',label:'Galaxies'},{k:'planets',label:'Planets'} ].map(o=>{ const on=!!this.cfg.saver.stars[o.k]; return { key:o.k, label:o.label, box:on?'[x]':'[ ]', boxColor:on?'#0000a8':'#06457a', on, onClick:()=>this.toggleStarOpt(o.k) }; }),
+      starOpts: [ {k:'shooting',label:'Shooting stars'} ].map(o=>{ const on=!!this.cfg.saver.stars[o.k]; return { key:o.k, label:o.label, box:on?'[x]':'[ ]', boxColor:on?'#0000a8':'#06457a', on, onClick:()=>this.toggleStarOpt(o.k) }; }),
       saverTimeouts: [15,30,60,120,300,600].map(s=>({ label:this._timeoutLabel(s), sel:this.cfg.saver.timeout===s, color:this.cfg.saver.timeout===s?'#0000a8':'#06457a', weight:this.cfg.saver.timeout===s?'700':'400', onClick:()=>this.setSaverTimeout(s) })),
+      // mobile: draggable split between the file browser and the info pane
+      navPct: this.state.navPct||52,
+      navGrip: this._navGripHandlers(),
+      navSmaller: ()=>this.setNavPct((this.state.navPct||52)-16),
+      navBigger: ()=>this.setNavPct((this.state.navPct||52)+16),
       hitLabel: (this._hits!=null) ? ('VISITOR '+String(this._hits).padStart(6,'0')) : '',
       stop: (e)=>{ if(e&&e.stopPropagation) e.stopPropagation(); },
       cfgRows: [
