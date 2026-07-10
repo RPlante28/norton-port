@@ -65,6 +65,7 @@ export default class Engine {
     // stray mouse move (you just typed the command, your hand is on the mouse).
     this._startSaver = (mode, manual)=>{ this._saverAt=Date.now(); this._saverManual=!!manual; this.setState({ saver:true, saverMode:mode }); };
     this.cfg = this._loadCfg();
+    this._eggs = this._loadEggs();
     this._cmdHistory = this._loadHistory();
     // user filesystem (nested, persisted)
     this.userRoot = { name:'MY-FILES', kind:'dir', home:true, user:true, size:'\u25b6SUB-DIR\u25c4', date:'06.25.26', children:this._loadFS() };
@@ -154,7 +155,7 @@ export default class Engine {
     this.cmdRef=(el)=>{ this._cmd=el; };
   }
 
-  toggleCfg(k){ this.cfg[k]=!this.cfg[k]; this._saveCfg(); this.forceUpdate(); }
+  toggleCfg(k){ this.cfg[k]=!this.cfg[k]; this._saveCfg(); if(k==='hidden' && this.cfg[k]) this._egg('hidden'); this.forceUpdate(); }
   // mobile: how much of the stacked-panel area the file browser takes (percent).
   // A draggable grip + quick buttons let you collapse it or make it full-screen.
   setNavPct(p){ this.setState({ navPct: Math.max(12, Math.min(88, Math.round(p))) }); }
@@ -262,6 +263,47 @@ export default class Engine {
     return rows;
   }
   _saveCfg(){ try{ localStorage.setItem('rohanCfg', JSON.stringify(this.cfg)); }catch(e){} }
+  // ----- undocumented-feature ledger (the "secrets" hunt) -----
+  // Each entry is one undocumented feature. `reveal` is shown once found (and
+  // doubles as its own how-to); `clue` is a terse pointer shown until then.
+  _eggCatalog(){ return [
+    { id:'hidden', reveal:'hidden files      Config (F5) › Show hidden files',   clue:'the file browser hides its dotfiles.' },
+    { id:'cpu',    reveal:'6502              run a program on the CPU',            clue:'this machine runs real code. make it.' },
+    { id:'vim',    reveal:'edit <file>       the editor has modes (:w, :q)',       clue:'a text editor that thinks it is vi.' },
+    { id:'pipe',   reveal:'pipes             ls | wc -l  ·  grep x | sort',        clue:'chain two commands with a bar.' },
+    { id:'matrix', reveal:'matrix            also: pipes, starfield, logo',        clue:'some rain is not wet.' },
+    { id:'ascii',  reveal:'cowsay / fortune  also: sl, coffee',                    clue:'make the machine talk.' },
+    { id:'boss',   reveal:'boss              blank the screen, fast',              clue:'someone is coming.' },
+    { id:'mail',   reveal:'mail              also F6 · or :send from the editor',  clue:'say something.' },
+  ]; }
+  _loadEggs(){ try{ const r=localStorage.getItem('rohanEggs'); const o=r?JSON.parse(r):null; return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; } }
+  _saveEggs(){ try{ localStorage.setItem('rohanEggs', JSON.stringify(this._eggs||{})); }catch(e){} }
+  _egg(id){
+    if(!this._eggs) this._eggs=this._loadEggs();
+    if(this._eggs[id]) return;                 // already logged
+    this._eggs[id]=1; this._saveEggs();
+    const n=Object.keys(this._eggs).length, total=this._eggCatalog().length;
+    const msg='✦ logged an undocumented feature  ('+n+'/'+total+')  ·  type  secrets';
+    if(this.state.cliMode) this.print(['', msg, '']); else this.setState({ cmdMsg:msg });
+  }
+  _secretsPanel(){
+    if(!this._eggs) this._eggs=this._loadEggs();
+    const cat=this._eggCatalog();
+    const started=!!this._eggs.hidden || Object.keys(this._eggs).length>0;
+    if(!started){ return ['secrets: nothing logged yet.', '(the file browser keeps hidden files. try Configuration, F5.)']; }
+    const found=cat.filter(e=>this._eggs[e.id]).length;
+    const rule='─'.repeat(58);
+    const lines=['SECRETS.SYS  ·  undocumented features  ·  found '+found+' of '+cat.length, rule];
+    cat.forEach(e=>{ lines.push(this._eggs[e.id] ? ('[x] '+e.reveal) : ('[ ] '+('·'.repeat(16))+'  '+e.clue)); });
+    lines.push(rule);
+    if(found>=cat.length){
+      lines.push('all features found. nothing else is hidden — you read the whole machine.',
+        '', 'more of my work lives at  github.com/RPlante28');
+    } else {
+      lines.push('keep poking. every entry above is a real command or switch.');
+    }
+    return lines;
+  }
   // The second arg `preview` plays the sample sound. It's true on a click or
   // at the end of a drag, and false during a drag (so it doesn't machine-gun).
   setPitch(v, preview=true){ this.cfg.pitch=Math.max(0.6, Math.min(1.6, Math.round(v*20)/20)); this._saveCfg(); this.forceUpdate(); if(preview) this._previewKey(); }
@@ -494,6 +536,7 @@ export default class Engine {
     return { name:node.name, body:'', editable:false, ro:true };
   }
   openEditor(node){
+    this._egg('vim');
     const buf=this.bufferFor(node);
     this.setState({ editing:buf, edMode:'insert', edModeV:'normal', edStatus:'', dialog:null, activeMenu:null });
     setTimeout(()=>{ if(this._ed){ this._ed.value=buf.body; this._ed.focus(); } this._syncEdCursor(); }, 40);
@@ -929,6 +972,7 @@ export default class Engine {
 
   // ----- real pipes:  stage0 generates lines, later stages filter them -----
   _runPipeline(stages){
+    this._egg('pipe');
     let buf=this._captureRun(stages[0]);
     for(let i=1;i<stages.length;i++) buf=this._applyFilter(stages[i], buf);
     this.print(buf.length?buf:['']);
@@ -1180,7 +1224,7 @@ export default class Engine {
       this.say('nothing to open. try: go github'); return;
     }
     if(cmd==='resume' || cmd==='cv'){ this.openResume(); this.say('opening resume.pdf \u2026'); return; }
-    if(cmd==='mail' || cmd==='email' || cmd==='contact' || cmd==='sendmail' || cmd==='compose'){ this.composeMail(); this.say(''); return; }
+    if(cmd==='mail' || cmd==='email' || cmd==='contact' || cmd==='sendmail' || cmd==='compose'){ this._egg('mail'); this.composeMail(); this.say(''); return; }
     if(cmd==='config' || cmd==='setup' || cmd==='options'){ this.setState({ dialog:'config', activeMenu:null }); this.say(''); return; }
     if(cmd==='about'){ this.setState({ dialog:'about', activeMenu:null }); this.say(''); return; }
     if(cmd==='ls' || cmd==='dir'){
@@ -1212,12 +1256,13 @@ export default class Engine {
       return;
     }
     if(cmd==='xyzzy'){ this.out(['Nothing happens.']); return; }
-    if(cmd==='boss' || cmd==='b0ss'){ this.setState({ bossMode:true, activeMenu:null, dialog:null }); return; }
-    if(cmd==='cowsay'){ this.out(this.cowsay(arg||'hire Rohan')); return; }
-    if(cmd==='fortune'){ this.out(this.art.fortune.split('\n')); return; }
-    if(cmd==='coffee' || cmd==='brew'){ this.out(this.art.coffee.split('\n')); return; }
+    if(cmd==='secrets' || cmd==='secret' || cmd==='sesame' || cmd==='eggs'){ this.out(this._secretsPanel()); return; }
+    if(cmd==='boss' || cmd==='b0ss'){ this._egg('boss'); this.setState({ bossMode:true, activeMenu:null, dialog:null }); return; }
+    if(cmd==='cowsay'){ this._egg('ascii'); this.out(this.cowsay(arg||'hire Rohan')); return; }
+    if(cmd==='fortune'){ this._egg('ascii'); this.out(this.art.fortune.split('\n')); return; }
+    if(cmd==='coffee' || cmd==='brew'){ this._egg('ascii'); this.out(this.art.coffee.split('\n')); return; }
     if(cmd==='sound' || cmd==='keysound'){ const on = arg ? /^(on|1|yes|true)$/i.test(arg) : !this.cfg.keysound; this.cfg.keysound=on; this.forceUpdate(); this.say('keyboard sound '+(on?'ON':'OFF')); return; }
-    if(cmd==='matrix'){ if(this._reduceMotion()){ this.out(['(reduced motion is on - the matrix rain is disabled)']); return; } this.say('wake up, Neo...'); this._startSaver('matrix', true); return; }
+    if(cmd==='matrix'){ if(this._reduceMotion()){ this.out(['(reduced motion is on - the matrix rain is disabled)']); return; } this._egg('matrix'); this.say('wake up, Neo...'); this._startSaver('matrix', true); return; }
     if(cmd==='starfield' || cmd==='stars' || cmd==='warp'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('engaging warp …'); this._startSaver('stars', true); return; }
     if(cmd==='pipes'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('laying pipe …'); this._startSaver('pipes', true); return; }
     if(cmd==='logo' || cmd==='bounce' || cmd==='dvd'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('bouncing …'); this._startSaver('logo', true); return; }
@@ -1230,7 +1275,7 @@ export default class Engine {
       catch(_){ this.out(['bc: syntax error']); }
       return;
     }
-    if(cmd==='sl'){ this.out(this._slArt()); return; }
+    if(cmd==='sl'){ this._egg('ascii'); this.out(this._slArt()); return; }
     if(cmd==='ps' || cmd==='top' || cmd==='htop'){ this.out(this._psList(cmd!=='ps')); return; }
     if(cmd==='date' || cmd==='time'){ this.out([new Date().toString()]); return; }
     if(cmd==='ver' || cmd==='version'){ this.out(['ROHAN-DOS 5.51 - Portfolio Commander - (c) MMXXVI']); return; }
@@ -1283,9 +1328,10 @@ export default class Engine {
     const dir = this.cur();
     let base = (dir.children||[]).slice();
     if(this.state.stack.length===1 && this.cfg.hidden){
-      base = base.concat([{ name:'.SECRET .EGG', kind:'file', size:'42', date:'01.01.70', hidden:true, doc:{ kind:'doc', title:'.SECRET.EGG', meta:'HIDDEN FILE', sub:'You found the hidden files.', link:'https://github.com/RPlante28', linkLabel:'OPEN THE REPOS \u25b8', tags:['hidden'], bullets:[
-        'Real Norton Commander hid system and dotfiles until you flipped this switch in Configuration.',
-        'This is not the only thing tucked away in here. I may have hidden a few more. Keep poking around, and try typing things into the terminal.' ] } }]);
+      base = base.concat([{ name:'.SECRET .EGG', kind:'file', size:'42', date:'01.01.70', hidden:true, doc:{ kind:'doc', title:'.SECRET.EGG', meta:'HIDDEN FILE', sub:'The machine keeps a ledger of its undocumented features.', link:'https://github.com/RPlante28', linkLabel:'OPEN THE REPOS \u25b8', tags:['hidden'], bullets:[
+        'Norton Commander hid its dotfiles until you flipped this switch in Configuration. You flipped it.',
+        'There are a handful of things this desktop can do that are not in any help screen. Type  secrets  in the terminal to open the ledger: it lists what you have already turned up and leaves a one-line pointer for each one you have not.',
+        'No trophies, no timer. Work through the pointers and you will have seen everything worth seeing in here.' ] } }]);
     }
     const key = this.state.sortKey;
     if(key){
@@ -1461,6 +1507,7 @@ export default class Engine {
     this.vmProgKey='user:'+f.name; this.openEditor(f);
   }
   openVM(){
+    this._egg('cpu');
     this.ensureVM();
     const prog=(this.root.children||[]).find(c=>c.name==='PROGRAMS');
     if(prog){ const fi=prog.children.findIndex(c=>c.name.indexOf('CPU6502')>=0); this.setState({ stack:[this.root, prog], sel:fi<0?0:fi+1, activeMenu:null, editing:null, cliMode:false }); }
