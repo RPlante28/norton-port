@@ -316,16 +316,6 @@ snake:
           'Range across Indian, Asian, Greek, and Mexican food, and like mashing them together.',
           'Best dishes usually come from "what happens if I combine these two things" rather than a plan.' ] }) },
       ]},
-      { name:'DEVLOG', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'07.08.26', children:[
-        { name:'CLITOOLS.LOG', kind:'file', size:'2 560', date:'07.08.26', doc:D({ title:'A real shell', meta:'DEVLOG \u00b7 JULY 2026', sub:'Turning the command line into something you can actually work in.', tags:['grep','find','wc','man','themes'], bullets:[
-          'Made grep, find, and wc search the whole tree, including project text and tech tags, so you can grep for a skill (try  grep python ).',
-          'Added man pages, head / tail / stat, echo redirection, and a neofetch-style sysinfo card.',
-          'Gave the monitor amber, green, and white phosphor modes, and shareable deep links to any file or folder.' ] }) },
-        { name:'REBUILD .LOG', kind:'file', size:'2 304', date:'06.26.26', doc:D({ title:'The React rebuild', meta:'DEVLOG \u00b7 JUNE 2026', sub:'From one giant HTML file to a modular React, Vite, and Tailwind app.', tags:['React','Vite','Tailwind','ESLint'], bullets:[
-          'Split the old single file into small single-purpose components, with all the behavior in one framework-agnostic engine.',
-          'Kept the content, the ASCII animations, and the 6502 core as plain, editable files.',
-          'Compiles to a fully static bundle and still deploys to cPanel with a single zip.' ] }) },
-      ]},
       { name:'MY-FILES', kind:'dir', home:true, size:'\u25b6SUB-DIR\u25c4', date:'06.25.26', children:[] },
       { name:'SENDMAIL.EXE', kind:'file', size:'1 024', date:'06.25.26', doc:{ kind:'contact' } },
     ]};
