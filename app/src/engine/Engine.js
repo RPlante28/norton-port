@@ -7,6 +7,23 @@
 //  every method below is unchanged behaviour. React drives it via
 //  useSyncExternalStore + effects that call componentDidMount / DidUpdate /
 //  WillUnmount. It reads window.PORTFOLIO / window.VIZ / window.CPU6502.
+//
+//  MAP OF THIS FILE (search for the section banners):
+//    constructor            content tree, menus, boot script, initial state
+//    CLI helpers            history recall + tab completion
+//    persisted config       cfg defaults, themes, screensaver settings, sliders
+//    keyboard / mouse sound WebAudio synth (keyClick, clickSound, boot ticks)
+//    user filesystem        MY-FILES: nested dirs/files in localStorage
+//    mail                   CLI composer, vim composer, contact.php delivery
+//    editor                 vim modes, motions, operators, :commands
+//    find/grep/wc helpers   whole-tree file search
+//    man pages              documentation for  man <cmd>  /  help <cmd>
+//    deep links             URL-hash <-> panel navigation
+//    pipes + runCommand     the command parser (every CLI/GUI command)
+//    items/activate         file-panel navigation
+//    6502 VM                GUI transport + text-mode monitor (cliVm)
+//    lifecycle              componentDidMount / boot / unmount
+//    renderVals             the one big `vals` object every component reads
 // =====================================================================
 import React from 'react';
 
@@ -58,8 +75,6 @@ export default class Engine {
     this.vmPage = 0x00;       // which memory page the VM dump shows
     this.vmProgKey = 'HELLO'; // currently selected sample/user program
     this.vmSpeed = 3;         // index into vmSpeeds() - default 5 Hz (visible)
-    this._gameCanvasRefCb = (el)=>this.gameCanvasRef(el);
-    this._gameStatusRefCb = (el)=>{ this._gameStatusEl = el; if(el && this._gameStatus) el.textContent=this._gameStatus; };
     this._vizGens = this._mkVizGens();
     this._vizRefCb = (el)=>{ this._vizEl = el; if(el){ if(this._pendingViz){ const t=this._pendingViz; this._pendingViz=null; this._startViz(t); } } else { this._stopViz(); } };
     this.state = { stack:[this.root], sel:0, activeMenu:null, sortKey:null, cmdMsg:'', dialog:null, booting:true, bootText:'', sent:false, cliMode:false, editing:null, edMode:'insert', edModeV:'normal', term:[], mailFlow:null };
@@ -154,7 +169,7 @@ export default class Engine {
   }
   resetCfg(){ this.cfg = this._cfgDefaults(); this._saveCfg(); this.forceUpdate(); }
   // ----- CLI helpers: command-history recall + tab completion -----
-  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sl','matrix','pipes','starfield','logo','screensaver']; }
+  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sl','sound','matrix','pipes','starfield','logo','screensaver']; }
   // only complete against what's in the CURRENT directory (what's actually available)
   _completionNames(){
     const set=new Set();
@@ -366,12 +381,14 @@ export default class Engine {
   say(msg){ if(this._capture){ if(msg) this._capture.push(msg); return; } if(this.state.cliMode && msg){ this.setState(s=>({ cmdMsg:msg, term:s.term.concat([msg]) })); } else { this.setState({ cmdMsg:msg }); } }
 
   // ----- user filesystem (nested, localStorage) -----
+  // today as a DOS-style MM.DD.YY stamp (used for created/saved user files)
+  _today(){ const d=new Date(); const p=(n)=>String(n).padStart(2,'0'); return p(d.getMonth()+1)+'.'+p(d.getDate())+'.'+p(d.getFullYear()%100); }
   _loadFS(){
     try{
       const r=localStorage.getItem('rohanFS');
       if(r){ const o=JSON.parse(r); if(o&&Array.isArray(o.children)) return o.children; }
       const old=localStorage.getItem('rohanUserFiles');
-      if(old){ const a=JSON.parse(old); if(Array.isArray(a)) return a.map(f=>({ name:f.name, kind:'file', body:f.body||'', date:f.date||'06.25.26' })); }
+      if(old){ const a=JSON.parse(old); if(Array.isArray(a)) return a.map(f=>({ name:f.name, kind:'file', body:f.body||'', date:f.date||this._today() })); }
     }catch(e){}
     return [];
   }
@@ -380,10 +397,10 @@ export default class Engine {
   curUserDir(){ const c=this.cur(); return c.user ? c : this.userRoot; }
   findInDir(dir, name){ const n=name.replace(/\s+/g,'').toLowerCase(); return (dir.children||[]).find(x=>x.name.replace(/\s+/g,'').toLowerCase()===n); }
   findUserFile(name){ const n=name.replace(/\s+/g,'').toLowerCase(); let hit=null; const walk=(d)=>{ (d.children||[]).forEach(c=>{ if(c.kind==='file' && c.name.replace(/\s+/g,'').toLowerCase().indexOf(n)>=0 && !hit) hit=c; if(c.kind==='dir') walk(c); }); }; walk(this.userRoot); return hit; }
-  mkdirIn(name){ const dir=this.curUserDir(); name=(name||'').trim().toUpperCase(); if(!name) return null; if(this.findInDir(dir,name)) return this.findInDir(dir,name); const node={ name, kind:'dir', user:true, size:'\u25b6SUB-DIR\u25c4', date:'06.25.26', children:[] }; dir.children.push(node); this._saveFS(); return node; }
-  makeFile(name){ const dir=this.curUserDir(); name=(name||'').trim(); if(!name) return null; if(!/\./.test(name)) name+='.txt'; name=name.toUpperCase(); let f=this.findInDir(dir,name); if(!f){ f={ name, kind:'file', user:true, body:'', date:'06.25.26' }; dir.children.push(f); this._saveFS(); } return f; }
+  mkdirIn(name){ const dir=this.curUserDir(); name=(name||'').trim().toUpperCase(); if(!name) return null; if(this.findInDir(dir,name)) return this.findInDir(dir,name); const node={ name, kind:'dir', user:true, size:'\u25b6SUB-DIR\u25c4', date:this._today(), children:[] }; dir.children.push(node); this._saveFS(); return node; }
+  makeFile(name){ const dir=this.curUserDir(); name=(name||'').trim(); if(!name) return null; if(!/\./.test(name)) name+='.txt'; name=name.toUpperCase(); let f=this.findInDir(dir,name); if(!f){ f={ name, kind:'file', user:true, body:'', date:this._today() }; dir.children.push(f); this._saveFS(); } return f; }
   // create a NEW file that is NOT committed to disk until :w  (so :q on a brand-new file discards it)
-  makeFileProvisional(name){ const dir=this.curUserDir(); name=(name||'').trim(); if(!name) return null; if(!/\./.test(name)) name+='.txt'; name=name.toUpperCase(); let f=this.findInDir(dir,name); if(f) return f; f={ name, kind:'file', user:true, body:'', date:'06.25.26', _provisional:true }; dir.children.push(f); return f; }
+  makeFileProvisional(name){ const dir=this.curUserDir(); name=(name||'').trim(); if(!name) return null; if(!/\./.test(name)) name+='.txt'; name=name.toUpperCase(); let f=this.findInDir(dir,name); if(f) return f; f={ name, kind:'file', user:true, body:'', date:this._today(), _provisional:true }; dir.children.push(f); return f; }
   deleteUser(name){ const dir=this.curUserDir(); const f=this.findInDir(dir,name); if(!f){ const g=this.findUserFile(name); if(!g) return false; this._removeNode(this.userRoot,g); this._saveFS(); return true; } dir.children=dir.children.filter(x=>x!==f); this._saveFS(); return true; }
   _removeNode(parent, node){ if(!parent.children) return false; const i=parent.children.indexOf(node); if(i>=0){ parent.children.splice(i,1); return true; } return parent.children.some(c=>c.kind==='dir'&&this._removeNode(c,node)); }
 
@@ -493,7 +510,7 @@ export default class Engine {
     if(ed.ro){ this.setState({ edStatus:"E45: '"+ed.name+"' is read-only  (Rohan's files can't be saved)" }); return false; }
     const body=this._ed?this._ed.value:ed.body;
     const node=ed.ref;
-    if(node){ node.body=body; if(node._provisional) delete node._provisional; this._saveFS(); }
+    if(node){ node.body=body; node.date=this._today(); if(node._provisional) delete node._provisional; this._saveFS(); }
     const bytes=body.length;
     this.setState(s=>({ editing:{...s.editing, body, ref:node}, edStatus:'"'+ed.name+'" '+bytes+'B written' }));
     return true;
@@ -574,7 +591,9 @@ export default class Engine {
   }
   _sendMailBuffer(){
     const ta=this._ed; const text=ta?ta.value:(this.state.editing&&this.state.editing.body)||'';
-    const get=(label)=>{ const m=text.match(new RegExp('^'+label+':\\s*(.*)$','im')); return m?m[1].trim():''; };
+    // [ \t]* (not \s*) so an empty header line stays empty instead of the
+    // match spilling onto the next line of the template
+    const get=(label)=>{ const m=text.match(new RegExp('^'+label+':[ \\t]*(.*)$','im')); return m?m[1].trim():''; };
     const from=get('From'), subject=get('Subject');
     const sepIdx=text.indexOf('----');
     const body=(sepIdx>=0 ? text.slice(text.indexOf('\n',sepIdx)+1) : text).trim();
@@ -804,7 +823,19 @@ export default class Engine {
     'sysinfo|neofetch': { d:'system summary', s:'sysinfo', l:['Prints a neofetch-style summary of this machine.'] },
     'theme|color|monitor': { d:'monitor phosphor colour', s:'theme <blue|amber|green|white>', l:['Switches the display between the blue default and amber / green / white','phosphor. Also in Configuration.'] },
     'cli|gui': { d:'toggle CLI mode', s:'cli | gui', l:['Switches between the full-screen terminal and the file browser.'] },
-    'clear': { d:'clear the screen', s:'clear', l:['Clears the terminal scrollback.'] },
+    'clear|cls': { d:'clear the screen', s:'clear', l:['Clears the terminal scrollback.'] },
+    'pwd': { d:'print working directory', s:'pwd', l:['Prints the full path of the current folder.'] },
+    'history': { d:'command history', s:'history', l:['Lists your recent commands (also recalled with ↑ / ↓).'] },
+    'whoami': { d:'who is this machine about', s:'whoami', l:['Prints the owner of this machine. See also  cat WHOAMI.TXT .'] },
+    'date|time': { d:'current date & time', s:'date', l:['Prints the real date and time (the one thing here that is not 1986).'] },
+    'ver|version': { d:'OS version', s:'ver', l:['Prints the ROHAN-DOS version banner.'] },
+    'bc|calc': { d:'calculator', s:'bc <expression>', l:['Evaluates a math expression, e.g.  bc (2+3)*4  or  bc 2^10 .'] },
+    'ps|top': { d:'process table', s:'ps | top', l:['Shows what this machine claims to be running.'] },
+    'screensaver|matrix|pipes|starfield|logo': { d:'start a screensaver', s:'matrix | pipes | starfield | logo | screensaver', l:['Starts a screensaver now: matrix rain, pipes, a warp starfield, the','bouncing logo, or a random enabled one. Configure them in F5 · Screensaver.'] },
+    'sound|keysound': { d:'keyboard sound on/off', s:'sound [on|off]', l:['Toggles the mechanical keyboard click. Fine-tune it in Configuration.'] },
+    'config|setup|options': { d:'open Configuration', s:'config', l:['Opens the Configuration dialog (also F5): panels, display, sound, screensaver.'] },
+    'resume|cv': { d:'open the resume', s:'resume', l:['Opens RESUME.PDF in a viewer window (also F4).'] },
+    'viz': { d:'analytics dashboards', s:'viz', l:['Jumps to the DATA-ANL.LOG entry with the live Tableau dashboards.'] },
   }; }
   _manPage(name){
     const k=(name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -955,7 +986,7 @@ export default class Engine {
     const cmd=parts[0].toLowerCase();
     const arg=parts.slice(1).join(' ');
     const argU=arg.toUpperCase();
-    if(cmd==='clear'){ this.setState({ term:[], cmdMsg:'' }); return; }
+    if(cmd==='clear' || cmd==='cls'){ this.setState({ term:[], cmdMsg:'' }); return; }
     if(cmd==='cli' || cmd==='term'){ if(!this.state.cliMode) this.toggleCli(); this.print(['CLI-only mode. type  gui  or  exit  to return.']); return; }
     if(cmd==='gui' || cmd==='exit' || cmd==='q'){ if(this.state.cliMode) this.toggleCli(); this.say(''); return; }
     if(cmd==='edit' || cmd==='vi' || cmd==='vim' || cmd==='nano'){
@@ -1033,7 +1064,17 @@ export default class Engine {
       f.name=parts[1].toUpperCase(); this._saveFS(); this.forceUpdate(); this.out(['renamed to '+f.name]); return;
     }
     if(cmd==='cp' || cmd==='copy'){
-      if(!arg){ this.say('usage: cp <src> <dest>'); return; }
+      // `copy <email|github|linkedin|resume>` copies a contact detail to the
+      // clipboard; anything else falls through to the DOS file copy below.
+      if(cmd==='copy'){
+        const map={ email:'rohanplante@gmail.com', github:'https://github.com/RPlante28', linkedin:'https://linkedin.com/in/rohan-plante', resume:'uploads/Rohan_Plante_resume.pdf' };
+        const v=map[(arg||'').toLowerCase()];
+        if(v){
+          try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(()=>this.out(['copied: '+v]), ()=>this.out([v])); return; } }catch(e){}
+          this.out([v]); return;
+        }
+      }
+      if(!arg){ this.say('usage: cp <src> <dest>   ·   copy <email|github|linkedin|resume>'); return; }
       const parts=arg.split(/\s+/); if(parts.length<2){ this.say('usage: cp <src> <dest>'); return; }
       const src=this.findInDir(this.curUserDir(),parts[0])||this.findUserFile(parts[0]);
       if(!src||src.kind!=='file'){ this.say('cp: source not found: '+parts[0]); return; }
@@ -1086,7 +1127,7 @@ export default class Engine {
     }
     if(cmd==='echo'){
       const m=arg.match(/^([\s\S]*?)\s*(>>|>)\s*(\S+)\s*$/);
-      if(m){ const text=m[1].replace(/^["']|["']$/g,''); const append=m[2]==='>>'; const fnode=this.makeFile(m[3]); if(!fnode){ this.say('echo: bad filename'); return; } fnode.body=append?((fnode.body||'')+(fnode.body?'\n':'')+text):text; if(fnode._provisional) delete fnode._provisional; this._saveFS(); this.forceUpdate(); this.out([(append?'appended to ':'wrote ')+fnode.name.replace(/\s+/g,'')]); return; }
+      if(m){ const text=m[1].replace(/^["']|["']$/g,''); const append=m[2]==='>>'; const fnode=this.makeFile(m[3]); if(!fnode){ this.say('echo: bad filename'); return; } fnode.body=append?((fnode.body||'')+(fnode.body?'\n':'')+text):text; fnode.date=this._today(); if(fnode._provisional) delete fnode._provisional; this._saveFS(); this.forceUpdate(); this.out([(append?'appended to ':'wrote ')+fnode.name.replace(/\s+/g,'')]); return; }
       this.out([arg]); return;
     }
     if(cmd==='sysinfo' || cmd==='neofetch'){
@@ -1108,15 +1149,9 @@ export default class Engine {
     }
     if(cmd==='theme' || cmd==='color' || cmd==='monitor'){ const t=(arg||'').toLowerCase(); if(['blue','amber','green','white'].includes(t)){ this.setTheme(t); this.say('monitor: '+t+' phosphor'); } else { this.say('monitor themes:  blue · amber · green · white   (e.g.  theme amber )'); } return; }
     if(cmd==='man'){ if(!arg){ this.say('usage: man <command>   (e.g.  man grep )'); return; } this.out(this._manPage(arg)); return; }
-    if(cmd==='copy'){
-      const map={ email:'rohanplante@gmail.com', github:'https://github.com/RPlante28', linkedin:'https://linkedin.com/in/rohan-plante', resume:'uploads/Rohan_Plante_resume.pdf' };
-      const v=map[(arg||'').toLowerCase()]; if(!v){ this.say('usage: copy <email|github|linkedin|resume>'); return; }
-      try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(()=>this.out(['copied: '+v]), ()=>this.out([v])); return; } }catch(e){}
-      this.out([v]); return;
-    }
     if(cmd==='history'){ const h=this._cmdHistory||[]; this.out(h.length?h.map((c,i)=>('  '+(i+1)+'  '+c)):['(no history)']); return; }
     if(cmd==='help' || cmd==='?'){ if(arg){ this.out(this._manPage(arg)); return; } if(this.state.cliMode){ this.print(this._helpLines()); } else { this.openMenu('commands'); this.say('commands listed above \u2191'); } return; }
-    if(cmd==='home' || cmd==='cls' || cmd==='cd\\' || (cmd==='cd' && (arg==='\\'||arg==='/'))){ this.goRoot(); this.say(''); return; }
+    if(cmd==='home' || cmd==='cd\\' || (cmd==='cd' && (arg==='\\'||arg==='/'))){ this.goRoot(); this.say(''); return; }
     if(cmd==='cd'){
       if(arg==='..'){ if(this.state.stack.length>1){ this._upDir(); this.say(''); } else this.say('already at C:\\ROHAN'); return; }
       if(arg===''||arg==='.'){ this.say(''); return; }
@@ -1128,7 +1163,7 @@ export default class Engine {
       if(target){ this.setState(s=>({ stack:s.stack.concat([target]), sel:(target.children&&target.children.length)?1:0, activeMenu:null, cmdMsg:'', editing:null })); return; }
       this.say('directory not found here: '+arg); return;
     }
-    if(cmd==='open' || cmd==='view' || cmd==='type' || cmd==='read'){
+    if(cmd==='open' || cmd==='view' || cmd==='read'){
       // a glob ( open * , open *.txt ) reads everything in the current folder
       if(arg && (arg.indexOf('*')>=0 || arg.indexOf('?')>=0)){ this.runCommand('cat '+arg); return; }
       // search whole tree for a file
@@ -1169,7 +1204,6 @@ export default class Engine {
       return;
     }
     if(cmd==='whoami'){ if(this.state.cliMode) this.print(['Rohan Plante - CS @ Marist University']); else { this.goRoot(); this.say('Rohan Plante - CS @ Marist'); } return; }
-    if(cmd==='echo'){ this.out([arg]); return; }
     // ----- easter eggs -----
     if(cmd==='sudo'){
       if(!this.state.cliMode){ this.say('sudo needs a real terminal - press 7 (CLI), then try  sudo  again.'); return; }
@@ -1200,10 +1234,8 @@ export default class Engine {
     if(cmd==='ps' || cmd==='top' || cmd==='htop'){ this.out(this._psList(cmd!=='ps')); return; }
     if(cmd==='date' || cmd==='time'){ this.out([new Date().toString()]); return; }
     if(cmd==='ver' || cmd==='version'){ this.out(['ROHAN-DOS 5.51 - Portfolio Commander - (c) MMXXVI']); return; }
-    if(cmd==='hire' || cmd==='hireme' || (cmd==='hire'&&arg==='me')){ this.out(['> Rohan is open to internships & new-grad SWE roles.', '  resume: F4   \u00b7   mail: type  mail    \u00b7   github: go github']); return; }
-    if(cmd==='rohan' || cmd==='me'){ this.out(['Rohan Plante - CS @ Marist, Eagle Scout, hackathon winner.', 'type  whoami , or  cat readme.txt']); return; }
-    if(cmd==='exit' && this.state.editing){ this.out(['use  :q  inside the editor.']); return; }
-    if(cmd==='vim' && !arg){ this.out(['vim: opening scratch buffer\u2026 (i to insert, :q to quit)']); this.editSelected(); return; }
+    if(cmd==='hire' || cmd==='hireme'){ this.out(['> Rohan is open to internships & new-grad SWE roles.', '  resume: F4   \u00b7   mail: type  mail    \u00b7   github: go github']); return; }
+    if(cmd==='rohan' || cmd==='me'){ this.out(['Rohan Plante - CS @ Marist, Eagle Scout, hackathon winner.', 'type  whoami , or  cat WHOAMI.TXT']); return; }
     if(cmd==='6502' || cmd==='cpu' || cmd==='mon'){ if(this.state.cliMode){ this.cliVm(arg); } else { this.openVM(); } return; }
     if(cmd==='viz' || cmd==='dataviz' || cmd==='dashboards' || cmd==='tableau'){ if(this.state.cliMode){ this.openDataViz(); this.say('opened DATA-ANL.LOG - use the dashboard buttons'); } else { this.openDataViz(); this.say(''); } return; }
     if(cmd==='games' || cmd==='play' || cmd==='snake' || cmd==='pacman' || cmd==='tictactoe' || cmd==='ttt' || cmd==='combinatris' || cmd==='comb' || cmd==='doom'){
@@ -1211,7 +1243,7 @@ export default class Engine {
       this.say('arcade games were retired - this machine ships work only. try  cd programs  for the 6502 VM.'); return;
     }
     if(this.state.cliMode && (cmd==='step' || cmd==='speed' || cmd==='reg' || cmd==='regs' || cmd==='mem')){ this.cliVm(cmd+' '+arg); return; }
-    if(cmd==='run' || cmd==='asm' || cmd==='load' || cmd==='go'){
+    if(cmd==='run' || cmd==='asm' || cmd==='load'){
       this.ensureVM();
       if(this.state.cliMode){ this.cliVm('run '+arg); return; }
       if(arg){
@@ -1438,27 +1470,6 @@ export default class Engine {
     if(exp){ const fi=exp.children.findIndex(c=>c.name.indexOf('DATA-ANL')>=0); this.setState({ stack:[this.root, exp], sel:fi<0?0:fi+1, activeMenu:null, editing:null, cliMode:false }); }
   }
 
-  // ===== arcade games (games.js) =====
-  gameCanvasRef(el){
-    this._gameCanvas = el;
-    if(el){ if(this._pendingGame){ this._startGame(this._pendingGame, el); this._pendingGame=null; } }
-    else { this._stopGame(); }
-  }
-  _startGame(id, canvas){
-    if(!window.NCGames || !canvas) return;
-    if(this._game){ this._game.stop(); this._game=null; }
-    this._game = window.NCGames.create(id, canvas, { onStatus:(t)=>{ this._gameStatus=t; if(this._gameStatusEl) this._gameStatusEl.textContent=t; } });
-    this._curGameId = id;
-    if(this._game){ this._game.start(); }
-  }
-  _stopGame(){ if(this._game){ this._game.stop(); this._game=null; } this._curGameId=null; this._gameStatus=''; }
-  gameControl(action){
-    if(!this._game) return;
-    if(action==='start'){ this._game.start(); }
-    else if(action==='reset'){ this._game.reset(); }
-    else { this._game.onKey(action); }
-  }
-
   // ===== project ASCII visualizations (animated heroes) =====
   _reduceMotion(){ const m=this.cfg&&this.cfg.motion; if(m==='reduced') return true; if(m==='full') return false; try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; } }
   // ----- visitor counter (counter.php when deployed; localStorage fallback) -----
@@ -1597,7 +1608,7 @@ export default class Engine {
     if(sub==='reg' || sub==='regs' || sub==='r'){ this.print(this._cliVmRegs(cpu)); return; }
     if(sub==='mem' || sub==='m'){ const pg=a?(parseInt(a.replace(/^\$/,''),16)||0):0; this.print(this._cliVmMem(cpu,pg)); return; }
     if(sub==='out' || sub==='output'){ const o=cpu.state().out; this.print(['SYS output:', o?o:'(none yet)']); return; }
-    if(sub==='speed' || sub==='clock'){ if(a!=='') this.vmSetSpeed(parseInt(a,10)); this.print(['clock = '+this.vmSpeed_().label+'   (0..'+(this.vmSpeeds().length-1)+')']); return; }
+    if(sub==='speed' || sub==='clock'){ const n=parseInt(a,10); if(a!=='' && !isNaN(n)) this.vmSetSpeed(n); this.print(['clock = '+this.vmSpeed_().label+'   (0..'+(this.vmSpeeds().length-1)+')']); return; }
     if(sub==='stop' || sub==='halt' || sub==='s'){ this.cliVmStop(); return; }
     if(sub==='step' || sub==='st'){ const n=a?Math.max(1,parseInt(a,10)||1):1; this.cliVmStepN(n); return; }
     if(sub==='run' || sub==='go' || sub==='g'){ if(a) this._cliVmLoad(a); this.cliVmRun(); return; }
@@ -1634,13 +1645,6 @@ export default class Engine {
           case 'F10': this.goRoot(); break;
         }
         return;
-      }
-      // route gameplay keys to the active arcade game
-      if(this._game && !this.state.cliMode && !this.state.dialog && !this.state.editing){
-        if(/^(Arrow(Up|Down|Left|Right)|[wasdWASD]|[1-9]| )$/.test(e.key) || e.key==='r' || e.key==='R'){
-          if(e.key===' '||/^Arrow/.test(e.key)) e.preventDefault();
-          this._game.onKey(e.key); return;
-        }
       }
       if(e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')){
         if(this.state.editing && e.key==='Tab'){ e.preventDefault(); this.edToNormal(); return; }
@@ -1685,8 +1689,6 @@ export default class Engine {
     window.addEventListener('mousemove', this._onMouseMove);
     window.addEventListener('mouseout', this._onMouseOut);
     window.addEventListener('blur', this._onWinBlur);
-    this.tw = { p:0, c:0, del:false };
-    this._twTick();
     // Audio stays locked until the first real user gesture: the keydown/pointer
     // handlers call _bootSound() to resume it then. (Browser autoplay policy.)
     // idle screensaver: after ~60s with no input, drift the logo DVD-style
@@ -1713,10 +1715,8 @@ export default class Engine {
     }
   }
   finishBoot(){ clearTimeout(this._bootT); if(this.state.booting) this.setState({ booting:false }); }
-  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); if(this._onHash) window.removeEventListener('hashchange', this._onHash); if(this._tint&&this._tint.parentNode) this._tint.parentNode.removeChild(this._tint); if(this._idleTimer) clearInterval(this._idleTimer); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); clearTimeout(this._twT); if(this._cursorRaf) cancelAnimationFrame(this._cursorRaf); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); if(this._game) this._game.stop(); }
+  componentWillUnmount(){ this._dead=true; if(this._onImgErr) document.removeEventListener('error', this._onImgErr, true); window.removeEventListener('keydown', this._onKey); if(this._onHash) window.removeEventListener('hashchange', this._onHash); if(this._tint&&this._tint.parentNode) this._tint.parentNode.removeChild(this._tint); if(this._idleTimer) clearInterval(this._idleTimer); window.removeEventListener('mousemove', this._onMouseMove); window.removeEventListener('mouseout', this._onMouseOut); window.removeEventListener('blur', this._onWinBlur); document.documentElement.classList.remove('nc-blockcur'); if(this._cursorRaf) cancelAnimationFrame(this._cursorRaf); if(this._vmTimer) clearInterval(this._vmTimer); if(this._cliVmTimer) clearInterval(this._cliVmTimer); this._stopViz(); }
   componentDidUpdate(){ if(this.state.cliMode && this._termScroll){ this._termScroll.scrollTop = this._termScroll.scrollHeight; } this._syncHash(); }
-  _twTick(){ /* tagline animation retired */ }
-
   renderVals(){
     const its = this.items();
     const dir = this.state.stack[this.state.stack.length-1];
@@ -1732,12 +1732,6 @@ export default class Engine {
     let view='info';
     if(sel && sel.user && sel.kind==='file'){ view='text'; }
     else if(sel && sel.doc){ view = sel.doc.kind; }
-    // arcade game lifecycle: start/switch when a .EXE game is selected; stop otherwise
-    const wantGame = (view==='game' && sel && sel.doc) ? sel.doc.game : null;
-    if(wantGame !== this._curGameId){
-      if(wantGame){ if(this._gameCanvas){ this._startGame(wantGame, this._gameCanvas); } else { this._pendingGame=wantGame; this._curGameId=wantGame; } }
-      else if(this._game){ this._stopGame(); }
-    }
     // project visualization lifecycle: animate the hero ASCII when a doc with a viz is shown
     const wantViz = (view==='doc' && sel && sel.doc && sel.doc.viz) ? sel.doc.viz : null;
     if(wantViz !== this._curViz){
@@ -1829,17 +1823,7 @@ export default class Engine {
       openCompSoc:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('COMPSOC')>=0); if(f) this.revealNode(f); },
       openDataAnl:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('DATA-ANL')>=0); if(f) this.revealNode(f); },
       openNorton:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.replace(/\s+/g,'').indexOf('NORTON')>=0); if(f) this.revealNode(f); },
-      isGame: view==='game',
-      gameTitle: (view==='game' && sel && sel.doc) ? (sel.doc.title||sel.doc.game) : '',
-      gameStatusInit: this._gameStatus||'',
-      gameHint: (view==='game' && sel && sel.doc && sel.doc.game==='tictactoe')
-        ? 'Click a square (you are X), or press keys 1-9.  R resets.  CPU plays O.'
-        : 'Use the arrow keys or the on-screen D-pad (or WASD).  Space/Start begins.  R restarts.',
-      gameCanvasRef: this._gameCanvasRefCb, gameStatusRef: this._gameStatusRefCb,
       vizRef: this._vizRefCb,
-      gameStart:()=>this.gameControl('start'), gameReset:()=>this.gameControl('reset'),
-      gameUp:()=>this.gameControl('ArrowUp'), gameDown:()=>this.gameControl('ArrowDown'),
-      gameLeft:()=>this.gameControl('ArrowLeft'), gameRight:()=>this.gameControl('ArrowRight'),
       isText: (view==='text'||view==='art'), isArt: view==='art', textBody, textEditable, textReadonly: !textEditable,
       d, edu:this.edu, helloArt:this.helloArt,
       // ISWP logo direct key (bypasses d object)
@@ -1972,6 +1956,9 @@ export default class Engine {
         { n:'14', a:'memo: portfolio.xls', b:'see N14', c:'', d:'', e:'', wt:'400', lc:'#999999' },
       ],
       isAbout: this.state.dialog==='about',
+      // vim composer send receipt (GUI mode; the CLI prints its own box)
+      isMailSent: this.state.dialog==='mailsent',
+      mailSent: this.state.mailSent || { from:'', subject:'', bytes:0, ok:false, done:false },
       isContactDlg: this.state.dialog==='contact',
       isHelp: this.state.dialog==='help',
       isDash: this.state.dialog==='dash1' || this.state.dialog==='dash2',
