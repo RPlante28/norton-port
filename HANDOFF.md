@@ -153,6 +153,8 @@ build preserves that seam.
     screensaver, sound, config, resume, viz) and added a section map comment
     at the top of `Engine.js`.
   - Retired the legacy root site and rewrote `README.md` for the `app/` build.
+  - Compressed the MCW Starz before/after PNGs from 2.6 MB / 3.9 MB to
+    344 KB / 573 KB (resized to 1600px, palette-quantized; verified crisp).
 
 ---
 
@@ -173,8 +175,6 @@ build preserves that seam.
 
 - **Perfect the look, sound, and feel**: visuals, audio, animations, overall
   DOS feel; add features where they fit the personality.
-- Consider compressing the MCW Starz before/after PNGs (2.7 MB and 4.1 MB);
-  they are the heaviest assets on the site.
 - Floated feature ideas (not yet scoped): an "AI mode" and expanded interactivity.
 
 Done and removed from this list: the readability/organization pass, the real
