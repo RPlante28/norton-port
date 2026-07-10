@@ -9,23 +9,6 @@ you were digging through an old hard drive from 1989.
 
 Built by Rohan Plante, Computer Science @ Marist University.
 
-![Boot sequence into the desktop](docs/screenshots/boot.gif)
-
----
-
-## A look around
-
-|  |  |
-|---|---|
-| ![The desktop: file browser and info card](docs/screenshots/02-desktop.png) | ![The 6502 CPU running a program](docs/screenshots/05-vm6502.png) |
-| **The desktop.** A two-pane browser on the left, a live info card on the right. | **The 6502 VM.** A real pipelined CPU executing machine code, register by register. |
-| ![A project page with a live ASCII animation](docs/screenshots/06-project-maristmaps.png) | ![The full CLI with neofetch](docs/screenshots/08-cli.png) |
-| **A project page.** Each project gets a write-up and its own live ASCII animation. | **The CLI.** A full shell: `help`, `tree`, `grep`, `neofetch`, pipes, and more. |
-
-Every project page carries its own animated ASCII header:
-
-![A project's live ASCII animation](docs/screenshots/animation.gif)
-
 ---
 
 ## The systems
