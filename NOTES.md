@@ -1,4 +1,4 @@
-# ROHAN-DOS Portfolio — Project Notes
+# ROHAN-DOS Portfolio, Project Notes
 
 Working notes for continuing this project. Covers what it is, how to run and
 deploy it, how the code is organized, what's done, and what's next.
