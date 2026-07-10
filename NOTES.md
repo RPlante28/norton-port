@@ -114,6 +114,17 @@ build preserves that seam.
 
 ## What's been done
 
+- **Docs & discovery layer (July 2026):**
+  - `MANUAL.TXT` at `C:\ROHAN`: an in-universe handbook (getting around, the
+    command line, the 6502 + script format, files/editor/config, colophon).
+    Open it with `guide` / `manual`, or from the browser.
+  - 6502 script guide: new `.6502` / `.ASM` files open from a commented
+    template, and `6502 ref` prints the full assembler reference (syntax,
+    opcodes, SYS calls). The reference lives in `_vm6502Ref()`; `MANUAL.TXT`
+    points at it rather than duplicating the opcode table.
+  - `secrets` ledger holds only genuinely undocumented commands and is kept
+    disjoint from `help` and tab-completion (verified). The hunt still starts
+    at the hidden `.SECRET.EGG` file.
 - Faithful React/Vite/Tailwind port of the entire app; verified pixel-identical
   (boot, both panels, info card, every doc/timeline view, dithered photos,
   animated ASCII heroes, 6502 VM, CLI, vim editor, all dialogs, boss key).

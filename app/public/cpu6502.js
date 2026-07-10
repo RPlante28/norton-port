@@ -542,18 +542,28 @@
 
   // a starter assembly file users can copy
   SAMPLES.STARTER_ASM =
-    "; MYPROG.ASM  —  write your own 6502 program!\n" +
-    "; assembled by the built-in mini-assembler.\n" +
-    "; opcodes: LDA LDX LDY STA ADC CPX INC BNE CLC NOP SYS BRK\n" +
+    "; MYPROG.ASM  ::  write your own 6502 program.\n" +
+    "; Assembled by the built-in mini-assembler on load.\n" +
+    ";\n" +
+    "; FORMAT\n" +
+    ";   ; comment      everything after a semicolon is ignored\n" +
+    ";   LABEL:         names the current address\n" +
+    ";   .ORG $0400     set where code assembles (default $0000)\n" +
+    ";   .byte $41,$00  emit raw bytes  (also  .byte \"text\",$00 )\n" +
+    ";   #$0A = literal value      $0040 = memory address\n" +
+    ";\n" +
+    "; INSTRUCTIONS  LDA LDX LDY STA ADC CPX INC BNE CLC NOP SYS BRK\n" +
+    "; SYS calls     X=1 print Y as int  ·  X=2 str@Y  ·  X=3 str@addr\n" +
+    "; Full reference:  type   6502 ref   in the CLI.\n" +
     ";\n" +
     "        LDA #$0A      ; A = newline\n" +
-    "        STA $0040     ; store it\n" +
-    "        LDY $0040     ; Y = char to print\n" +
-    "        LDX #$01      ; SYS mode 1 = print Y as hex int\n" +
+    "        STA $0040     ; store it to memory\n" +
+    "        LDY $0040     ; Y = the char to print\n" +
+    "        LDX #$01      ; SYS mode 1 = print Y as a hex int\n" +
     "        SYS\n" +
-    "        LDX #$03      ; SYS mode 3 = print string at addr\n" +
+    "        LDX #$03      ; SYS mode 3 = print a string at an address\n" +
     "        SYS MSG\n" +
-    "        BRK\n" +
+    "        BRK           ; halt\n" +
     "MSG:    .byte \"hi rohan\", $00\n";
 
   CPU6502.SAMPLES = SAMPLES;

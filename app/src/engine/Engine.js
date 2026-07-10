@@ -174,7 +174,7 @@ export default class Engine {
   // cowsay, fortune, boss, sudo, xyzzy, …) are deliberately kept OUT of this
   // list so they never surface via Tab-completion or `help`. They live only in
   // the `secrets` ledger once discovered.
-  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sound','screensaver']; }
+  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','guide','manual','whoami','date','ver','bc','ps','top','sound','screensaver']; }
   // only complete against what's in the CURRENT directory (what's actually available)
   _completionNames(){
     const set=new Set();
@@ -445,7 +445,7 @@ export default class Engine {
   mkdirIn(name){ const dir=this.curUserDir(); name=(name||'').trim().toUpperCase(); if(!name) return null; if(this.findInDir(dir,name)) return this.findInDir(dir,name); const node={ name, kind:'dir', user:true, size:'\u25b6SUB-DIR\u25c4', date:this._today(), children:[] }; dir.children.push(node); this._saveFS(); return node; }
   makeFile(name){ const dir=this.curUserDir(); name=(name||'').trim(); if(!name) return null; if(!/\./.test(name)) name+='.txt'; name=name.toUpperCase(); let f=this.findInDir(dir,name); if(!f){ f={ name, kind:'file', user:true, body:'', date:this._today() }; dir.children.push(f); this._saveFS(); } return f; }
   // create a NEW file that is NOT committed to disk until :w  (so :q on a brand-new file discards it)
-  makeFileProvisional(name){ const dir=this.curUserDir(); name=(name||'').trim(); if(!name) return null; if(!/\./.test(name)) name+='.txt'; name=name.toUpperCase(); let f=this.findInDir(dir,name); if(f) return f; f={ name, kind:'file', user:true, body:'', date:this._today(), _provisional:true }; dir.children.push(f); return f; }
+  makeFileProvisional(name){ const dir=this.curUserDir(); name=(name||'').trim(); if(!name) return null; if(!/\./.test(name)) name+='.txt'; name=name.toUpperCase(); let f=this.findInDir(dir,name); if(f) return f; const asm=/\.(6502|ASM|S)$/i.test(name); const body=(asm && window.CPU6502 && window.CPU6502.SAMPLES) ? window.CPU6502.SAMPLES.STARTER_ASM : ''; f={ name, kind:'file', user:true, body, date:this._today(), _provisional:true }; dir.children.push(f); return f; }
   deleteUser(name){ const dir=this.curUserDir(); const f=this.findInDir(dir,name); if(!f){ const g=this.findUserFile(name); if(!g) return false; this._removeNode(this.userRoot,g); this._saveFS(); return true; } dir.children=dir.children.filter(x=>x!==f); this._saveFS(); return true; }
   _removeNode(parent, node){ if(!parent.children) return false; const i=parent.children.indexOf(node); if(i>=0){ parent.children.splice(i,1); return true; } return parent.children.some(c=>c.kind==='dir'&&this._removeNode(c,node)); }
 
@@ -861,7 +861,7 @@ export default class Engine {
     'make|touch|mkdir': { d:'create files / folders', s:'make <name> | touch <name> | mkdir <name>', l:['Create files and folders under MY-FILES.'] },
     'echo': { d:'print text / write a file', s:'echo <text> [> file]', l:['Prints text, or writes it to a MY-FILES file with > (>> appends).'] },
     'rm|rename|cp': { d:'manage your files', s:'rm <name> | rename <a> <b> | cp <a> <b>', l:['Delete, rename or copy files in MY-FILES.'] },
-    '6502': { d:'the 6502 CPU emulator', s:'6502 [help|list|run|step|speed|mem]', l:['Launches the scalar-pipeline 6502 VM. In CLI, 6502 help lists subcommands.'] },
+    '6502|cpu': { d:'the 6502 CPU emulator', s:'6502 [help|ref|list|load|run|step|speed|mem]', l:['Launches the scalar-pipeline 6502 VM. In CLI, 6502 help lists subcommands','and 6502 ref prints the assembler reference (syntax, opcodes, SYS calls).','Write your own: make a .6502 file and it opens from a template.'] },
     'mail': { d:'compose an email', s:'mail', l:['Opens the email composer; sends through the contact backend.'] },
     'go': { d:'open a link', s:'go <github|linkedin|marist>', l:['Opens an external link in a new tab.'] },
     'copy': { d:'copy to clipboard', s:'copy <email|github|linkedin|resume>', l:['Copies a contact detail to the clipboard.'] },
@@ -881,6 +881,7 @@ export default class Engine {
     'config|setup|options': { d:'open Configuration', s:'config', l:['Opens the Configuration dialog (also F5): panels, display, sound, screensaver.'] },
     'resume|cv': { d:'open the resume', s:'resume', l:['Opens RESUME.PDF in a viewer window (also F4).'] },
     'viz': { d:'analytics dashboards', s:'viz', l:['Jumps to the DATA-ANL.LOG entry with the live Tableau dashboards.'] },
+    'guide|manual|handbook': { d:'the user manual', s:'guide', l:['Opens MANUAL.TXT, the in-universe handbook: getting around, the command','line, the 6502 and its script format, your files, and the config.'] },
   }; }
   _manPage(name){
     const k=(name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -1196,6 +1197,7 @@ export default class Engine {
     if(cmd==='man'){ if(!arg){ this.say('usage: man <command>   (e.g.  man grep )'); return; } this.out(this._manPage(arg)); return; }
     if(cmd==='history'){ const h=this._cmdHistory||[]; this.out(h.length?h.map((c,i)=>('  '+(i+1)+'  '+c)):['(no history)']); return; }
     if(cmd==='help' || cmd==='?'){ if(arg){ this.out(this._manPage(arg)); return; } if(this.state.cliMode){ this.print(this._helpLines()); } else { this.openMenu('commands'); this.say('commands listed above \u2191'); } return; }
+    if(cmd==='guide' || cmd==='manual' || cmd==='handbook' || cmd==='readme'){ this.openManual(); return; }
     if(cmd==='home' || cmd==='cd\\' || (cmd==='cd' && (arg==='\\'||arg==='/'))){ this.goRoot(); this.say(''); return; }
     if(cmd==='cd'){
       if(arg==='..'){ if(this.state.stack.length>1){ this._upDir(); this.say(''); } else this.say('already at C:\\ROHAN'); return; }
@@ -1316,6 +1318,7 @@ export default class Engine {
     '  touch · mkdir · rm · rename · cp · echo <text> > file',
     '  6502              launch the CPU VM   ( in CLI:  6502 help )',
     '  viz · mail · resume · go <github|linkedin> · copy <email>',
+    '  guide             the manual  ( MANUAL.TXT ,  the full handbook )',
     '  sysinfo · theme <amber|green|white> · man <cmd> · cli / gui',
     '  chaining:  grep foo | wc -l  ·  ls | sort  ·  cat *.txt | head 5',
     '  keys:  ↑ / ↓  recall history      Tab  completes commands & files',
@@ -1324,6 +1327,12 @@ export default class Engine {
   selectRootFile(prefix){
     const idx=(this.root.children||[]).findIndex(x=>x.name.toUpperCase().startsWith(prefix.toUpperCase()));
     if(idx>=0) this.setState({ stack:[this.root], sel:idx, activeMenu:null });
+  }
+  // Open MANUAL.TXT in the right pane (the guidebook). Works from CLI or GUI.
+  openManual(){
+    const idx=(this.root.children||[]).findIndex(x=>x.name.replace(/\s+/g,'').toUpperCase()==='MANUAL.TXT');
+    if(idx<0){ this.say('MANUAL.TXT not found'); return; }
+    this.setState({ stack:[this.root], sel:idx, activeMenu:null, editing:null, cliMode:false });
   }
 
   items(){
@@ -1588,7 +1597,53 @@ export default class Engine {
     '  6502 out             show SYS output so far',
     '  6502 reset           reload the current program',
     '  shortcuts:  run [name]  ·  step [n]  ·  speed <n>',
+    '  6502 ref            the assembler reference (syntax + opcodes)',
+    '  6502 new            create MYPROG.ASM from a template',
     'current: '+(this.vmProgKey||'(none)')+'   clock '+this.vmSpeed_().label,
+  ]; }
+  // The authoritative 6502 assembler reference. Mirrors the mini-assembler in
+  // public/cpu6502.js; `6502 ref` and MANUAL.TXT both point here.
+  _vm6502Ref(){ return [
+    '6502 ASSEMBLER REFERENCE',
+    '------------------------',
+    'SYNTAX',
+    '  ; comment           to end of line',
+    '  LABEL:              names the current address',
+    '  .ORG $0400          set the assembly address (default $0000)',
+    '  .byte $41,$42       emit raw bytes    (also  .byte "text",$00 )',
+    '  MNEMONIC [operand]  one instruction per line',
+    '',
+    'OPERANDS',
+    '  #$0A     immediate  - a literal value',
+    '  $0040    absolute   - a memory address',
+    '  LABEL    resolved to an address (or a branch offset)',
+    '',
+    'INSTRUCTIONS',
+    '  LDA  #$nn | $addr    load the accumulator (A)',
+    '  LDX  #$nn | $addr    load X',
+    '  LDY  #$nn | $addr    load Y',
+    '  STA  $addr           store A to memory',
+    '  ADC  $addr           add memory to A, with carry',
+    '  CPX  $addr           compare X with memory',
+    '  INC  $addr           increment a memory byte',
+    '  BNE  LABEL           branch if the last result was not zero',
+    '  CLC                  clear the carry flag',
+    '  NOP                  do nothing for a cycle',
+    '  SYS  [ $addr ]       system call (see below)',
+    '  BRK                  halt the program',
+    '',
+    'SYSTEM CALLS   (set X, then SYS)',
+    '  X=1   print Y as a hex integer',
+    '  X=2   print the string at the address in Y',
+    '  X=3   print the string at the operand address   ( SYS $addr )',
+    '',
+    'EXAMPLE',
+    '  LDX #$03',
+    '  SYS MSG        ; print the string labelled MSG',
+    '  BRK',
+    '  MSG: .byte "hi", $00',
+    '',
+    'new file:  make demo.6502   ·   load:  6502 load demo   ·   run:  6502 run',
   ]; }
   _cliVmLoad(name){
     if(!name){ this.print(['load: give a program name  (6502 list)']); return; }
@@ -1650,6 +1705,8 @@ export default class Engine {
     const sub=(parts[0]||'').toLowerCase();
     const a=parts.slice(1).join(' ');
     if(!sub || sub==='help' || sub==='?'){ this.print(this._cliVmHelp()); return; }
+    if(sub==='ref' || sub==='reference' || sub==='isa' || sub==='asm' || sub==='syntax'){ this.print(this._vm6502Ref()); return; }
+    if(sub==='new' || sub==='template'){ this.vmNewProgram(); this.print(['new program MYPROG.ASM created and opened in the editor.','the buffer is a working template; the full set is  6502 ref .']); return; }
     if(sub==='list' || sub==='ls' || sub==='dir'){ this.print(['loadable programs:'].concat(this.vmPrograms().map(p=>'  '+(p.key===this.vmProgKey?'\u00bb ':'  ')+p.label))); return; }
     if(sub==='load' || sub==='open'){ this._cliVmLoad(a); return; }
     if(sub==='reset'){ this.loadProgramKey(this.vmProgKey); this.print(['reset - '+(this._vmLoadMsg||'')]); this.forceUpdate(); return; }
