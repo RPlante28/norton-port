@@ -3,12 +3,13 @@
 Working notes for continuing this project. Covers what it is, how to run and
 deploy it, how the code is organized, what's done, and what's next.
 
-> **Status:** the MCW Starz project entry has a **before/after screenshot
-> gallery** using real Wayback Machine captures
-> (`app/public/uploads/mcwstarz-before.png` = the ~2021 orange "FROM DRILLZ TO
-> SKILLZ" gym site; `mcwstarz-after.png` = the ~2023 redesign). It's complete —
-> to refresh either shot later, just overwrite that file (no code change needed).
-> Everything else is ready to build on.
+> **Status:** refinement pass complete (July 2026). The legacy single-file site
+> at the repo root is retired; `app/` is the only site. Bug fixes: the `copy`
+> clipboard command, a proper send-receipt dialog for the vim mail composer,
+> and the composer's Subject parsing. The MCW Starz entry's before/after
+> gallery uses real Wayback Machine captures; to refresh either shot, just
+> overwrite `app/public/uploads/mcwstarz-before.png` / `mcwstarz-after.png`
+> (no code change needed).
 
 ---
 
@@ -20,13 +21,13 @@ deploy it, how the code is organized, what's done, and what's next.
 - **Stack:** the live app is **React + Vite + Tailwind**, fully modularized, all
   under the **`app/`** folder. It reproduces the original single-file design
   pixel-for-pixel and has had content + animation work layered on top.
-- **Where it lives:** GitHub repo **`RPlante28/norton-port`**, on the
-  **`portfolio-updates`** branch, mirrored to **`main`**.
-- The repo **root still contains the older single-file site** (`index.html`,
-  `content.js`, `animations.js`, `support.js`, `cpu6502.js`, `contact.php`,
-  `assets/`, `uploads/`, `vendor/`). The `app/` build is the source of truth
-  going forward; the root files are legacy and can be removed once nothing
-  references them.
+- **Where it lives:** GitHub repo **`RPlante28/norton-port`**. Day-to-day work
+  goes on a feature branch (currently **`portfolio-refinements`**) and merges
+  into **`main`** once verified.
+- The old single-file site that used to sit at the repo root was **removed**
+  (July 2026): `app/public/` carried identical or newer copies of every asset,
+  so nothing referenced it. The repo root now holds only `app/`, `README.md`,
+  and this file.
 - **Deploys as a static site** to GoDaddy/cPanel. No server, no backend (except a
   one-file PHP mail script for the contact form).
 
@@ -130,13 +131,28 @@ build preserves that seam.
   more capable vim editor, print-to-resume stylesheet, and animation polish
   (blast furnace, declassification scan, monospace ASCII-box alignment fix).
 - **MCW Starz before/after gallery:** `DocView` renders a labeled before/after
-  screenshot pair when a doc entry provides `beforeSrc` / `afterSrc`. The MCW
-  Starz entry is wired up (`uploads/mcwstarz-before.png`,
-  `uploads/mcwstarz-after.png`). **The two image files are currently
-  placeholders — replace them with the real Wayback Machine screenshots**
-  (before: the 2021 orange "FROM DRILLZ TO SKILLZ" gym site; after: the 2023
-  redesign). Egress in the build environment blocks archive.org, so the
-  screenshots have to be captured and dropped in manually.
+  screenshot pair when a doc entry provides `beforeSrc` / `afterSrc` (plus
+  optional labels). The MCW Starz entry is wired up with the real Wayback
+  Machine captures in `uploads/mcwstarz-before.png` / `mcwstarz-after.png`,
+  labeled "BEFORE / AFTER, VIA WAYBACK MACHINE" with click-to-zoom into the
+  gallery viewer. Verified rendering in the built app.
+- **Refinement pass (July 2026):**
+  - Fixed `copy <email|github|linkedin|resume>` (was shadowed by the `cp`
+    alias and always printed a usage error).
+  - Added the missing send-receipt dialog for the vim mail composer in GUI
+    mode (`:send` used to leave an empty dimmed backdrop); it shows
+    to/from/subject/size and the delivery result.
+  - Fixed the composer header parser so an empty `Subject:` line no longer
+    swallows the template's separator dashes as the subject.
+  - `cls` now clears the terminal like DOS (it used to jump home); user files
+    stamp real created/saved dates instead of a hardcoded one; `6502 speed`
+    ignores non-numeric input instead of resetting the clock.
+  - Removed dead code from retired features (arcade-game lifecycle, tagline
+    typewriter, several unreachable duplicate command branches).
+  - Expanded `man` coverage (pwd, history, whoami, date, ver, bc, ps,
+    screensaver, sound, config, resume, viz) and added a section map comment
+    at the top of `Engine.js`.
+  - Retired the legacy root site and rewrote `README.md` for the `app/` build.
 
 ---
 
@@ -155,18 +171,15 @@ build preserves that seam.
 
 ## Roadmap / next steps
 
-- **Readability & organization pass** across `app/src` — clearer naming,
-  structure, and comments (careful, incremental edits inside `Engine.js`).
-- **Perfect the look, sound, and feel** — visuals, audio, animations, overall
+- **Perfect the look, sound, and feel**: visuals, audio, animations, overall
   DOS feel; add features where they fit the personality.
-- **Replace the MCW Starz before/after placeholder images** with the real
-  Wayback screenshots (see "What's been done").
-- Retire the legacy single-file site at the repo root once nothing depends on it.
-- If the cursor still feels laggy in `npm run preview`: switch to a solid
-  GPU-composited block cursor.
-- Optional: give the CLI/vim mail composers the same anti-double-send guard as the
-  GUI dialog.
+- Consider compressing the MCW Starz before/after PNGs (2.7 MB and 4.1 MB);
+  they are the heaviest assets on the site.
 - Floated feature ideas (not yet scoped): an "AI mode" and expanded interactivity.
+
+Done and removed from this list: the readability/organization pass, the real
+MCW Starz screenshots, retiring the legacy root site, the cursor feel, and the
+double-send guard (cursor and double-send confirmed fine as-is).
 
 ---
 
@@ -176,4 +189,5 @@ build preserves that seam.
 2. `npm run lint` — should be clean.
 3. `npm run preview` and click around — boot → panels → a project (viz animates)
    → PROGRAMS (6502 runs) → press `O` for CLI (`help`, `tree`) → F6 Contact.
-4. Make changes as small commits on `portfolio-updates`.
+4. Make changes as small commits on a feature branch (currently
+   `portfolio-refinements`); merge to `main` after verifying.
