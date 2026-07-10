@@ -170,7 +170,11 @@ export default class Engine {
   }
   resetCfg(){ this.cfg = this._cfgDefaults(); this._saveCfg(); this.forceUpdate(); }
   // ----- CLI helpers: command-history recall + tab completion -----
-  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sl','sound','matrix','pipes','starfield','logo','screensaver']; }
+  // NOTE: undocumented "secrets" commands (matrix, pipes, starfield, logo, sl,
+  // cowsay, fortune, boss, sudo, xyzzy, …) are deliberately kept OUT of this
+  // list so they never surface via Tab-completion or `help`. They live only in
+  // the `secrets` ledger once discovered.
+  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sound','screensaver']; }
   // only complete against what's in the CURRENT directory (what's actually available)
   _completionNames(){
     const set=new Set();
@@ -264,17 +268,16 @@ export default class Engine {
   }
   _saveCfg(){ try{ localStorage.setItem('rohanCfg', JSON.stringify(this.cfg)); }catch(e){} }
   // ----- undocumented-feature ledger (the "secrets" hunt) -----
-  // Each entry is one undocumented feature. `reveal` is shown once found (and
-  // doubles as its own how-to); `clue` is a terse pointer shown until then.
+  // Every entry here is UNDOCUMENTED on purpose: none of these appear in `help`
+  // or in tab-completion. `reveal` is shown once found (and doubles as its own
+  // how-to); `clue` is a terse pointer shown until then.
   _eggCatalog(){ return [
     { id:'hidden', reveal:'hidden files      Config (F5) › Show hidden files',   clue:'the file browser hides its dotfiles.' },
-    { id:'cpu',    reveal:'6502              run a program on the CPU',            clue:'this machine runs real code. make it.' },
-    { id:'vim',    reveal:'edit <file>       the editor has modes (:w, :q)',       clue:'a text editor that thinks it is vi.' },
-    { id:'pipe',   reveal:'pipes             ls | wc -l  ·  grep x | sort',        clue:'chain two commands with a bar.' },
     { id:'matrix', reveal:'matrix            also: pipes, starfield, logo',        clue:'some rain is not wet.' },
     { id:'ascii',  reveal:'cowsay / fortune  also: sl, coffee',                    clue:'make the machine talk.' },
     { id:'boss',   reveal:'boss              blank the screen, fast',              clue:'someone is coming.' },
-    { id:'mail',   reveal:'mail              also F6 · or :send from the editor',  clue:'say something.' },
+    { id:'sudo',   reveal:'sudo <cmd>        you are not root',                    clue:'try to pull rank.' },
+    { id:'xyzzy',  reveal:'xyzzy             (nothing happens)',                   clue:'a hollow voice, from Colossal Cave.' },
   ]; }
   _loadEggs(){ try{ const r=localStorage.getItem('rohanEggs'); const o=r?JSON.parse(r):null; return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; } }
   _saveEggs(){ try{ localStorage.setItem('rohanEggs', JSON.stringify(this._eggs||{})); }catch(e){} }
@@ -536,7 +539,6 @@ export default class Engine {
     return { name:node.name, body:'', editable:false, ro:true };
   }
   openEditor(node){
-    this._egg('vim');
     const buf=this.bufferFor(node);
     this.setState({ editing:buf, edMode:'insert', edModeV:'normal', edStatus:'', dialog:null, activeMenu:null });
     setTimeout(()=>{ if(this._ed){ this._ed.value=buf.body; this._ed.focus(); } this._syncEdCursor(); }, 40);
@@ -972,7 +974,6 @@ export default class Engine {
 
   // ----- real pipes:  stage0 generates lines, later stages filter them -----
   _runPipeline(stages){
-    this._egg('pipe');
     let buf=this._captureRun(stages[0]);
     for(let i=1;i<stages.length;i++) buf=this._applyFilter(stages[i], buf);
     this.print(buf.length?buf:['']);
@@ -1224,7 +1225,7 @@ export default class Engine {
       this.say('nothing to open. try: go github'); return;
     }
     if(cmd==='resume' || cmd==='cv'){ this.openResume(); this.say('opening resume.pdf \u2026'); return; }
-    if(cmd==='mail' || cmd==='email' || cmd==='contact' || cmd==='sendmail' || cmd==='compose'){ this._egg('mail'); this.composeMail(); this.say(''); return; }
+    if(cmd==='mail' || cmd==='email' || cmd==='contact' || cmd==='sendmail' || cmd==='compose'){ this.composeMail(); this.say(''); return; }
     if(cmd==='config' || cmd==='setup' || cmd==='options'){ this.setState({ dialog:'config', activeMenu:null }); this.say(''); return; }
     if(cmd==='about'){ this.setState({ dialog:'about', activeMenu:null }); this.say(''); return; }
     if(cmd==='ls' || cmd==='dir'){
@@ -1251,11 +1252,12 @@ export default class Engine {
     // ----- easter eggs -----
     if(cmd==='sudo'){
       if(!this.state.cliMode){ this.say('sudo needs a real terminal - press 7 (CLI), then try  sudo  again.'); return; }
+      this._egg('sudo');
       this.setState({ sudoFlow:{ cmd:arg||'' } });
       setTimeout(()=>{ if(this._cli){ this._cli.value=''; this._cli.focus(); } }, 20);
       return;
     }
-    if(cmd==='xyzzy'){ this.out(['Nothing happens.']); return; }
+    if(cmd==='xyzzy'){ this._egg('xyzzy'); this.out(['Nothing happens.']); return; }
     if(cmd==='secrets' || cmd==='secret' || cmd==='sesame' || cmd==='eggs'){ this.out(this._secretsPanel()); return; }
     if(cmd==='boss' || cmd==='b0ss'){ this._egg('boss'); this.setState({ bossMode:true, activeMenu:null, dialog:null }); return; }
     if(cmd==='cowsay'){ this._egg('ascii'); this.out(this.cowsay(arg||'hire Rohan')); return; }
@@ -1315,7 +1317,7 @@ export default class Engine {
     '  6502              launch the CPU VM   ( in CLI:  6502 help )',
     '  viz · mail · resume · go <github|linkedin> · copy <email>',
     '  sysinfo · theme <amber|green|white> · man <cmd> · cli / gui',
-    '  pipes:  grep foo | wc -l  ·  ls | sort  ·  cat *.txt | head 5',
+    '  chaining:  grep foo | wc -l  ·  ls | sort  ·  cat *.txt | head 5',
     '  keys:  ↑ / ↓  recall history      Tab  completes commands & files',
     '  psst: there may be an easter egg or two hidden around, especially in here.',
   ]; }
@@ -1507,7 +1509,6 @@ export default class Engine {
     this.vmProgKey='user:'+f.name; this.openEditor(f);
   }
   openVM(){
-    this._egg('cpu');
     this.ensureVM();
     const prog=(this.root.children||[]).find(c=>c.name==='PROGRAMS');
     if(prog){ const fi=prog.children.findIndex(c=>c.name.indexOf('CPU6502')>=0); this.setState({ stack:[this.root, prog], sel:fi<0?0:fi+1, activeMenu:null, editing:null, cliMode:false }); }
