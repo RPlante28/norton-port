@@ -87,6 +87,33 @@ export default function DocView({ v }) {
           ))}
         </div>
       )}
+      {d.hasBeforeAfter && (
+        <div className="mt-[18px]">
+          <div className="flex items-center gap-[9px] mb-2">
+            <span className="text-[11px] text-cyan tracking-[0.08em]">{d.beforeAfterLabel}</span>
+            <span className="flex-1 h-px bg-edge-dim"></span>
+            <span className="text-[10px] text-dim tracking-[0.09em]">click to zoom</span>
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            {[
+              { src: d.beforeSrc, label: d.beforeLabel, tint: 'text-dim' },
+              { src: d.afterSrc, label: d.afterLabel, tint: 'text-yellow' },
+            ].map((sh, i) => (
+              <figure key={i} className="m-0 flex-1 min-w-[240px]">
+                <div className={`text-[10.5px] tracking-[0.12em] mb-1 ${sh.tint}`}>{sh.label}</div>
+                <img
+                  src={sh.src}
+                  data-full={sh.src}
+                  alt={sh.label}
+                  onClick={v.viewImg}
+                  className="nc-photo w-full h-auto block border border-edge cursor-zoom-in"
+                  style={photoFilter}
+                />
+              </figure>
+            ))}
+          </div>
+        </div>
+      )}
       {d.hasTimeline && (
         <div className="mt-[18px]">
           <div className="flex items-center gap-[9px] mb-3">

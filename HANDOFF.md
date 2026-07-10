@@ -1,29 +1,25 @@
-# ROHAN-DOS Portfolio — Handoff
+# ROHAN-DOS Portfolio — Project Notes
 
-A working handoff for continuing this project in a new conversation. Paste or
-attach this file to give the next session full context.
+Working notes for continuing this project. Covers what it is, how to run and
+deploy it, how the code is organized, what's done, and what's next.
 
 ---
 
 ## TL;DR — current state
 
-- **What it is:** Rohan Plante's portfolio, styled as a Norton Commander / DOS
-  text-mode desktop (boot screen, two-pane file browser, CLI mode, a live 6502
-  CPU emulator, dithered photos, dialogs, easter eggs).
-- **What happened:** the site was rebuilt from a single self-contained HTML
-  file onto a modern **React + Vite + Tailwind** toolchain, then fully modularized
-  and converted to Tailwind. It reproduces the original **pixel-for-pixel**, and
-  has since had content + animation work layered on top (see "What's been done").
-- **Where it lives:** GitHub repo **`RPlante28/norton-port`**. The live app is
-  all under the **`app/`** folder.
-- **Now merged into `main`.** The React rebuild (plus the follow-up feature work)
-  has been merged via PRs #1 and #3; `main` and the working branch
-  **`claude/handoff-file-review-8ris68`** are currently at the same commit
-  (`7ab676b`). The repo **root still contains the older single-file site**
-  (`index.html`, `content.js`, `animations.js`, `support.js`, `cpu6502.js`,
-  `contact.php`, `assets/`, `uploads/`, `vendor/`) — the `app/` build is the
-  source of truth going forward; the root files are legacy and can eventually be
-  removed once you're confident nothing references them.
+- **What it is:** my portfolio, styled as a Norton Commander / DOS text-mode
+  desktop (boot screen, two-pane file browser, CLI mode, a live 6502 CPU
+  emulator, dithered photos, dialogs, easter eggs).
+- **Stack:** the live app is **React + Vite + Tailwind**, fully modularized, all
+  under the **`app/`** folder. It reproduces the original single-file design
+  pixel-for-pixel and has had content + animation work layered on top.
+- **Where it lives:** GitHub repo **`RPlante28/norton-port`**, on the
+  **`portfolio-updates`** branch, mirrored to **`main`**.
+- The repo **root still contains the older single-file site** (`index.html`,
+  `content.js`, `animations.js`, `support.js`, `cpu6502.js`, `contact.php`,
+  `assets/`, `uploads/`, `vendor/`). The `app/` build is the source of truth
+  going forward; the root files are legacy and can be removed once nothing
+  references them.
 - **Deploys as a static site** to GoDaddy/cPanel. No server, no backend (except a
   one-file PHP mail script for the contact form).
 
@@ -56,8 +52,8 @@ won't send in `npm run dev`/`preview` (works once deployed). Everything else
 ## Architecture
 
 The original app cleanly separated **logic** (one big `renderVals()` that returns
-a `vals` object) from **view** (a template that consumed `vals`). The rebuild
-preserves that seam.
+a `vals` object) from **view** (a template that consumed `vals`). The current
+build preserves that seam.
 
 ### Directory map (`app/`)
 
@@ -65,8 +61,8 @@ preserves that seam.
 |------|-----------|
 | `index.html` | Loads the 3 data scripts as classic `<script>`s, then the React entry. |
 | `src/main.jsx` | Mounts `<App/>` (no StrictMode — the engine has real timers/audio). |
-| `src/components/App.jsx` | ~74-line composition of the shell + feature/dialog components. |
-| `src/components/` | Shell chrome: `MenuBar`, `FilePanel`, `CommandLine`, `FunctionKeyBar`, `BootScreen`, `EditorOverlay`, `CliFullScreen`, `BossMode`, `ImageViewer`, `CrtOverlay`. |
+| `src/components/App.jsx` | Small composition of the shell + feature/dialog components. |
+| `src/components/` | Shell chrome: `MenuBar`, `FilePanel`, `CommandLine`, `FunctionKeyBar`, `BootScreen`, `EditorOverlay`, `CliFullScreen`, `BossMode`, `ImageViewer`, `CrtOverlay`, `Screensaver`, `PrintResume`. |
 | `src/features/` | Right-pane views: `RightPane` (switch) + `InfoCard`, `DirPreview`, `DocView`, `EduView`, `ContactView`, `TextView`, `Vm6502`. |
 | `src/dialogs/` | Modal layer: `Dialogs` (switch) + `Config`, `About`, `Contact`, `Help`, `Dash`, `Resume`. |
 | `src/engine/Engine.js` | **All app logic** (file browser, CLI commands, vim editor, 6502 VM, WebAudio, dialogs, boot). |
@@ -80,13 +76,13 @@ preserves that seam.
 
 ### Key concepts (read before editing)
 
-1. **Engine is a verbatim port.** `Engine.js` is the original single-file logic
-   class, unchanged except a small store shim at the top that replaces the old
-   runtime base class: `subscribe` / `getSnapshot` / `setState` (synchronous
-   merge + emit) / `forceUpdate` / `_emit`. React drives it via
-   `useSyncExternalStore` + effects calling `componentDidMount` /
-   `componentDidUpdate` / `componentWillUnmount`. **Prefer surgical edits here;
-   don't reshape it.** (ESLint is relaxed for this file on purpose.)
+1. **The engine is a faithful port.** `Engine.js` is the original single-file
+   logic class, unchanged except a small store shim at the top:
+   `subscribe` / `getSnapshot` / `setState` (synchronous merge + emit) /
+   `forceUpdate` / `_emit`. React drives it via `useSyncExternalStore` + effects
+   calling `componentDidMount` / `componentDidUpdate` / `componentWillUnmount`.
+   **Prefer surgical edits here; don't reshape it.** (ESLint is relaxed for this
+   file on purpose.)
 
 2. **`renderVals()` is the bridge.** It returns one `vals` object; every React
    component just reads `v.*` from it. Handlers, refs, computed strings, list
@@ -96,7 +92,7 @@ preserves that seam.
    `animations.js`, `cpu6502.js` live in `public/`, are loaded via `<script>` in
    `index.html`, and expose `window.PORTFOLIO` / `window.VIZ` / `window.CPU6502`.
    This keeps the "edit one plain file to change content" workflow and copies them
-   verbatim into `dist/` (still editable after a build). Engine reads the globals.
+   verbatim into `dist/` (still editable after a build). The engine reads the globals.
 
 4. **Styling is Tailwind.** The DOS palette is Tailwind theme tokens
    (`text-cyan`, `bg-dos-blue`, `border-edge-dim`, `text-yellow`, `text-muted`,
@@ -104,103 +100,66 @@ preserves that seam.
    classes in `index.css` (`.nc-btn`, `.nc-tag`, `.nc-frow`, `.nc-vbtn`,
    `.nc-dlgbtn`, `.nc-close`, `.nc-progress`, etc.). Only genuinely complex
    one-offs (filters, keyframe shorthands, multi-part box-shadows, gradients)
-   remain as small inline `style={{…}}` objects — idiomatic, not a TODO. There is
-   **no `s()` helper anymore** (it was deleted after full conversion).
+   remain as small inline `style={{…}}` objects — idiomatic, not a TODO.
 
 ---
 
-## Handoff to Fable — the next phase
-
-The next session (Fable) is being handed the whole repo with a broad mandate:
-
-- **Make the code more human-readable and better organized** — clearer naming,
-  structure, and comments. See the constraints below: the `Engine.js` port is
-  deliberately verbatim, so refactors there should be careful and incremental.
-- **Perfect the look, sound, and feel** — polish visuals, audio, animations, and
-  overall DOS feel; add features where they fit the personality.
-- **Add additional features** as they make sense (the user has floated an "AI
-  mode" and expanded interactivity — none scoped yet).
-- **Rewrite the git commit history to attribute the commits/contributions to
-  Rohan** (rohan.v.plante@gmail.com) so the GitHub contribution graph reflects
-  him as the author. This is his own repo, so re-authoring is legitimate. Do it
-  with `git rebase` / `git filter-repo` (or `git commit --amend --author`),
-  rewriting author **and** committer name/email to Rohan across the history,
-  then force-push. **Confirm with Rohan before force-pushing `main`** (history
-  rewrite is destructive and needs `--force-with-lease`); coordinate so no other
-  clone is mid-work. Any Claude/Anthropic co-author trailers should be dropped.
-
----
-
-## What's been done (this rebuild)
+## What's been done
 
 - Faithful React/Vite/Tailwind port of the entire app; verified pixel-identical
   (boot, both panels, info card, every doc/timeline view, dithered photos,
   animated ASCII heroes, 6502 VM, CLI, vim editor, all dialogs, boss key).
-- Modularized `App.jsx` (~730 → 74 lines) into `components/` + `features/` +
-  `dialogs/`; every view/dialog is its own file.
-- 100% Tailwind conversion; `s()` helper removed.
+- Modularized `App.jsx` into `components/` + `features/` + `dialogs/`; every
+  view/dialog is its own file.
+- 100% Tailwind conversion.
 - ESLint (flat config) + Prettier; lint clean.
-- Bug fixes:
-  - **AudioContext autoplay warnings** — gone; audio only wakes on a real user
-    gesture (dropped the on-load resume; `_bootClick` is a no-op until unlocked).
-  - **Cursor lag** — the custom DOS block cursor (`mix-blend-mode: difference`)
-    is now rAF-batched with `translate3d`; the ASCII animation loop recomputes
-    ~14×/sec instead of 60×/sec to free the main thread. If it still drags in a
-    production build, the agreed fallback is a **solid GPU-composited block**
-    (drops only the invert-under-it effect) — not yet applied.
-  - **Contact form double-send** — `sendContact()` guards against re-entry while a
-    send is in flight, tracks a `sending` state, and swaps Send/Cancel for a
-    DOS-striped indeterminate progress bar + "no need to click again". Verified:
-    6 rapid clicks → exactly 1 POST.
+- Bug fixes: AudioContext autoplay warnings gone (audio only wakes on a real user
+  gesture); block cursor smoothed (rAF-batched `translate3d`); contact form
+  guards against double-sends and shows a sending state.
 - `npm run deploy` helper (build + `site.zip`).
-
-**Since the rebuild merged (follow-up feature work on `main`):**
-
-- Added portfolio entries: a **redacted internship** and a **Minecraft plugin**;
-  fixed links and brought CLI ↔ GUI to parity so both surfaces show the same data.
-- Scoped `cd` and `Tab` behavior; assorted settings/dialog fixes.
-- Animation work: reworked the **forge → "blast furnace"** animation and its
-  caption (`STACK` → `FURNACE`), perfected the **CLASSIFIED stamp**, and fixed
-  **ASCII-art box alignment** by giving animations a complete monospace font.
-- Updated the résumé.
+- Content + feature work: redacted internship + Minecraft plugin entries, CLI ↔
+  GUI parity, screensavers, a mobile-friendly responsive layout, a 404 page,
+  deep links, SEO metadata, expanded CLI (find/grep/wc/man/head/tail/etc.), a
+  more capable vim editor, print-to-resume stylesheet, and animation polish
+  (blast furnace, declassification scan, monospace ASCII-box alignment fix).
+- **MCW Starz before/after gallery:** `DocView` renders a labeled before/after
+  screenshot pair when a doc entry provides `beforeSrc` / `afterSrc`. The MCW
+  Starz entry is wired up (`uploads/mcwstarz-before.png`,
+  `uploads/mcwstarz-after.png`). **The two image files are currently
+  placeholders — replace them with the real Wayback Machine screenshots**
+  (before: the 2021 orange "FROM DRILLZ TO SKILLZ" gym site; after: the 2023
+  redesign). Egress in the build environment blocks archive.org, so the
+  screenshots have to be captured and dropped in manually.
 
 ---
 
 ## Conventions & constraints
 
-- **Don't change site content or features** unless asked. The user is protective
-  of the exact look and the DOS personality.
-- Earlier the user pasted an aspirational "V2" spec (TypeScript, feature folders,
-  Framer Motion, React Router, Lucide, JSON data). Agreed reconciliation:
-  **stay JavaScript**, **fidelity-first**, keep it a **single-screen** app (no
-  route-fragmentation — Router only ever for a 404 if added), keep the ASCII/CSS
-  animations (no Framer Motion rewrite), and keep `content.js`/`animations.js` as
-  code (functions/classes can't be JSON). Adopt the *good* parts (modular
-  structure, Tailwind, ESLint/Prettier) — which is done.
-- **Verification style:** changes are checked by building and driving the real app
-  headless with Playwright (screenshots + console-error capture), not just typing.
-  A fresh container won't have the ad-hoc scripts that were in a scratchpad; the
-  Chromium binary is at `/opt/pw-browsers/` and Playwright is preconfigured.
-- **Git push:** this environment's git proxy 403s this private repo, so pushes are
-  done to a tokenized `https://<token>@github.com/RPlante28/norton-port.git` URL
-  (direct egress to github.com works). The push token is **not** stored in the
-  repo or this file. Commits are incremental (no force-push). The branch is
-  rebased on top of current `main` so a PR shows just the `app/` addition.
+- **Don't change site content or features** unless intended. Protect the exact
+  look and the DOS personality.
+- Stay **JavaScript**, **fidelity-first**, single-screen (no route fragmentation).
+  Keep the ASCII/CSS animations. Keep `content.js` / `animations.js` as code
+  (functions/classes can't be JSON).
+- **Verification style:** check changes by building and driving the real app
+  (screenshots + console-error capture), not just typing. The Chromium binary is
+  at `/opt/pw-browsers/` and Playwright is preconfigured.
 
 ---
 
-## Possible next steps (not started)
+## Roadmap / next steps
 
-- **Readability/organization pass** across `app/src` (Fable's primary mandate).
-- **Rewrite git history to attribute commits to Rohan** (see the Fable handoff
-  section above) — confirm before force-pushing `main`.
+- **Readability & organization pass** across `app/src` — clearer naming,
+  structure, and comments (careful, incremental edits inside `Engine.js`).
+- **Perfect the look, sound, and feel** — visuals, audio, animations, overall
+  DOS feel; add features where they fit the personality.
+- **Replace the MCW Starz before/after placeholder images** with the real
+  Wayback screenshots (see "What's been done").
 - Retire the legacy single-file site at the repo root once nothing depends on it.
-- If the cursor still feels laggy in `npm run preview`: switch to the solid
+- If the cursor still feels laggy in `npm run preview`: switch to a solid
   GPU-composited block cursor.
 - Optional: give the CLI/vim mail composers the same anti-double-send guard as the
-  GUI dialog (the GUI one is fixed; CLI submits once on Enter, lower risk).
-- Optional future features the user has floated: an "AI mode" and expanded
-  interactivity — none scoped yet.
+  GUI dialog.
+- Floated feature ideas (not yet scoped): an "AI mode" and expanded interactivity.
 
 ---
 
@@ -210,5 +169,4 @@ The next session (Fable) is being handed the whole repo with a broad mandate:
 2. `npm run lint` — should be clean.
 3. `npm run preview` and click around — boot → panels → a project (viz animates)
    → PROGRAMS (6502 runs) → press `O` for CLI (`help`, `tree`) → F6 Contact.
-4. Make changes as small commits; push to `claude/handoff-file-review-8ris68`
-   (current working branch; already merged to `main`).
+4. Make changes as small commits on `portfolio-updates`.

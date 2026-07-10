@@ -1762,6 +1762,8 @@ export default class Engine {
             hasSub:!!o.sub, hasBullets:!!(o.bullets&&o.bullets.length), hasTags:!!(o.tags&&o.tags.length), dataviz:!!o.dataviz, demo:!!o.demo,
             art:o.art||'', hasArt:!!(o.art&&!o.imgSrc), imgSrc:o.imgSrc||'', hasImg:!!o.imgSrc,
             viz:o.viz||'', hasViz:!!o.viz, vizLabel:o.vizLabel||'', hasLink:!!o.link, imgFilter:!!o.imgFilter,
+            beforeSrc:o.beforeSrc||'', afterSrc:o.afterSrc||'', hasBeforeAfter:!!(o.beforeSrc&&o.afterSrc),
+            beforeLabel:o.beforeLabel||'BEFORE', afterLabel:o.afterLabel||'AFTER', beforeAfterLabel:o.beforeAfterLabel||'BEFORE / AFTER',
             timeline:tl, hasTimeline:!!(o.timeline&&o.timeline.entries&&o.timeline.entries.length),
             hasGoto:!!o.goto, gotoLabel:o.gotoLabel||'OPEN ▸', hasGoto2:!!o.goto2, gotoLabel2:o.gotoLabel2||'OPEN ▸' };
     }

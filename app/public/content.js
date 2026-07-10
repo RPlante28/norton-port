@@ -184,7 +184,8 @@ snake:
           'Coordinated 400+ volunteer hours, managing logistics, funding, and approvals.',
           'The trail is now featured on AllTrails with a 4.1-star community rating.' ] }) },
         { name:'WEB-DEV', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'06.26.26', children:[
-          { name:'MCWSTARZ.WEB', kind:'file', size:'5 120', date:'06.15.23', doc:D({ viz:'court', vizLabel:'MCW STARZ \u00b7 GAME DAY', title:'MCW Starz Basketball Club', meta:'2022 \u2013 2023', sub:'A mobile-friendly club site, built to be handed down.', link:'https://www.mcwstarz.com', linkLabel:'VISIT SITE \u25b8', imgSrc:'uploads/mcwstarz-logo.png', tags:['HTML','CSS','JavaScript','Responsive','Social Feeds'], bullets:[
+          { name:'MCWSTARZ.WEB', kind:'file', size:'5 120', date:'06.15.23', doc:D({ viz:'court', vizLabel:'MCW STARZ \u00b7 GAME DAY', title:'MCW Starz Basketball Club', meta:'2022 \u2013 2023', sub:'A mobile-friendly club site, built to be handed down.', link:'https://www.mcwstarz.com', linkLabel:'VISIT SITE \u25b8', imgSrc:'uploads/mcwstarz-logo.png', tags:['HTML','CSS','JavaScript','Responsive','Social Feeds'],
+            beforeSrc:'uploads/mcwstarz-before.png', afterSrc:'uploads/mcwstarz-after.png', beforeLabel:'BEFORE \u00b7 2021', afterLabel:'AFTER \u00b7 2023', beforeAfterLabel:'BEFORE / AFTER \u00b7 VIA WAYBACK MACHINE', bullets:[
             'Built a secure, mobile-friendly website for the MCW Starz basketball club with integrated social-media feeds.',
             'Designed responsive layouts that improved accessibility and engagement across phones and tablets.',
             'Most importantly: structured the code and content so future students could maintain and extend it without starting from scratch.',
