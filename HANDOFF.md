@@ -10,13 +10,20 @@ attach this file to give the next session full context.
 - **What it is:** Rohan Plante's portfolio, styled as a Norton Commander / DOS
   text-mode desktop (boot screen, two-pane file browser, CLI mode, a live 6502
   CPU emulator, dithered photos, dialogs, easter eggs).
-- **What just happened:** the site was rebuilt from a single self-contained HTML
+- **What happened:** the site was rebuilt from a single self-contained HTML
   file onto a modern **React + Vite + Tailwind** toolchain, then fully modularized
-  and converted to Tailwind. It reproduces the original **pixel-for-pixel**.
-- **Where it lives:** GitHub repo **`RPlante28/norton-port`**, branch
-  **`react-vite-tailwind-rebuild`**, all under the **`app/`** folder.
-- **Not yet merged** into `main`. `main` still holds the older single-file site at
-  the repo root. The rebuild is self-contained in `app/` and touches nothing else.
+  and converted to Tailwind. It reproduces the original **pixel-for-pixel**, and
+  has since had content + animation work layered on top (see "What's been done").
+- **Where it lives:** GitHub repo **`RPlante28/norton-port`**. The live app is
+  all under the **`app/`** folder.
+- **Now merged into `main`.** The React rebuild (plus the follow-up feature work)
+  has been merged via PRs #1 and #3; `main` and the working branch
+  **`claude/handoff-file-review-8ris68`** are currently at the same commit
+  (`7ab676b`). The repo **root still contains the older single-file site**
+  (`index.html`, `content.js`, `animations.js`, `support.js`, `cpu6502.js`,
+  `contact.php`, `assets/`, `uploads/`, `vendor/`) — the `app/` build is the
+  source of truth going forward; the root files are legacy and can eventually be
+  removed once you're confident nothing references them.
 - **Deploys as a static site** to GoDaddy/cPanel. No server, no backend (except a
   one-file PHP mail script for the contact form).
 
@@ -102,6 +109,28 @@ preserves that seam.
 
 ---
 
+## Handoff to Fable — the next phase
+
+The next session (Fable) is being handed the whole repo with a broad mandate:
+
+- **Make the code more human-readable and better organized** — clearer naming,
+  structure, and comments. See the constraints below: the `Engine.js` port is
+  deliberately verbatim, so refactors there should be careful and incremental.
+- **Perfect the look, sound, and feel** — polish visuals, audio, animations, and
+  overall DOS feel; add features where they fit the personality.
+- **Add additional features** as they make sense (the user has floated an "AI
+  mode" and expanded interactivity — none scoped yet).
+- **Rewrite the git commit history to attribute the commits/contributions to
+  Rohan** (rohan.v.plante@gmail.com) so the GitHub contribution graph reflects
+  him as the author. This is his own repo, so re-authoring is legitimate. Do it
+  with `git rebase` / `git filter-repo` (or `git commit --amend --author`),
+  rewriting author **and** committer name/email to Rohan across the history,
+  then force-push. **Confirm with Rohan before force-pushing `main`** (history
+  rewrite is destructive and needs `--force-with-lease`); coordinate so no other
+  clone is mid-work. Any Claude/Anthropic co-author trailers should be dropped.
+
+---
+
 ## What's been done (this rebuild)
 
 - Faithful React/Vite/Tailwind port of the entire app; verified pixel-identical
@@ -124,6 +153,16 @@ preserves that seam.
     DOS-striped indeterminate progress bar + "no need to click again". Verified:
     6 rapid clicks → exactly 1 POST.
 - `npm run deploy` helper (build + `site.zip`).
+
+**Since the rebuild merged (follow-up feature work on `main`):**
+
+- Added portfolio entries: a **redacted internship** and a **Minecraft plugin**;
+  fixed links and brought CLI ↔ GUI to parity so both surfaces show the same data.
+- Scoped `cd` and `Tab` behavior; assorted settings/dialog fixes.
+- Animation work: reworked the **forge → "blast furnace"** animation and its
+  caption (`STACK` → `FURNACE`), perfected the **CLASSIFIED stamp**, and fixed
+  **ASCII-art box alignment** by giving animations a complete monospace font.
+- Updated the résumé.
 
 ---
 
@@ -152,7 +191,10 @@ preserves that seam.
 
 ## Possible next steps (not started)
 
-- Open a PR from `react-vite-tailwind-rebuild` into `main` (user hasn't decided).
+- **Readability/organization pass** across `app/src` (Fable's primary mandate).
+- **Rewrite git history to attribute commits to Rohan** (see the Fable handoff
+  section above) — confirm before force-pushing `main`.
+- Retire the legacy single-file site at the repo root once nothing depends on it.
 - If the cursor still feels laggy in `npm run preview`: switch to the solid
   GPU-composited block cursor.
 - Optional: give the CLI/vim mail composers the same anti-double-send guard as the
@@ -168,4 +210,5 @@ preserves that seam.
 2. `npm run lint` — should be clean.
 3. `npm run preview` and click around — boot → panels → a project (viz animates)
    → PROGRAMS (6502 runs) → press `O` for CLI (`help`, `tree`) → F6 Contact.
-4. Make changes as small commits; push to `react-vite-tailwind-rebuild`.
+4. Make changes as small commits; push to `claude/handoff-file-review-8ris68`
+   (current working branch; already merged to `main`).
