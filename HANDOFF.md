@@ -3,14 +3,12 @@
 Working notes for continuing this project. Covers what it is, how to run and
 deploy it, how the code is organized, what's done, and what's next.
 
-> **Heads-up / do first:** the MCW Starz project entry has a **before/after
-> screenshot gallery** wired up, but the two image files
-> (`app/public/uploads/mcwstarz-before.png` and `mcwstarz-after.png`) may still
-> be plain-color placeholders. The real Wayback Machine screenshots (before: the
-> ~2021 orange "FROM DRILLZ TO SKILLZ" gym site; after: the ~2023 redesign) are
-> being dropped in manually. If the gallery shows two solid navy rectangles, the
-> real images haven't landed yet — just overwrite those two files (no code
-> change needed). Everything else is ready to build on.
+> **Status:** the MCW Starz project entry has a **before/after screenshot
+> gallery** using real Wayback Machine captures
+> (`app/public/uploads/mcwstarz-before.png` = the ~2021 orange "FROM DRILLZ TO
+> SKILLZ" gym site; `mcwstarz-after.png` = the ~2023 redesign). It's complete —
+> to refresh either shot later, just overwrite that file (no code change needed).
+> Everything else is ready to build on.
 
 ---
 
