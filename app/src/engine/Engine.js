@@ -50,7 +50,7 @@ export default class Engine {
     // One source of truth for links and the version banner (from content.js),
     // with fallbacks so the app still runs if the profile is trimmed down.
     this.links = Object.assign(
-      { email:'rohanplante@gmail.com', github:'https://github.com/RPlante28', linkedin:'https://linkedin.com/in/rohan-plante' },
+      { email:'rohanplante@gmail.com', github:'https://github.com/RPlante28', linkedin:'https://linkedin.com/in/rohan-plante', resume:'uploads/Rohan_Plante_resume.pdf' },
       this.profile.links || {});
     this.build = Object.assign(
       { os:'ROHAN-DOS', version:'5.51', released:'JUN 2026', year:'MMXXVI', org:'Plante Systems', edition:'Computer Science Edition' },
@@ -1127,7 +1127,7 @@ export default class Engine {
       // `copy <email|github|linkedin|resume>` copies a contact detail to the
       // clipboard; anything else falls through to the DOS file copy below.
       if(cmd==='copy'){
-        const map={ email:this.links.email, github:this.links.github, linkedin:this.links.linkedin, resume:'uploads/Rohan_Plante_resume.pdf' };
+        const map={ email:this.links.email, github:this.links.github, linkedin:this.links.linkedin, resume:this.links.resume };
         const v=map[(arg||'').toLowerCase()];
         if(v){
           try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(()=>this.out(['copied: '+v]), ()=>this.out([v])); return; } }catch(e){}
@@ -1428,6 +1428,30 @@ export default class Engine {
   openHelp(){ this.setState({ dialog:'help', activeMenu:null }); }
   openDash(which){ this.setState({ dialog:(which===2?'dash2':'dash1'), activeMenu:null }); }
   openResume(){ this.setState({ dialog:'resume', activeMenu:null }); }
+  // Print the real resume PDF: load it in a hidden iframe and print that
+  // document, so Ctrl+P produces the actual resume (not the DOS screen).
+  // Falls back to opening the PDF in a new tab if the frame can't print.
+  printResume(){
+    const url = this.links.resume || 'uploads/Rohan_Plante_resume.pdf';
+    try{
+      let f = this._printFrame;
+      if(!f){
+        f = document.createElement('iframe');
+        f.setAttribute('aria-hidden','true');
+        f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+        document.body.appendChild(f);
+        this._printFrame = f;
+      }
+      const restoreFocus = ()=>{ try{ window.focus(); const el=this.state.cliMode?this._cli:this._cmd; if(el) el.focus(); }catch(_){} };
+      f.onload = ()=>{ setTimeout(()=>{
+        try{ f.contentWindow.focus(); f.contentWindow.print(); }
+        catch(err){ window.open(url,'_blank','noopener'); }
+        finally{ restoreFocus(); }
+      }, 250); };
+      f.src = url;
+      this.say('printing resume.pdf …');
+    }catch(err){ window.open(url,'_blank','noopener'); }
+  }
   // open an <img> element in the full-screen image viewer (used by timeline photos)
   // describe one <img> for the viewer
   _imgInfo(img){ const full=img.getAttribute('data-full')||img.getAttribute('src'); const name=(img.getAttribute('alt')||'IMAGE').toUpperCase(); const meta=img.getAttribute('data-full')?'SOURCE: original capture (filters off)':'SOURCE: '+full.split('/').pop(); return { src:full, name, meta }; }
@@ -1691,6 +1715,8 @@ export default class Engine {
       this.keyClick(e);
       if(this.state.booting){ this.finishBoot(); return; }
       if(this.state.bossMode){ if(e.key==='Escape'){ e.preventDefault(); this.setState({ bossMode:false }); setTimeout(()=>{ const el=this.state.cliMode?this._cli:this._cmd; if(el) el.focus(); }, 20); } return; }
+      // Ctrl/Cmd+P prints the ACTUAL resume PDF, not the DOS screen.
+      if((e.key==='p'||e.key==='P') && (e.metaKey||e.ctrlKey) && !e.altKey){ e.preventDefault(); this.printResume(); return; }
       // Function keys F1..F10 mirror the on-screen bar. preventDefault stops the
       // browser from hijacking them (F1 help, F3 find, F5 reload, F6 address bar).
       if(/^F([1-9]|10)$/.test(e.key)){
@@ -2043,7 +2069,7 @@ export default class Engine {
         { glyph:'\u25D1', label:'GitHub',   handle:'RPlante28',     href:this.links.github },
         { glyph:'in',     label:'LinkedIn', handle:'rohan-plante',  href:this.links.linkedin },
         { glyph:'@',      label:'E-mail',   handle:'rohanplante',   href:'mailto:'+this.links.email },
-        { glyph:'\u25A4', label:'Résumé',   handle:'resume.pdf',    href:'uploads/Rohan_Plante_resume.pdf' },
+        { glyph:'\u25A4', label:'Résumé',   handle:'resume.pdf',    href:this.links.resume },
       ],
       booting: this.state.booting,
       bootText: this.state.bootText,

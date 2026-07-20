@@ -388,6 +388,7 @@ snake:
       github:   'https://github.com/RPlante28',
       linkedin: 'https://linkedin.com/in/rohan-plante',
       email:    'rohanplante@gmail.com',
+      resume:   'uploads/Rohan_Plante_resume.pdf',   // the actual resume PDF (Ctrl+P prints this)
     },
   };
 

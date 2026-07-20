@@ -10,7 +10,7 @@ export default function ResumeDialog({ v }) {
         <span className="flex-1">RESUME.PDF - Rohan Plante</span>
         <a
           className="nc-link text-[11px]"
-          href="uploads/Rohan_Plante_resume.pdf"
+          href={v.links.resume}
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: '#fcfc54', textDecoration: 'none' }}
@@ -19,7 +19,7 @@ export default function ResumeDialog({ v }) {
         </a>
         <a
           className="nc-link text-[11px]"
-          href="uploads/Rohan_Plante_resume.pdf"
+          href={v.links.resume}
           download
           style={{ color: '#fcfc54', textDecoration: 'none' }}
         >
@@ -30,7 +30,7 @@ export default function ResumeDialog({ v }) {
         </span>
       </div>
       <iframe
-        src="uploads/Rohan_Plante_resume.pdf#toolbar=1&view=FitH"
+        src={`${v.links.resume}#toolbar=1&view=FitH`}
         title="Rohan Plante resume"
         className="flex-auto w-full border-none block bg-white"
       ></iframe>
