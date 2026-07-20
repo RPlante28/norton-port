@@ -326,6 +326,62 @@ snake:
       notes:[ 'Dean\u2019s List, all semesters.', 'A majority of my Computer Science classes center on hands-on, project-based work: building real systems rather than just studying them.' ],
       coursework:['Software Systems Analysis','Software Development I/II','System Design','Internetworking','Computer Organization & Architecture','Database Management','Data Communications','Discrete Math','Calculus II'] };
 
+  // =====================================================================
+  //  THE INFO CARD  (the WHOAMI home screen on the right)
+  //  --------------------------------------------------------------------
+  //  Everything the home card shows lives here, so you edit ONE object.
+  //
+  //  AVAILABILITY  ,  change  availability.status  to flip the badge:
+  //    'open'      green   AVAILABLE       (looking / open to work)
+  //    'chat'      cyan    OPEN TO CHAT    (employed, but reachable)
+  //    'employed'  yellow  HEADS-DOWN      (working, not looking)
+  //    'closed'    (hides the badge entirely)
+  //  Set  availability.note  to the line beside it. The last sentence of
+  //  the blurb also follows the status , see  closer  below.
+  //
+  //  (SEO note: the same one-liner also lives in index.html's <meta
+  //  description> and the <noscript> block , update those two if the
+  //  status changes, since static HTML can't read this file.)
+  // =====================================================================
+  const profile = {
+    version: 'v5.51 · JUN 2026',
+    name:    'ROHAN PLANTE',
+    title:   'COMPUTER SCIENCE  ·  MARIST UNIVERSITY',
+    photo:   'assets/dither-bw.png',
+    facts: [
+      ['GPA',   '3.67 / 4.0 · Dean’s List, every semester'],
+      ['FOCUS', 'Software Development'],
+      ['NOW',   'Data Analyst · Marist Office of Community & Belonging'],
+      ['HOME',  'Middleton, MA  ·  school in Poughkeepsie, NY'],
+    ],
+    availability: { status: 'open', note: 'seeking software / data internships' },
+    // The blurb is a list of segments: a plain string is text; { text, href }
+    // is an external link; { text, app } opens something in the site
+    // ( app:'norton' reveals this portfolio's project entry, app:'vm' opens
+    // the 6502 emulator ).
+    blurb: [
+      'I’m a Computer Science student at Marist University who likes building real, working systems, the kind with moving parts you can actually watch run. I’ve built a ',
+      { text: 'campus navigator', href: 'https://github.com/RPlante28/maristmaps' },
+      ' with a voice-enabled AI agent, rebuilt a ',
+      { text: '6502 CPU', href: 'https://github.com/RPlante28/6502-emulator' },
+      ' one pipeline stage at a time, and shipped full-stack apps, data pipelines, and interactive maps. This whole ',
+      { text: 'portfolio', app: 'norton' },
+      ' is one of those projects, a DOS-era interface you’re exploring right now. ',
+    ],
+    // The closing sentence of the blurb, chosen by availability.status.
+    closer: {
+      open:     'I’m looking for software and data internships where I can build things that matter.',
+      chat:     'I’m working as a data analyst on campus right now, and always glad to talk shop.',
+      employed: 'I’m heads-down on my current work at the moment.',
+      closed:   '',
+    },
+    links: {
+      github:   'https://github.com/RPlante28',
+      linkedin: 'https://linkedin.com/in/rohan-plante',
+      email:    'rohanplante@gmail.com',
+    },
+  };
+
   // Expose everything to the app. (index.html reads window.PORTFOLIO.)
-  window.PORTFOLIO = { D, T, A, ART, root, edu };
+  window.PORTFOLIO = { D, T, A, ART, root, edu, profile };
 })();

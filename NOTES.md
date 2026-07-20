@@ -43,13 +43,19 @@ npm run build        # production build -> app/dist/
 npm run preview      # serve the production build (truest local test)
 npm run lint         # ESLint (currently clean)
 npm run format       # Prettier
-npm run deploy       # build + zip dist/ into app/site.zip for cPanel
+npm run deploy       # build + upload over FTP/FTPS (default)
+npm run deploy:zip   # build + zip dist/ into app/site.zip (manual cPanel upload)
+npm run deploy:ssh   # build + deploy over SSH
 ```
 
-**Deploy:** `npm run deploy`, then in cPanel → File Manager → `public_html/` →
-upload `site.zip` → Extract → delete the zip. (`site.zip` contains the *contents*
-of `dist/` at its root, so files land directly in `public_html/`.) The build uses
-`base: './'` (relative paths), so it also works from a subfolder.
+**Deploy (default, FTP):** `npm run deploy` builds and pushes `dist/` to the host
+over FTPS via `scripts/deploy-ftp.mjs`. Credentials come from `app/deploy.json`
+(git-ignored) or `FTP_*` env vars. **Manual (zip):** `npm run deploy:zip`, then in
+cPanel → File Manager → `public_html/` → upload `site.zip` → Extract → delete the
+zip. (`site.zip` holds the *contents* of `dist/` at its root, so files land
+directly in `public_html/`.) The build uses `base: './'` (relative paths), so it
+also works from a subfolder. The visitor count lives in `counter.dat` on the
+server; deploys are additive and never touch it, so the count carries over.
 
 **Local caveat:** the contact form POSTs to `contact.php`, which needs PHP — it
 won't send in `npm run dev`/`preview` (works once deployed). Everything else
@@ -124,7 +130,8 @@ build preserves that seam.
 - Bug fixes: AudioContext autoplay warnings gone (audio only wakes on a real user
   gesture); block cursor smoothed (rAF-batched `translate3d`); contact form
   guards against double-sends and shows a sending state.
-- `npm run deploy` helper (build + `site.zip`).
+- Deploy helpers: `npm run deploy` (FTP/FTPS, default), `deploy:zip` (site.zip),
+  `deploy:ssh` (SSH).
 - Content + feature work: redacted internship + Minecraft plugin entries, CLI ↔
   GUI parity, screensavers, a mobile-friendly responsive layout, a 404 page,
   deep links, SEO metadata, expanded CLI (find/grep/wc/man/head/tail/etc.), a

@@ -46,7 +46,10 @@ const sshCmd = `ssh -p ${port}` + (key ? ` -i "${key}"` : '') + ' -o StrictHostK
 const args = [
   '-az', '--human-readable',
   '-e', sshCmd,
+  // counter.dat is the live visitor count on the server: never overwrite it,
+  // and never let --delete remove it.
   '--exclude', '.htaccess', '--exclude', 'cgi-bin', '--exclude', '.well-known',
+  '--exclude', 'counter.dat',
 ];
 if (del) args.push('--delete');
 args.push(dist.replace(/\/?$/, '/'), remote);

@@ -21,6 +21,9 @@ if (!existsSync(dist)) {
 // Collect every file under dist/, keyed by its forward-slash relative path.
 function walk(dir, base, acc) {
   for (const name of readdirSync(dir)) {
+    // Never ship counter.dat: it's the live visitor count, written server-side.
+    // Bundling it would overwrite the real total on the next deploy.
+    if (name === 'counter.dat') continue;
     const full = join(dir, name);
     if (statSync(full).isDirectory()) walk(full, base, acc);
     else acc.push({ name: relative(base, full).split(sep).join('/'), data: readFileSync(full) });

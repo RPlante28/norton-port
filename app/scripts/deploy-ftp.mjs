@@ -41,6 +41,9 @@ if (!host || !user || !password) {
 // ---- collect the files to upload, grouped by remote sub-directory ----
 function walk(dir, acc) {
   for (const name of readdirSync(dir)) {
+    // Never upload counter.dat: it's the live visitor count kept on the server.
+    // Overwriting it would reset the running total on every deploy.
+    if (name === 'counter.dat') continue;
     const abs = join(dir, name);
     if (statSync(abs).isDirectory()) walk(abs, acc);
     else acc.push({ abs, rel: relative(dist, abs).split(sep).join('/'), size: statSync(abs).size });

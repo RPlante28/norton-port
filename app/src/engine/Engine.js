@@ -46,8 +46,14 @@ export default class Engine {
     const ART = P.ART; this.art = ART;
     this.root = P.root;
     this.edu = P.edu;
+    this.profile = P.profile || {};
     // flat list of every skill tag (from the SKILLS folder) for the WHOAMI card
     { const sd=(this.root.children||[]).find(c=>c.name==='SKILLS'); this.homeSkills = sd ? (sd.children||[]).reduce((a,c)=>a.concat((c.doc&&c.doc.tags)||[]),[]) : []; }
+    // live counts for the WHOAMI footer, so they never drift from the content
+    { const dirs=(this.root.children||[]).filter(c=>c.kind==='dir').length;
+      const pf=this.flatten(this.root).find(x=>x.name==='PROJECTS' && x.kind==='dir');
+      const projects=pf ? this.flatten(pf).filter(x=>x.kind==='file').length : 0;
+      this.homeStats = { dirs, projects }; }
 
     this.helloArt = [
       " +-----------------------------+",
@@ -1960,6 +1966,8 @@ export default class Engine {
       },
       showStatus: this.cfg.mini,
       homeSkills: this.homeSkills,
+      profile: this.profile,
+      homeStats: this.homeStats,
       crt: this.cfg.crt,
       // CRT scanline intensity: build the gradient from the saved alpha, plus
       // the slider bar/label that drives it.

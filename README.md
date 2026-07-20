@@ -171,6 +171,13 @@ to File Manager, open `public_html/`, upload `site.zip`, Extract, and delete the
 zip. The zip contains the *contents* of `dist/` at its root, so files land
 directly in `public_html/`.
 
+### The visitor counter
+
+`counter.php` keeps the running visitor total in `counter.dat` next to it on the
+server. That file is created server-side, git-ignored, and excluded from every
+deploy path (FTP, zip, and SSH), so **updating the site never resets the count** ,
+the total carries over. Just leave `counter.dat` in place on the server.
+
 ---
 
 ## Project layout

@@ -2,6 +2,10 @@
 // Simple, honest visitor counter. Increments once per browser session and
 // returns the running total as JSON. Stored in counter.dat next to this file
 // (the directory must be writable by the web server).
+//
+// counter.dat is created and updated on the SERVER only. It is git-ignored and
+// excluded from every deploy path (FTP/zip/SSH), so updating the site never
+// overwrites or resets the count. Leave counter.dat in place across deploys.
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
 session_start();
