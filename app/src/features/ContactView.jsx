@@ -12,7 +12,7 @@ export default function ContactView({ v }) {
           ▶ RUN - Compose Email
         </span>
       </div>
-      <div className="text-[11px] text-[#8fb0e8] mt-[18px]">// press RUN, or type  mail  - middleton, ma · MMXXVI</div>
+      <div className="text-[11px] text-[#8fb0e8] mt-[18px]">// press RUN, or type  mail  - middleton, ma · {v.build.year}</div>
     </div>
   );
 }

@@ -7,13 +7,13 @@ export default function AboutDialog({ v }) {
     >
       <div className="bg-dos-blue text-cyan text-center p-[3px] font-bold">About</div>
       <div className="px-[18px] py-4 leading-[1.6]">
-        <div className="font-bold text-[15px] mb-1.5">ROHAN-DOS Portfolio Commander</div>
-        <div>Version 5.51 · Computer Science Edition</div>
+        <div className="font-bold text-[15px] mb-1.5">{v.build.os} Portfolio Commander</div>
+        <div>Version {v.build.version} · {v.build.edition}</div>
         <div className="my-2">
           A homage to Norton Commander, built by Rohan Plante with React, Vite, and Tailwind and
           deployed as a static site. Navigate with the mouse, the arrow keys, or the command line below.
         </div>
-        <div className="text-[#06457a]">© MMXXVI · Middleton, MA · thanks for stopping by</div>
+        <div className="text-[#06457a]">© {v.build.year} · Middleton, MA · thanks for stopping by</div>
       </div>
       <div className="flex justify-center pb-3.5">
         <span onClick={v.closeDialog} className="nc-dlgbtn px-[22px] py-[3px]">

@@ -19,7 +19,7 @@ export default function MailSentDialog({ v }) {
           <div className="text-cyan font-bold mb-1.5">
             {m.done ? (m.ok ? '✔ MESSAGE DELIVERED' : '✗ SEND FAILED') : 'SENDING …'}
           </div>
-          <div className="text-muted whitespace-pre-wrap">{'to      : rohanplante@gmail.com'}</div>
+          <div className="text-muted whitespace-pre-wrap">{'to      : ' + v.links.email}</div>
           <div className="text-muted whitespace-pre-wrap">{'from    : ' + m.from}</div>
           <div className="text-muted whitespace-pre-wrap">{'subject : ' + m.subject}</div>
           <div className="text-muted whitespace-pre-wrap">{'size    : ' + m.bytes + ' bytes'}</div>
@@ -28,7 +28,7 @@ export default function MailSentDialog({ v }) {
           {m.done
             ? m.ok
               ? 'Your note is on its way - Rohan will write back soon.'
-              : 'Could not send - please e-mail rohanplante@gmail.com directly.'
+              : 'Could not send - please e-mail ' + v.links.email + ' directly.'
             : 'Handing your message to the mail daemon …'}
         </div>
       </div>

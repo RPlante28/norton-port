@@ -18,7 +18,7 @@ export default function InfoCard({ v }) {
   return (
     <div className="px-[18px] pt-4 pb-3.5">
       <div className="flex items-baseline justify-end mb-2.5">
-        <span className="text-yellow text-[11px]">{p.version}</span>
+        <span className="text-yellow text-[11px]">v{v.build.version} · {v.build.released}</span>
       </div>
       <div className="border-t border-edge-dim mb-3.5"></div>
 

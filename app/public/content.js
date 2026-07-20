@@ -344,7 +344,16 @@ snake:
   //  status changes, since static HTML can't read this file.)
   // =====================================================================
   const profile = {
-    version: 'v5.51 · JUN 2026',
+    // One source of truth for the version / build banner, reused by the info
+    // card, the BIOS boot line, the About dialog, sysinfo, and `ver`.
+    build: {
+      os:       'ROHAN-DOS',
+      version:  '5.51',
+      released: 'JUN 2026',            // shown on the info card
+      year:     'MMXXVI',              // copyright year (roman numerals)
+      org:      'Plante Systems',
+      edition:  'Computer Science Edition',
+    },
     name:    'ROHAN PLANTE',
     title:   'COMPUTER SCIENCE  ·  MARIST UNIVERSITY',
     photo:   'assets/dither-bw.png',

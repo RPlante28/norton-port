@@ -6,7 +6,7 @@ export default function BootScreen({ v }) {
       className="fixed inset-0 z-[100] bg-black text-[#c8c8c8] font-mono text-[14px] leading-[1.45] px-[30px] py-6 cursor-pointer"
     >
       <div className="flex justify-between text-[#e8e8e8]">
-        <span>Plante Systems, Inc. - ROHAN-DOS 5.51</span>
+        <span>{v.build.org}, Inc. - {v.build.os} {v.build.version}</span>
         <span>Energy Star Ally ✦</span>
       </div>
       <pre className="mt-3.5 mb-1.5 text-cyan text-[12px] leading-[1.05]">{v.bootLogo}</pre>

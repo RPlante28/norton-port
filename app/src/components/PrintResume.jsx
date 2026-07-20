@@ -1,14 +1,20 @@
 // A clean, one-page resume that only appears when the page is printed
 // (Ctrl/Cmd+P) or "saved as PDF". Hidden on screen; see the @media print rules
 // in index.css. Content mirrors the portfolio (content.js) so it stays accurate.
+// Contact details come from the same profile as the rest of the site
+// (content.js -> window.PORTFOLIO.profile), with fallbacks if it is trimmed.
+const P = (typeof window !== 'undefined' && window.PORTFOLIO && window.PORTFOLIO.profile) || {};
+const L = P.links || {};
+const bare = (u, fallback) => (u || fallback || '').replace(/^https?:\/\//, '').replace(/^mailto:/, '');
+
 export default function PrintResume() {
   return (
     <div className="print-resume" aria-hidden="true">
       <header className="pr-head">
-        <h1>ROHAN PLANTE</h1>
+        <h1>{P.name || 'ROHAN PLANTE'}</h1>
         <div className="pr-contact">
-          rohanplante@gmail.com &nbsp;·&nbsp; github.com/RPlante28 &nbsp;·&nbsp;
-          linkedin.com/in/rohan-plante &nbsp;·&nbsp; Middleton, MA
+          {L.email || 'rohanplante@gmail.com'} &nbsp;·&nbsp; {bare(L.github, 'github.com/RPlante28')} &nbsp;·&nbsp;
+          {bare(L.linkedin, 'linkedin.com/in/rohan-plante')} &nbsp;·&nbsp; Middleton, MA
         </div>
       </header>
 

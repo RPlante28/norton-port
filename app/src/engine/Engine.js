@@ -47,6 +47,15 @@ export default class Engine {
     this.root = P.root;
     this.edu = P.edu;
     this.profile = P.profile || {};
+    // One source of truth for links and the version banner (from content.js),
+    // with fallbacks so the app still runs if the profile is trimmed down.
+    this.links = Object.assign(
+      { email:'rohanplante@gmail.com', github:'https://github.com/RPlante28', linkedin:'https://linkedin.com/in/rohan-plante' },
+      this.profile.links || {});
+    this.build = Object.assign(
+      { os:'ROHAN-DOS', version:'5.51', released:'JUN 2026', year:'MMXXVI', org:'Plante Systems', edition:'Computer Science Edition' },
+      this.profile.build || {});
+    this.verLine = this.build.os+' '+this.build.version;   // "ROHAN-DOS 5.51"
     // flat list of every skill tag (from the SKILLS folder) for the WHOAMI card
     { const sd=(this.root.children||[]).find(c=>c.name==='SKILLS'); this.homeSkills = sd ? (sd.children||[]).reduce((a,c)=>a.concat((c.doc&&c.doc.tags)||[]),[]) : []; }
     // live counts for the WHOAMI footer, so they never drift from the content
@@ -86,7 +95,7 @@ export default class Engine {
     this._vizRefCb = (el)=>{ this._vizEl = el; if(el){ if(this._pendingViz){ const t=this._pendingViz; this._pendingViz=null; this._startViz(t); } } else { this._stopViz(); } };
     this.state = { stack:[this.root], sel:0, activeMenu:null, sortKey:null, cmdMsg:'', dialog:null, booting:true, bootText:'', sent:false, cliMode:false, editing:null, edMode:'insert', edModeV:'normal', term:[], mailFlow:null };
     this.bootScript = [
-      'ROHAN-DOS BIOS v5.51  (C) MMXXVI Plante Systems',
+      this.build.os+' BIOS v'+this.build.version+'  (C) '+this.build.year+' '+this.build.org,
       '',
       'CPU      : MOS 6502 @ 1.79 MHz ............ [ OK ]',
       'Memory   : Testing 640K .................... 640K OK',
@@ -136,9 +145,9 @@ export default class Engine {
         { label:'CLI-only mode        (O)', act:()=>this.toggleCli() },
         { label:'About this site\u2026', act:()=>this.setState({ dialog:'about', activeMenu:null }) },
         { label:'\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500', sep:true },
-        { label:'GitHub  \u2192 RPlante28', act:()=>window.open('https://github.com/RPlante28','_blank') },
-        { label:'LinkedIn \u2192 rohan-plante', act:()=>window.open('https://linkedin.com/in/rohan-plante','_blank') },
-        { label:'E-mail  \u2192 rohanplante@gmail.com', act:()=>window.open('mailto:rohanplante@gmail.com') },
+        { label:'GitHub  \u2192 RPlante28', act:()=>window.open(this.links.github,'_blank') },
+        { label:'LinkedIn \u2192 rohan-plante', act:()=>window.open(this.links.linkedin,'_blank') },
+        { label:'E-mail  \u2192 '+this.links.email, act:()=>window.open('mailto:'+this.links.email) },
       ]},
       { id:'right', label:'Right', items:[
         { label:'Show Info panel', act:()=>this.goRoot() },
@@ -507,7 +516,7 @@ export default class Engine {
       '', bar,
       row('  SENDING - sendmail'),
       bar,
-      row(' to     : rohanplante@gmail.com'),
+      row(' to     : '+this.links.email),
       row(' from   : '+(data.name||'?')+'  <'+(data.email||'?')+'>'),
       row(' subject: '+(data.subject||'(none)')),
       row(' '),
@@ -516,7 +525,7 @@ export default class Engine {
     ]));
     this._postMail(data).then(res=>{
       this.print([ res&&res.ok ? '  ✓ delivered - Rohan will write back soon.'
-        : '  ✗ could not send - e-mail rohanplante@gmail.com directly.', '']);
+        : '  ✗ could not send - e-mail '+this.links.email+' directly.', '']);
     });
   }
 
@@ -611,7 +620,7 @@ export default class Engine {
   // ----- vim-style e-mail composer (uses the editor; sends with :send / :w) -----
   composeMail(){
     const tmpl = [
-      'To:      rohanplante@gmail.com',
+      'To:      '+this.links.email,
       'From:    your name <your@email>',
       'Subject: ',
       '',
@@ -656,7 +665,7 @@ export default class Engine {
     if(this.state.cliMode){
       const W=46, bar='+'+'-'.repeat(W)+'+', row=(s)=>'| '+(s||'').slice(0,W-2).padEnd(W-2)+' |';
       this.print(['', bar, row('  SENDING - sendmail'), bar,
-        row(' to     : rohanplante@gmail.com'),
+        row(' to     : '+this.links.email),
         row(' from   : '+(from||'(anonymous)')),
         row(' subject: '+(subject||'(no subject)')),
         row(' size   : '+body.length+' bytes'),
@@ -665,7 +674,7 @@ export default class Engine {
     this._postMail({ name, email, subject, message:body }).then(res=>{
       const ok=res&&res.ok;
       if(this.state.cliMode) this.print([ ok ? '  ✓ delivered - Rohan will write back soon.'
-        : '  ✗ could not send - e-mail rohanplante@gmail.com directly.', '']);
+        : '  ✗ could not send - e-mail '+this.links.email+' directly.', '']);
       if(this.state.dialog==='mailsent') this.setState({ mailSent:Object.assign({}, this.state.mailSent, { ok, done:true }) });
     });
   }
@@ -1118,7 +1127,7 @@ export default class Engine {
       // `copy <email|github|linkedin|resume>` copies a contact detail to the
       // clipboard; anything else falls through to the DOS file copy below.
       if(cmd==='copy'){
-        const map={ email:'rohanplante@gmail.com', github:'https://github.com/RPlante28', linkedin:'https://linkedin.com/in/rohan-plante', resume:'uploads/Rohan_Plante_resume.pdf' };
+        const map={ email:this.links.email, github:this.links.github, linkedin:this.links.linkedin, resume:'uploads/Rohan_Plante_resume.pdf' };
         const v=map[(arg||'').toLowerCase()];
         if(v){
           try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(()=>this.out(['copied: '+v]), ()=>this.out([v])); return; } }catch(e){}
@@ -1193,7 +1202,7 @@ export default class Engine {
         '     |_____|   ',
         '   _/=======\\_ ',
       ];
-      const info=['guest@ROHAN-DOS','===============','OS      : ROHAN-DOS 5.51','Host    : Portfolio Commander','CPU     : MOS 6502 @ 1.79 MHz','Memory  : 640K conventional','Shell   : COMMAND.COM','Uptime  : since you booted','Files   : '+this._allFiles().length+' on C:\\ROHAN','Stack   : React \u00b7 Vite \u00b7 Tailwind','Contact : rohanplante@gmail.com'];
+      const info=['guest@ROHAN-DOS','===============','OS      : '+this.verLine,'Host    : Portfolio Commander','CPU     : MOS 6502 @ 1.79 MHz','Memory  : 640K conventional','Shell   : COMMAND.COM','Uptime  : since you booted','Files   : '+this._allFiles().length+' on C:\\ROHAN','Stack   : React \u00b7 Vite \u00b7 Tailwind','Contact : '+this.links.email];
       const W=Math.max.apply(null, logo.map(l=>l.length));
       const out=[]; for(let i=0;i<Math.max(logo.length,info.length);i++){ out.push((logo[i]||'').padEnd(W)+'   '+(info[i]||'')); }
       this.out(out); return;
@@ -1224,7 +1233,7 @@ export default class Engine {
       this.say('file not found: '+arg); return;
     }
     if(cmd==='go' || cmd==='start'){
-      const map={ github:'https://github.com/RPlante28', linkedin:'https://linkedin.com/in/rohan-plante', marist:'https://www.marist.edu', alltrails:'https://www.alltrails.com' };
+      const map={ github:this.links.github, linkedin:this.links.linkedin, marist:'https://www.marist.edu', alltrails:'https://www.alltrails.com' };
       if(map[arg.toLowerCase()]){ window.open(map[arg.toLowerCase()],'_blank'); this.say('opening '+arg+' \u2026'); return; }
       const o=this.curDoc();
       if(o&&o.link){ window.open(o.link,'_blank'); this.say('opening link \u2026'); return; }
@@ -1286,7 +1295,7 @@ export default class Engine {
     if(cmd==='sl'){ this._egg('ascii'); this.out(this._slArt()); return; }
     if(cmd==='ps' || cmd==='top' || cmd==='htop'){ this.out(this._psList(cmd!=='ps')); return; }
     if(cmd==='date' || cmd==='time'){ this.out([new Date().toString()]); return; }
-    if(cmd==='ver' || cmd==='version'){ this.out(['ROHAN-DOS 5.51 - Portfolio Commander - (c) MMXXVI']); return; }
+    if(cmd==='ver' || cmd==='version'){ this.out([this.verLine+' - Portfolio Commander - (c) '+this.build.year]); return; }
     if(cmd==='hire' || cmd==='hireme'){ this.out(['> Rohan is open to internships & new-grad SWE roles.', '  resume: F4   \u00b7   mail: type  mail    \u00b7   github: go github']); return; }
     if(cmd==='rohan' || cmd==='me'){ this.out(['Rohan Plante - CS @ Marist, Eagle Scout, hackathon winner.', 'type  whoami , or  cat WHOAMI.TXT']); return; }
     if(cmd==='6502' || cmd==='cpu' || cmd==='mon'){ if(this.state.cliMode){ this.cliVm(arg); } else { this.openVM(); } return; }
@@ -1336,7 +1345,7 @@ export default class Engine {
     const dir = this.cur();
     let base = (dir.children||[]).slice();
     if(this.state.stack.length===1 && this.cfg.hidden){
-      base = base.concat([{ name:'.SECRET .EGG', kind:'file', size:'42', date:'01.01.70', hidden:true, doc:{ kind:'doc', title:'.SECRET.EGG', meta:'HIDDEN FILE', sub:'The machine keeps a ledger of its undocumented features.', link:'https://github.com/RPlante28', linkLabel:'OPEN THE REPOS \u25b8', tags:['hidden'], bullets:[
+      base = base.concat([{ name:'.SECRET .EGG', kind:'file', size:'42', date:'01.01.70', hidden:true, doc:{ kind:'doc', title:'.SECRET.EGG', meta:'HIDDEN FILE', sub:'The machine keeps a ledger of its undocumented features.', link:this.links.github, linkLabel:'OPEN THE REPOS \u25b8', tags:['hidden'], bullets:[
         'Norton Commander hid its dotfiles until you flipped this switch in Configuration. You flipped it.',
         'There are a handful of things this desktop can do that are not in any help screen. Type  secrets  in the terminal to open the ledger: it lists what you have already turned up and leaves a one-line pointer for each one you have not.',
         'No trophies, no timer. Work through the pointers and you will have seen everything worth seeing in here.' ] } }]);
@@ -1412,8 +1421,8 @@ export default class Engine {
     this._postMail({ name, email, subject:'Portfolio contact from '+name, message }).then(res=>{
       if(res&&res.ok){ this.setState({ sent:true, sending:false, contactErr:'' }); }
       else { this.setState({ sending:false, contactErr: (res&&res.error==='network')
-        ? 'Network error - please e-mail rohanplante@gmail.com directly.'
-        : 'Could not send - please e-mail rohanplante@gmail.com directly.' }); }
+        ? 'Network error - please e-mail '+this.links.email+' directly.'
+        : 'Could not send - please e-mail '+this.links.email+' directly.' }); }
     });
   }
   openHelp(){ this.setState({ dialog:'help', activeMenu:null }); }
@@ -1694,7 +1703,7 @@ export default class Engine {
           case 'F5': this.setState({ dialog:'config', activeMenu:null }); break;
           case 'F6': this.openContact(); break;
           case 'F7': this.toggleCli(); break;
-          case 'F8': window.open('https://github.com/RPlante28', '_blank', 'noopener'); break;
+          case 'F8': window.open(this.links.github, '_blank', 'noopener'); break;
           case 'F9': this.goRoot(); break;
           case 'F10': this.goRoot(); break;
         }
@@ -1967,6 +1976,8 @@ export default class Engine {
       showStatus: this.cfg.mini,
       homeSkills: this.homeSkills,
       profile: this.profile,
+      build: this.build,
+      links: this.links,
       homeStats: this.homeStats,
       crt: this.cfg.crt,
       // CRT scanline intensity: build the gradient from the saved alpha, plus
@@ -2029,9 +2040,9 @@ export default class Engine {
       openContact: ()=>this.openContact(),
       sendContact: ()=>this.sendContact(),
       socials: [
-        { glyph:'\u25D1', label:'GitHub',   handle:'RPlante28',     href:'https://github.com/RPlante28' },
-        { glyph:'in',     label:'LinkedIn', handle:'rohan-plante',  href:'https://linkedin.com/in/rohan-plante' },
-        { glyph:'@',      label:'E-mail',   handle:'rohanplante',   href:'mailto:rohanplante@gmail.com' },
+        { glyph:'\u25D1', label:'GitHub',   handle:'RPlante28',     href:this.links.github },
+        { glyph:'in',     label:'LinkedIn', handle:'rohan-plante',  href:this.links.linkedin },
+        { glyph:'@',      label:'E-mail',   handle:'rohanplante',   href:'mailto:'+this.links.email },
         { glyph:'\u25A4', label:'Résumé',   handle:'resume.pdf',    href:'uploads/Rohan_Plante_resume.pdf' },
       ],
       booting: this.state.booting,
