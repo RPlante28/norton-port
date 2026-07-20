@@ -1,95 +1,181 @@
-// A clean, one-page resume that only appears when the page is printed
-// (Ctrl/Cmd+P) or "saved as PDF". Hidden on screen; see the @media print rules
-// in index.css. Content mirrors the portfolio (content.js) so it stays accurate.
-// Contact details come from the same profile as the rest of the site
-// (content.js -> window.PORTFOLIO.profile), with fallbacks if it is trimmed.
-const P = (typeof window !== 'undefined' && window.PORTFOLIO && window.PORTFOLIO.profile) || {};
-const L = P.links || {};
-const bare = (u, fallback) => (u || fallback || '').replace(/^https?:\/\//, '').replace(/^mailto:/, '');
+// A clean, print-only resume (Ctrl/Cmd+P or "Save as PDF"). Hidden on screen;
+// see the @media print rules in index.css.
+//
+// It is GENERATED from the same content as the rest of the site
+// (content.js -> window.PORTFOLIO), so it can never drift: edit the portfolio
+// and the printed resume updates with it.
+
+const P = (typeof window !== 'undefined' && window.PORTFOLIO) || {};
+const root = P.root || { children: [] };
+const prof = P.profile || {};
+const edu = P.edu || {};
+const L = prof.links || {};
+
+const bareUrl = (u, fb) => (u || fb || '').replace(/^https?:\/\//, '').replace(/^mailto:/, '');
+// Drop redaction markup ([[n]]) and tidy up leftover separators.
+const clean = (s) =>
+  (s || '')
+    .replace(/\[\[[^\]]*\]\]/g, '')
+    .replace(/DATE EARNED:\s*/gi, '')
+    .replace(/·\s*FOR ESSEX TECH/gi, '')
+    .replace(/·\s*,/g, '·')
+    .replace(/,\s*(·|$)/g, ' $1')
+    .replace(/·\s*·/g, '·')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/[·,\s]+$/g, '')
+    .trim();
+
+const findDir = (node, name) => {
+  for (const c of node.children || []) {
+    if (c.kind === 'dir' && c.name.replace(/\s+/g, '') === name) return c;
+    if (c.children) {
+      const f = findDir(c, name);
+      if (f) return f;
+    }
+  }
+  return null;
+};
+const leaves = (node) => {
+  const out = [];
+  for (const c of (node && node.children) || []) {
+    if (c.kind === 'file' && c.doc) out.push(c);
+    else if (c.children) out.push(...leaves(c));
+  }
+  return out;
+};
+const fields = (n) => {
+  const d = n.doc || {};
+  return {
+    title: d.title || n.name,
+    meta: clean(d.meta),
+    sub: clean(d.sub),
+    tags: (d.tags || []).filter((t) => !/\[\[/.test(t)),
+    bullets: d.bullets || [],
+  };
+};
+
+// ---- pull the real content ----
+const experience = leaves(findDir(root, 'EMPLOYMENT')).map(fields);
+const projects = leaves(findDir(root, 'PROJECTS'))
+  .filter((n) => n.name.replace(/\s+/g, '') !== 'EAGLE.PRJ') // Eagle lives under Leadership
+  .map(fields);
+const activities = leaves(findDir(root, 'EXTRACURRICULARS')).map(fields);
+const awards = leaves(findDir(root, 'AWARDS')).map(fields);
+const skillGroups = ((findDir(root, 'SKILLS') || {}).children || []).map(fields);
+const essex = (leaves(findDir(root, 'EDUCATION')) || []).map(fields).find((e) => /Essex/i.test(e.title));
+
+const summary = (() => {
+  const status = (prof.availability && prof.availability.status) || 'open';
+  const body = (prof.blurb || []).map((s) => (typeof s === 'string' ? s : s.text)).join('');
+  const closer = (prof.closer && prof.closer[status]) || '';
+  return clean(body + closer);
+})();
 
 export default function PrintResume() {
   return (
     <div className="print-resume" aria-hidden="true">
       <header className="pr-head">
-        <h1>{P.name || 'ROHAN PLANTE'}</h1>
+        <h1>{prof.name || 'ROHAN PLANTE'}</h1>
+        <div className="pr-title">{prof.title ? prof.title.replace(/\s{2,}/g, ' ') : 'Computer Science · Marist University'}</div>
         <div className="pr-contact">
-          {L.email || 'rohanplante@gmail.com'} &nbsp;·&nbsp; {bare(L.github, 'github.com/RPlante28')} &nbsp;·&nbsp;
-          {bare(L.linkedin, 'linkedin.com/in/rohan-plante')} &nbsp;·&nbsp; Middleton, MA
+          {L.email || 'rohanplante@gmail.com'} &nbsp;·&nbsp; {bareUrl(L.github, 'github.com/RPlante28')} &nbsp;·&nbsp;
+          {bareUrl(L.linkedin, 'linkedin.com/in/rohan-plante')} &nbsp;·&nbsp; Middleton, MA
         </div>
       </header>
+
+      {summary && <p className="pr-summary">{summary}</p>}
 
       <section>
         <h2>Education</h2>
         <div className="pr-row">
           <div className="pr-l">
-            <b>Marist University</b> — B.S. Computer Science
-            <div className="pr-note">Dean's List every semester · GPA 3.67 / 4.0</div>
+            <b>{edu.school || 'Marist University'}</b>
+            {edu.degree ? ` — ${edu.degree}` : ''}
+            <div className="pr-note">
+              GPA {edu.gpa || '3.67 / 4.0'} · Dean&apos;s List, all semesters
+            </div>
+            {edu.coursework && edu.coursework.length > 0 && (
+              <div className="pr-note">Coursework: {edu.coursework.join(', ')}.</div>
+            )}
           </div>
-          <div className="pr-r">2024 – Present · Poughkeepsie, NY</div>
-        </div>
-        <div className="pr-row">
-          <div className="pr-l">
-            <b>Essex North Shore Agricultural &amp; Technical School</b> — IT Services
-            <div className="pr-note">GPA 4.48 / 5.0 · AP CS A (5), AP CS Principles (5) · Cisco networking &amp; cybersecurity</div>
+          <div className="pr-r">
+            {edu.dates || '2024 – Present'} · {edu.location || 'Poughkeepsie, NY'}
           </div>
-          <div className="pr-r">2020 – 2024 · Danvers, MA</div>
         </div>
+        {essex && (
+          <div className="pr-row">
+            <div className="pr-l">
+              <b>{essex.title}</b>
+              {essex.sub && <div className="pr-note">{essex.sub}</div>}
+              {essex.tags.length > 0 && <div className="pr-note">{essex.tags.join(' · ')}</div>}
+            </div>
+            <div className="pr-r">{essex.meta}</div>
+          </div>
+        )}
       </section>
 
       <section>
         <h2>Experience</h2>
-        <div className="pr-row">
-          <div className="pr-l"><b>Internship</b> — Infrastructure</div>
-          <div className="pr-r">2026 – Present</div>
-        </div>
-        <div className="pr-row">
-          <div className="pr-l">
-            <b>Data Analyst Assistant</b> — Office of Community &amp; Belonging, Marist University
-            <div className="pr-note">Building live campus analytics dashboards in Tableau.</div>
+        {experience.map((e, i) => (
+          <div className="pr-row" key={i}>
+            <div className="pr-l">
+              <b>{e.title}</b>
+              {e.sub && <div className="pr-note">{e.sub}</div>}
+              {e.bullets[0] && <div className="pr-note">{e.bullets[0]}</div>}
+            </div>
+            <div className="pr-r">{e.meta}</div>
           </div>
-          <div className="pr-r">Sep 2025 – Present</div>
-        </div>
-        <div className="pr-row">
-          <div className="pr-l">
-            <b>Web Developer, Intern</b> — Essex North Shore Agricultural &amp; Technical School
-            <div className="pr-note">Automated curriculum maps from the Google Sheets API.</div>
-          </div>
-          <div className="pr-r">Summer 2023</div>
-        </div>
-        <div className="pr-row">
-          <div className="pr-l"><b>Future Leader to Supervisor</b> — Essex Heritage, historic preservation</div>
-          <div className="pr-r">2020 – 2025</div>
-        </div>
+        ))}
       </section>
 
       <section>
         <h2>Projects</h2>
         <ul className="pr-list">
-          <li><b>MaristMaps</b> (Best Overall, hackathon) — campus navigation with a voice AI agent. Flask, MapLibre GL, PostGIS, NetworkX, LangChain.</li>
-          <li><b>Kitchen Management Suite</b> — full-stack pantry &amp; recipe recommender. Flask, PostgreSQL.</li>
-          <li><b>6502 Emulator</b> — a scalar-pipelined CPU built one stage at a time. TypeScript, Node.js.</li>
-          <li><b>RAVEN-V</b> — autonomous self-driving car prototype. LiDAR, OpenCV, machine learning.</li>
-          <li><b>Randomized Tiered Chests</b> — Minecraft event plugin that auto-tiers loot. Java, Spigot/Paper, Gradle.</li>
-          <li><b>This Portfolio</b> — a DOS-era interface that boots and runs real programs. React, Vite, Tailwind.</li>
+          {projects.map((p, i) => (
+            <li key={i}>
+              <b>{p.title}</b>
+              {p.sub ? ` — ${p.sub}` : ''}
+              {p.tags.length > 0 && <span className="pr-tags"> {p.tags.join(', ')}.</span>}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h2>Leadership &amp; Activities</h2>
+        <ul className="pr-list">
+          {activities.map((a, i) => (
+            <li key={i}>
+              <b>{a.title}</b>
+              {a.meta ? ` (${a.meta})` : ''}
+              {a.bullets[0] ? ` — ${a.bullets[0]}` : a.sub ? ` — ${a.sub}` : ''}
+            </li>
+          ))}
         </ul>
       </section>
 
       <section>
         <h2>Skills</h2>
         <div className="pr-skills">
-          <div><b>Languages:</b> Python, TypeScript, JavaScript, Java, C, SQL, PHP, HTML/CSS</div>
-          <div><b>Tools:</b> Git, Node.js, Flask, PostgreSQL, PostGIS, Linux, VS Code, Tableau</div>
-          <div><b>Domains:</b> Machine Learning, OpenCV, LiDAR, MapLibre GL, NetworkX, LangChain, WordPress</div>
+          {skillGroups.map((s, i) => (
+            <div key={i}>
+              <b>{s.title}:</b> {s.tags.join(', ')}
+            </div>
+          ))}
         </div>
       </section>
 
       <section>
-        <h2>Awards &amp; Leadership</h2>
+        <h2>Awards</h2>
         <ul className="pr-list">
-          <li><b>Eagle Scout</b> — Scouts BSA; Order of the Arrow inductee (three Silver Palms).</li>
-          <li><b>Bernard Harris STEM Supernova Award</b> (2021).</li>
-          <li><b>2024 Outstanding Vocational Technical Student</b> — Massachusetts Association of Vocational Administrators.</li>
-          <li><b>National Cyber League</b> — collegiate cybersecurity competition.</li>
+          {awards.map((a, i) => (
+            <li key={i}>
+              <b>{a.title}</b>
+              {a.meta ? ` (${a.meta})` : ''}
+              {a.sub ? ` — ${a.sub}` : ''}
+              {a.bullets[0] ? ` ${a.bullets[0]}` : ''}
+            </li>
+          ))}
         </ul>
       </section>
 
