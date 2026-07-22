@@ -214,8 +214,8 @@ export default class Engine {
   _cfgDefaults(){ return { hidden:false, ins:true, autodir:true, automenu:false, mini:true, crt:false, crtIntensity:0.22, keysound:true, soundProfile:'thock', pitch:1.0, click:0.6, bootSound:true, clickProfile:'tick', mousePitch:1.0, mouseClick:0.6, theme:'blue', motion:'auto', saver:this._saverDefaults() }; }
   _saverDefaults(){ return {
     enabled:true, timeout:60,
-    modes:{ logo:true, stars:true, matrix:true, pipes:true },
-    speed:{ logo:1, stars:1, matrix:1, pipes:1 },       // per-mode multiplier
+    modes:{ logo:true, stars:true, matrix:true, pipes:true, defrag:true },
+    speed:{ logo:1, stars:1, matrix:1, pipes:1, defrag:1 },   // per-mode multiplier
     matrixColor:'green',                                 // green|amber|cyan|rainbow
     starColor:'white',                                   // white|cyan|amber|green|rainbow
     stars:{ shooting:true },
@@ -895,7 +895,7 @@ export default class Engine {
     'ver|version': { d:'OS version', s:'ver', l:['Prints the ROHAN-DOS version banner.'] },
     'bc|calc': { d:'calculator', s:'bc <expression>', l:['Evaluates a math expression, e.g.  bc (2+3)*4  or  bc 2^10 .'] },
     'ps|top': { d:'process table', s:'ps | top', l:['Shows what this machine claims to be running.'] },
-    'screensaver|matrix|pipes|starfield|logo': { d:'start a screensaver', s:'matrix | pipes | starfield | logo | screensaver', l:['Starts a screensaver now: matrix rain, pipes, a warp starfield, the','bouncing logo, or a random enabled one. Configure them in F5 · Screensaver.'] },
+    'screensaver|matrix|pipes|starfield|logo|defrag': { d:'start a screensaver', s:'matrix | pipes | starfield | logo | defrag | screensaver', l:['Starts a screensaver now: matrix rain, pipes, a warp starfield, the','bouncing logo, a DOS disk defragmenter, or a random enabled one.','Configure them in F5 · Screensaver.'] },
     'sound|keysound': { d:'keyboard sound on/off', s:'sound [on|off]', l:['Toggles the mechanical keyboard click. Fine-tune it in Configuration.'] },
     'config|setup|options': { d:'open Configuration', s:'config', l:['Opens the Configuration dialog (also F5): panels, display, sound, screensaver.'] },
     'resume|cv': { d:'open the resume', s:'resume', l:['Opens RESUME.PDF in a viewer window (also F4).'] },
@@ -1286,6 +1286,7 @@ export default class Engine {
     if(cmd==='matrix'){ if(this._reduceMotion()){ this.out(['(reduced motion is on - the matrix rain is disabled)']); return; } this._egg('matrix'); this.say('wake up, Neo...'); this._startSaver('matrix', true); return; }
     if(cmd==='starfield' || cmd==='stars' || cmd==='warp'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('engaging warp …'); this._startSaver('stars', true); return; }
     if(cmd==='pipes'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('laying pipe …'); this._startSaver('pipes', true); return; }
+    if(cmd==='defrag' || cmd==='optimize'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('optimizing drive C: …'); this._startSaver('defrag', true); return; }
     if(cmd==='logo' || cmd==='bounce' || cmd==='dvd'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('bouncing …'); this._startSaver('logo', true); return; }
     if(cmd==='screensaver' || cmd==='saver' || cmd==='ss'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } const en=this._enabledSaverModes(); const M=en.length?en:['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0], true); return; }
     if(cmd==='bc' || cmd==='calc'){
@@ -2095,9 +2096,9 @@ export default class Engine {
       saverEnabledBox: this.cfg.saver.enabled?'[x]':'[ ]',
       saverToggle: ()=>this.toggleSaver(),
       saverOpacity: this.cfg.saver.enabled?1:0.4,
-      saverModes: [ {k:'logo',label:'Bouncing logo'},{k:'stars',label:'Starfield'},{k:'matrix',label:'Matrix rain'},{k:'pipes',label:'Pipes'} ].map(m=>{ const on=!!this.cfg.saver.modes[m.k]; return { key:m.k, label:m.label, box:on?'[x]':'[ ]', boxColor:on?'#0000a8':'#06457a', on, onClick:()=>this.toggleSaverMode(m.k) }; }),
+      saverModes: [ {k:'logo',label:'Bouncing logo'},{k:'stars',label:'Starfield'},{k:'matrix',label:'Matrix rain'},{k:'pipes',label:'Pipes'},{k:'defrag',label:'Defrag'} ].map(m=>{ const on=!!this.cfg.saver.modes[m.k]; return { key:m.k, label:m.label, box:on?'[x]':'[ ]', boxColor:on?'#0000a8':'#06457a', on, onClick:()=>this.toggleSaverMode(m.k) }; }),
       saverSpeedOpts: [ {v:0.4,label:'slowest'},{v:0.7,label:'slow'},{v:1,label:'normal'},{v:1.5,label:'fast'},{v:2.2,label:'fastest'} ],
-      saverSpeeds: [ {k:'logo',label:'Logo'},{k:'stars',label:'Stars'},{k:'matrix',label:'Matrix'},{k:'pipes',label:'Pipes'} ].map(m=>{ const v=this.cfg.saver.speed[m.k]||1; return { key:m.k, label:m.label, value:v, onChange:(nv)=>this.setSaverSpeed(m.k, nv) }; }),
+      saverSpeeds: [ {k:'logo',label:'Logo'},{k:'stars',label:'Stars'},{k:'matrix',label:'Matrix'},{k:'pipes',label:'Pipes'},{k:'defrag',label:'Defrag'} ].map(m=>{ const v=this.cfg.saver.speed[m.k]||1; return { key:m.k, label:m.label, value:v, onChange:(nv)=>this.setSaverSpeed(m.k, nv) }; }),
       matrixColors: [ {id:'green',name:'green'},{id:'amber',name:'amber'},{id:'cyan',name:'cyan'},{id:'rainbow',name:'rainbow'} ].map(p=>{ const sel=(this.cfg.saver.matrixColor||'green')===p.id; return { name:p.name, mark: sel?'(o) ':'( ) ', color: sel?'#0000a8':'#06457a', weight: sel?'700':'400', onClick:()=>this.setMatrixColor(p.id) }; }),
       starColors: [ {id:'white',name:'white'},{id:'cyan',name:'cyan'},{id:'amber',name:'amber'},{id:'green',name:'green'},{id:'rainbow',name:'rainbow'} ].map(p=>{ const sel=(this.cfg.saver.starColor||'white')===p.id; return { name:p.name, mark: sel?'(o) ':'( ) ', color: sel?'#0000a8':'#06457a', weight: sel?'700':'400', onClick:()=>this.setStarColor(p.id) }; }),
       starOpts: [ {k:'shooting',label:'Shooting stars'} ].map(o=>{ const on=!!this.cfg.saver.stars[o.k]; return { key:o.k, label:o.label, box:on?'[x]':'[ ]', boxColor:on?'#0000a8':'#06457a', on, onClick:()=>this.toggleStarOpt(o.k) }; }),

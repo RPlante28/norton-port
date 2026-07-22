@@ -72,6 +72,7 @@ function CanvasSaver({ mode, speed, cfg }) {
     let tick;
     if (mode === 'stars') tick = starsMode(ctx, w, h, sp, cfg);
     else if (mode === 'matrix') tick = matrixMode(ctx, w, h, sp, cfg);
+    else if (mode === 'defrag') tick = defragMode(ctx, w, h, sp);
     else tick = pipesMode(ctx, w, h, sp, cfg);
 
     const loop = (t) => {
@@ -216,5 +217,82 @@ function pipesMode(ctx, w, h, sp, cfg) {
     // ones receding into the background; clear occupancy so pipes cross fresh over them
     fadeAcc += dt;
     if (fadeAcc > 1.1) { fadeAcc = 0; ctx.fillStyle = 'rgba(0,0,0,' + BZ.fade + ')'; ctx.fillRect(0, 0, w(), h()); occ.clear(); }
+  };
+}
+
+// ---- DEFRAG: the MS-DOS 6 disk optimizer. A grid of clusters starts
+// fragmented (scattered), then gets consolidated to the front block by block,
+// with reading/writing flickers, a status line, a legend, and a percent
+// complete. Loops with a fresh fragmented layout when it finishes.
+function defragMode(ctx, w, h, sp) {
+  const CELL = 15, GAP = 3, BLK = CELL - GAP, TITLE_H = 58, LEGEND_H = 62;
+  const cols = Math.max(10, Math.min(46, Math.floor((w() - 80) / CELL)));
+  const rows = Math.max(6, Math.min(22, Math.floor((h() - TITLE_H - LEGEND_H) / CELL)));
+  const N = cols * rows;
+  const font = "13px 'DejaVu Sans Mono', monospace";
+  const spinner = '|/-\\';
+  // cell states: 0 empty, 1 used (fragmented), 2 optimized, 5 bad
+  let cells, usedTotal, optDone, wi, lastRead, lastWrite, readFade, writeFade, elapsed, finishedT;
+  function init() {
+    cells = new Array(N).fill(0);
+    usedTotal = 0;
+    for (let i = 0; i < N; i++) if (Math.random() < 0.52) { cells[i] = 1; usedTotal++; }
+    for (let i = 0; i < N; i++) if (cells[i] === 0 && Math.random() < 0.012) cells[i] = 5;
+    optDone = 0; wi = 0; lastRead = -1; lastWrite = -1; readFade = 0; writeFade = 0; elapsed = 0; finishedT = -1;
+  }
+  init();
+  let acc = 0;
+  const stepEvery = 0.028 / Math.max(0.3, sp);
+  const nextUsed = (from) => { for (let i = from; i < N; i++) if (cells[i] === 1) return i; return -1; };
+  function step() {
+    while (wi < N && (cells[wi] === 2 || cells[wi] === 5)) wi++;      // skip fixed cells
+    if (wi >= N) { if (finishedT < 0) finishedT = 0; return; }
+    if (cells[wi] === 1) { cells[wi] = 2; optDone++; lastRead = wi; readFade = 1; wi++; return; } // already in place
+    const src = nextUsed(wi + 1);                                     // pull a scattered block down
+    if (src < 0) { if (finishedT < 0) finishedT = 0; return; }
+    cells[src] = 0; cells[wi] = 2; optDone++;
+    lastRead = src; readFade = 1; lastWrite = wi; writeFade = 1; wi++;
+  }
+  return (dt) => {
+    elapsed += dt;
+    if (finishedT < 0) { acc += dt; while (acc >= stepEvery) { acc -= stepEvery; step(); } }
+    else { finishedT += dt; if (finishedT > 2.4) init(); }
+    readFade = Math.max(0, readFade - dt * 6); writeFade = Math.max(0, writeFade - dt * 6);
+    const pct = usedTotal ? Math.min(100, Math.round((optDone / usedTotal) * 100)) : 100;
+
+    ctx.fillStyle = '#000033'; ctx.fillRect(0, 0, w(), h());
+    const gw = cols * CELL, gh = rows * CELL, ox = Math.round((w() - gw) / 2), oy = TITLE_H;
+
+    ctx.font = font; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#54fcfc'; ctx.fillText('ROHAN-DOS DEFRAG', ox, 26);
+    ctx.fillStyle = '#d4d8dc';
+    ctx.fillText(finishedT >= 0 ? 'Optimization complete.'
+      : ('Optimizing Drive C:  cluster ' + String((lastWrite < 0 ? wi : lastWrite) + 1).padStart(4, '0')), ox, 44);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fcfc54';
+    ctx.fillText(pct + '% ' + (finishedT >= 0 ? ' ' : spinner[(elapsed * 8 | 0) % 4]), ox + gw, 26);
+    ctx.fillStyle = '#9fc0f0';
+    ctx.fillText('Elapsed ' + String(Math.floor(elapsed / 60)).padStart(2, '0') + ':' + String(Math.floor(elapsed % 60)).padStart(2, '0'), ox + gw, 44);
+    ctx.textAlign = 'left';
+
+    ctx.strokeStyle = '#2f6fd0'; ctx.lineWidth = 1;
+    ctx.strokeRect(ox - 6.5, oy - 6.5, gw + 12, gh + 12);
+
+    for (let i = 0; i < N; i++) {
+      const cx = ox + (i % cols) * CELL, cy = oy + Math.floor(i / cols) * CELL;
+      let col;
+      if (i === lastWrite && writeFade > 0) col = '#ffffff';
+      else if (i === lastRead && readFade > 0) col = '#fcfc54';
+      else col = cells[i] === 2 ? '#54fcfc' : cells[i] === 1 ? '#3f6fd0' : cells[i] === 5 ? '#c0504a' : '#0e2450';
+      ctx.fillStyle = col; ctx.fillRect(cx, cy, BLK, BLK);
+    }
+
+    const ly = oy + gh + 26;
+    let lx = ox;
+    for (const [c, label] of [['#54fcfc', 'optimized'], ['#3f6fd0', 'used'], ['#fcfc54', 'reading'], ['#ffffff', 'writing'], ['#c0504a', 'bad'], ['#0e2450', 'unused']]) {
+      ctx.fillStyle = c; ctx.fillRect(lx, ly - 10, 11, 11);
+      ctx.fillStyle = '#c9d6e6'; ctx.fillText(label, lx + 16, ly);
+      lx += 16 + ctx.measureText(label).width + 22;
+    }
   };
 }
