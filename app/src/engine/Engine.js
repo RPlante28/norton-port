@@ -811,6 +811,24 @@ export default class Engine {
     this.print(r.lines);
     if(r.quit) this.setState({ advFlow:null });
   }
+  // windowed mode: ADVENT.EXE runs the same game inside a dialog
+  openAdventWin(){
+    if(!this._adv) this._adv=new Adventure();
+    this.setState({ dialog:'advent', activeMenu:null, advWinTerm:this._adv.start() });
+    this._advScrollDown();
+    setTimeout(()=>{ if(this._advIn) this._advIn.focus(); }, 40);
+  }
+  advWinSend(v){
+    if(!this._adv || this.state.dialog!=='advent') return;
+    v=(v||'').trim(); if(!v) return;
+    const r=this._adv.input(v);
+    this.setState(s=>({ advWinTerm:(s.advWinTerm||[]).concat(['> '+v], r.lines) }));
+    // an explicit quit closes the window; the boot coda ends the game but
+    // stays on screen so the ending can actually be read
+    if(r.quit && /^(quit|q|exit|bye)\b/i.test(v)){ this.closeDialog(); return; }
+    this._advScrollDown();
+  }
+  _advScrollDown(){ setTimeout(()=>{ if(this._advScroll) this._advScroll.scrollTop=this._advScroll.scrollHeight; }, 25); }
   edToInsert(after){
     if(this.state.editing && this.state.editing.ro){ this.setState({ edStatus:"E21: '"+this.state.editing.name+"' is read-only (press :q to leave)" }); return; }
     this.setState({ edModeV:'insert' });
@@ -1423,7 +1441,7 @@ export default class Engine {
     if(cmd==='modem' || cmd==='feed' || cmd==='dialup' || cmd==='bbs' || cmd==='wire'){ this._modemFeed(arg==='-f' || arg==='fresh' || arg==='reload'); return; }
     if(cmd==='adventure' || cmd==='advent' || cmd==='zork' || cmd==='bootsector'){
       this._egg('advent');
-      if(!this.state.cliMode) this.toggleCli();
+      if(!this.state.cliMode){ this.openAdventWin(); return; }   // GUI: run it in a window
       if(!this._adv) this._adv=new Adventure();
       this.setState({ advFlow:true });
       this.print(this._adv.start());
@@ -1494,6 +1512,12 @@ export default class Engine {
         'Norton Commander hid its dotfiles until you flipped this switch in Configuration. You flipped it.',
         'There are a handful of things this desktop can do that are not in any help screen. Type  secrets  in the terminal to open the ledger: it lists what you have already turned up and leaves a one-line pointer for each one you have not.',
         'No trophies, no timer. Work through the pointers and you will have seen everything worth seeing in here.' ] } }]);
+      // the adventure's EXE only materialises once the game has been found via
+      // the terminal (its egg is logged) - a hidden file that earns its dot
+      if(!this._eggs) this._eggs=this._loadEggs();
+      if(this._eggs.advent){
+        base = base.concat([{ name:'.ADVENT .EXE', kind:'file', size:'21 930', date:'07.22.26', hidden:true, doc:{ kind:'advent' } }]);
+      }
     }
     const key = this.state.sortKey;
     if(key){
@@ -2048,7 +2072,7 @@ export default class Engine {
       selDate: sel ? (sel.date || (sel.kind==='updir'?'09.03.15':'')) : '',
       fileCount: base.filter(x=>x.kind==='file').length,
       dirCount: base.filter(x=>x.kind==='dir').length,
-      isInfo: view==='info' && !this.state.editing && !(sel && sel.kind==='dir'), isDoc: view==='doc', isEdu: view==='edu', isContact: view==='contact',
+      isInfo: view==='info' && !this.state.editing && !(sel && sel.kind==='dir'), isDoc: view==='doc', isEdu: view==='edu', isContact: view==='contact', isAdvent: view==='advent',
       isDataViz: view==='dataviz', openDataViz:()=>this.openDataViz(),
       openMcServer:()=>{ const f=this.flatten(this.root).find(x=>x.name && x.name.indexOf('MCSERVER')>=0); if(f) this.revealNode(f); },
       // jump to another file referenced by the current doc's `goto` field (internal link)
@@ -2199,6 +2223,12 @@ export default class Engine {
       isMailSent: this.state.dialog==='mailsent',
       mailSent: this.state.mailSent || { from:'', subject:'', bytes:0, ok:false, done:false },
       isContactDlg: this.state.dialog==='contact',
+      isAdventDlg: this.state.dialog==='advent',
+      advTerm: (this.state.advWinTerm||[]).join('\n'),
+      advSend: (val)=>this.advWinSend(val),
+      openAdventWin: ()=>this.openAdventWin(),
+      advInputRef: (el)=>{ this._advIn=el; },
+      advScrollRef: (el)=>{ this._advScroll=el; },
       isHelp: this.state.dialog==='help',
       isDash: this.state.dialog==='dash1' || this.state.dialog==='dash2',
       dashTitle: this.state.dialog==='dash2' ? 'Marist Event Calendar' : 'Automation Job-Threat Overview',

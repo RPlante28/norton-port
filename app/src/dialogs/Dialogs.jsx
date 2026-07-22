@@ -5,6 +5,7 @@ import HelpDialog from './HelpDialog.jsx';
 import DashDialog from './DashDialog.jsx';
 import ResumeDialog from './ResumeDialog.jsx';
 import MailSentDialog from './MailSentDialog.jsx';
+import AdventureDialog from './AdventureDialog.jsx';
 
 // The modal layer: a dimming backdrop (click to close) with exactly one dialog.
 export default function Dialogs({ v }) {
@@ -21,6 +22,7 @@ export default function Dialogs({ v }) {
       {v.isDash && <DashDialog v={v} />}
       {v.isResume && <ResumeDialog v={v} />}
       {v.isMailSent && <MailSentDialog v={v} />}
+      {v.isAdventDlg && <AdventureDialog v={v} />}
     </div>
   );
 }

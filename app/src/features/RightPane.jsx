@@ -3,6 +3,7 @@ import DirPreview from './DirPreview.jsx';
 import DocView from './DocView.jsx';
 import EduView from './EduView.jsx';
 import ContactView from './ContactView.jsx';
+import AdventView from './AdventView.jsx';
 import TextView from './TextView.jsx';
 import Vm6502 from './Vm6502.jsx';
 
@@ -16,6 +17,7 @@ export default function RightPane({ v }) {
       {v.isDoc && <DocView v={v} />}
       {v.isEdu && <EduView v={v} />}
       {v.isContact && <ContactView v={v} />}
+      {v.isAdvent && <AdventView v={v} />}
       {v.isText && <TextView v={v} />}
       {v.isVM && v.vm && <Vm6502 v={v} />}
     </>

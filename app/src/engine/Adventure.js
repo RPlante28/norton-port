@@ -14,7 +14,9 @@
 // =====================================================================
 
 const SAVE_KEY = 'rohanAdv';
+const BEST_KEY = 'rohanAdvBest';
 const NOTE_TOTAL = 8;
+const FUN_TOTAL = 8;
 
 export default class Adventure {
   constructor(){
@@ -26,14 +28,24 @@ export default class Adventure {
     this.inv=[];                              // item ids carried
     this.flags={};                            // cpuAwake, modemHooked, jumperWrite, headFlying, won
     this.notes={};                            // side-note ids noticed
+    this.fun={};                              // amusing discoveries (see _amusingList)
+    this.heard={};                            // rooms listened to (all 9 = audiophile)
     this.score=0; this.moves=0;
     this.seen={};                             // room ids already described
     this.itemLoc={ unpark:'memory', crystal:'cmos', vector:'irq' };  // b55/baa spawn later
   }
-  _load(r){ this.room=r.room; this.inv=r.inv||[]; this.flags=r.flags||{}; this.notes=r.notes||{}; this.score=r.score||0; this.moves=r.moves||0; this.seen=r.seen||{}; this.itemLoc=r.itemLoc||this.itemLoc; }
-  serialize(){ return { room:this.room, inv:this.inv, flags:this.flags, notes:this.notes, score:this.score, moves:this.moves, seen:this.seen, itemLoc:this.itemLoc }; }
+  _load(r){ this.room=r.room; this.inv=r.inv||[]; this.flags=r.flags||{}; this.notes=r.notes||{}; this.fun=r.fun||{}; this.heard=r.heard||{}; this.score=r.score||0; this.moves=r.moves||0; this.seen=r.seen||{}; this.itemLoc=r.itemLoc||this.itemLoc; }
+  serialize(){ return { room:this.room, inv:this.inv, flags:this.flags, notes:this.notes, fun:this.fun, heard:this.heard, score:this.score, moves:this.moves, seen:this.seen, itemLoc:this.itemLoc }; }
   save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(this.serialize())); }catch{ /* storage full */ } }
   static wipe(){ try{ localStorage.removeItem(SAVE_KEY); }catch{ /* ignore */ } }
+  _best(){ try{ const b=JSON.parse(localStorage.getItem(BEST_KEY)||'null'); return (b&&typeof b==='object')?b:null; }catch{ return null; } }
+  _saveBest(){
+    const cur={ score:this.score, moves:this.moves, notes:this._noteCount(), fun:Object.keys(this.fun).length };
+    const old=this._best();
+    const better = !old || cur.score>old.score || (cur.score===old.score && cur.moves<old.moves);
+    if(better){ try{ localStorage.setItem(BEST_KEY, JSON.stringify(cur)); }catch{ /* ignore */ } }
+    return better;
+  }
 
   // ----- items ---------------------------------------------------------
   items(){ return {
@@ -226,6 +238,44 @@ export default class Adventure {
     if(s>=50)  return 'Device Driver';
     if(s>=25)  return 'User-Mode Visitor';
     return 'Unprivileged Process'; }
+  // weighted completion: 70% repair points, 20% side notes, 10% amusements
+  _completion(){ return Math.min(100, Math.round(0.7*this.score + 2.5*this._noteCount() + 1.25*Object.keys(this.fun).length)); }
+  // first-time amusing discovery: returns a feedback line, or null if already noted
+  _funNote(id){ if(this.fun[id]) return null; this.fun[id]=1; return '[the machine makes a note of that. '+Object.keys(this.fun).length+' of '+FUN_TOTAL+']'; }
+  _amusingList(){ return [
+    { id:'gravity',    did:'jumped on a platter spinning at 3,600 rpm',                    hint:'something about gravity, somewhere fast' },
+    { id:'arts',       did:'gave the bus arbitration unit a performance',                  hint:'the machine accepts performances, reluctantly' },
+    { id:'nose',       did:'smelled the machine',                                          hint:'the machine has a smell' },
+    { id:'shell',      did:'typed a DOS command at a process prompt',                      hint:'old habits from the outer shell' },
+    { id:'erase',      did:'reached for the label that asks one thing of you',             hint:'a label in the ROM asks one thing of you' },
+    { id:'xyzzy',      did:'teleported like it was 1977',                                  hint:'an old word, from a cave in Kentucky' },
+    { id:'timelord',   did:'waited around while personally holding the machine\'s time',   hint:'try waiting while time is your fault' },
+    { id:'audiophile', did:'heard every room in the machine',                              hint:'every room has a sound. all nine.' },
+  ]; }
+  _amusing(){
+    if(!this.flags.won) return ['That list unlocks after the machine boots. Priorities.'];
+    const out=['AMUSING  (the machine kept its own list)'];
+    this._amusingList().forEach(a=>{
+      out.push(this.fun[a.id] ? ('  [x] '+a.did) : ('  [ ] ....  ('+a.hint+')'));
+    });
+    const n=Object.keys(this.fun).length;
+    out.push(n>=FUN_TOTAL ? 'All of them. The machine is genuinely impressed, and slightly concerned.'
+      : (n+' of '+FUN_TOTAL+'. The blanks are still in there.'));
+    return out;
+  }
+  _mapLines(){
+    const nm=(id,l)=>{ const s=this.seen[id]? l : '?'.repeat(l.length); return this.room===id ? '['+s+']' : ' '+s+' '; };
+    return [
+      'MAP OF THE MACHINE   ( [ ] marks you; ???? is unexplored )',
+      '',
+      '     '+nm('cmos','CMOS')+'--'+nm('cpu','6502')+'          '+nm('bios','BIOS ROM')+'  (up from bus)',
+      '                |',
+      '  '+nm('memory','MEMORY')+'----'+nm('bus','BUS')+'----'+nm('platters','PLATTERS')+'--'+nm('boot','BOOT SECTOR'),
+      '               /  \\',
+      '      '+nm('modem','MODEM')+'    '+nm('irq','VECTORS'),
+      '      (south)      (down)',
+    ];
+  }
   _checklist(){
     const F=this.flags, has=(id)=>this.inv.indexOf(id)>=0;
     const bx=(v)=> v?'[x]':'[ ]';
@@ -274,7 +324,9 @@ export default class Adventure {
       'BOOT SECTOR',
       'A text adventure in 512 bytes of trouble.',
       '' ];
-    const intro= resumed ? [ '(resuming a saved run: score '+this.score+', '+this.moves+' moves, '+this._noteCount()+' of '+NOTE_TOTAL+' side notes. type  restart  to start over.)' ]
+    const best=this._best();
+    const bestLine = best ? ['(best run so far: '+best.score+' of 100 in '+best.moves+' moves.)'] : [];
+    const intro= resumed ? [ '(resuming a saved run: '+this._completion()+'% complete, '+this.moves+' moves. type  restart  to start over.)' ].concat(bestLine)
       : [ 'You wake as GUEST, an unprivileged process, in the dark of',
           'conventional memory. The machine hesitated again at power-on this',
           'morning: the boot sector on track 0 has lost its signature, the two',
@@ -298,7 +350,8 @@ export default class Adventure {
     '  take <thing> / drop <thing> / inventory (i)',
     '  use <thing> on <thing>   apply one thing to another',
     '  listen                   every room has a sound',
-    '  score                    checklist, points, side notes, standing',
+    '  map                      where everything is, as far as you know',
+    '  score                    checklist, completion %, standing',
     '  hint                     a nudge from HINT.SYS, free of judgment',
     '  restart                  wipe the save and start over',
     '  quit                     leave; progress is saved',
@@ -341,12 +394,47 @@ export default class Adventure {
       case 'hint': case 'hints':
         out.push(...this._hint()); break;
 
+      case 'map': case 'm':
+        out.push(...this._mapLines()); break;
+
+      case 'amusing':
+        out.push(...this._amusing()); break;
+
       case 'listen': {
         const R=this.rooms()[this.room];
-        out.push(R.listen || 'The usual electrical weather.'); break; }
+        out.push(R.listen || 'The usual electrical weather.');
+        if(!this.heard[this.room]){
+          this.heard[this.room]=1;
+          if(Object.keys(this.heard).length>=9){ const fn=this._funNote('audiophile'); if(fn) out.push('You have now heard every room in the machine.  '+fn); }
+        }
+        break; }
 
-      case 'smell': case 'sniff':
+      case 'smell': case 'sniff': {
         out.push('Ozone, warm dust, a hint of flux. And, impossibly, from somewhere far above the case fan, something ambitious happening in a kitchen.');
+        const fn=this._funNote('nose'); if(fn) out.push(fn);
+        break; }
+
+      case 'dir': case 'ls': case 'cd': case 'pwd': case 'cls': {
+        out.push('Wrong shell. Out there you are a user. In here you are a process.');
+        const fn=this._funNote('shell'); if(fn) out.push(fn);
+        break; }
+
+      case 'erase': case 'wipe': case 'delete': case 'del': {
+        if(this.room==='bios'){
+          out.push('You reach toward the pencil line, DO NOT ERASE AGAIN. Somewhere a','POST beep clears its throat, once. You put your hand down.');
+          const fn=this._funNote('erase'); if(fn) out.push(fn);
+        } else out.push('There is nothing here you could erase, which is probably for the best.');
+        break; }
+
+      case 'dial': case 'atdt': case 'call':
+        if(this.room!=='modem') out.push('There is nothing here with a dial tone.');
+        else if(F.modemHooked) out.push('It already made the only call it was saved for.');
+        else out.push('The modem cannot lift the line: any byte that answered would arrive','to an empty room. Its interrupt needs somewhere to land first.');
+        break;
+
+      case 'boot': case 'reboot':
+        if(F.won){ this.save(); quit=true; out.push(...this._codaLines()); }
+        else out.push('You call INT 19. The BIOS reads track 0, sector 1, finds 00 00 where','55 AA should be, and gives up quietly. That is the whole problem.');
         break;
 
       case 'inventory': case 'i': case 'inv': {
@@ -416,11 +504,10 @@ export default class Adventure {
         if(verb==='restore' && !rest){ out.push('Progress is saved automatically. There is nothing older to restore.'); break; }
         out.push(...this._writeSig()); break; }
 
-      case 'score': case 'status': case 'progress':
+      case 'score': case 'status': case 'progress': case 'stats':
         out.push(...this._checklist(),
-          'Score: '+this.score+' of 100, in '+this.moves+' moves.',
-          'Side notes: '+this._noteCount()+' of '+NOTE_TOTAL+' noticed.',
-          'Standing: '+this._rank()+'.');
+          'Completion: '+this._completion()+'%   (points '+this.score+'/100 · side notes '+this._noteCount()+'/'+NOTE_TOTAL+' · amusements '+Object.keys(this.fun).length+'/'+FUN_TOTAL+')',
+          'Moves: '+this.moves+'.   Standing: '+this._rank()+'.');
         break;
 
       case 'save':
@@ -433,34 +520,38 @@ export default class Adventure {
 
       case 'quit': case 'q': case 'exit': case 'bye':
         this.save(); quit=true;
-        out.push('', 'Progress saved: '+this.score+' points, '+this._noteCount()+' of '+NOTE_TOTAL+' side notes, '+this.moves+' moves.',
+        out.push('', 'Progress saved: '+this._completion()+'% complete in '+this.moves+' moves.',
           'Type  adventure  to return.');
         break;
 
       case 'xyzzy': case 'plugh':
         if(this.room==='memory'){ out.push('A hollow voice says, "This is not Colossal Cave." Nothing happens.'); }
-        else { this.room='memory'; out.push('The word echoes down the address lines and, improbably, works.', ...this._lookLines(false)); }
+        else {
+          this.room='memory';
+          out.push('The word echoes down the address lines and, improbably, works.');
+          const fn=this._funNote('xyzzy'); if(fn) out.push(fn);
+          out.push(...this._lookLines(false));
+        }
         break;
 
-      case 'jump':
-        out.push(this.room==='platters' ? '3,600 rpm. No.' : 'You jump. The stack pointer flinches.');
-        break;
+      case 'jump': {
+        if(this.room==='platters'){
+          out.push('3,600 rpm. No.');
+          const fn=this._funNote('gravity'); if(fn) out.push(fn);
+        } else out.push('You jump. The stack pointer flinches.');
+        break; }
 
-      case 'wait': case 'z':
-        out.push('Time passes.'+(this._crystalGone()?' Well. For the rest of the machine it doesn\'t, technically. That one is on you.':''));
-        break;
+      case 'wait': case 'z': {
+        if(this._crystalGone()){
+          out.push('Time passes. Well. For the rest of the machine it doesn\'t, technically.','That one is on you.');
+          const fn=this._funNote('timelord'); if(fn) out.push(fn);
+        } else out.push('Time passes.');
+        break; }
 
-      case 'pray':
-        out.push('You are heard, but the interrupt controller has prayers masked at the moment.');
-        break;
-
-      case 'yell': case 'shout': case 'scream': case 'hello': case 'hi':
-        out.push('Your voice does not carry in unshielded memory.');
-        break;
-
-      case 'dance': case 'sing':
-        out.push('The bus arbitration unit files a complaint.');
-        break;
+      case 'dance': case 'sing': case 'perform': {
+        out.push('The bus arbitration unit files a complaint, then quietly asks for an encore.');
+        const fn=this._funNote('arts'); if(fn) out.push(fn);
+        break; }
 
       default:
         out.push('That verb is not in this machine\'s vocabulary. Try  help .');
@@ -560,7 +651,9 @@ export default class Adventure {
     F.won=1; this.inv=this.inv.filter(x=>x!=='b55'&&x!=='baa');
     const bonus=this._award(20);
     const notes=this._noteCount();
+    const newBest=this._saveBest();
     this.save();
+    const perfect = notes>=NOTE_TOTAL;
     const out=['You press $55 and $AA into the last two bytes of the sector. The head',
       'lifts. The write completes. For a moment, nothing happens.',
       '',
@@ -568,19 +661,42 @@ export default class Adventure {
       '',
       '   ROHAN-DOS BIOS v2.11',
       '   MEM 640K OK',
-      '   DRIVE C: SIGNATURE 55 AA .... VALID',
-      '   BOOTING.',
+      '   DRIVE C: SIGNATURE 55 AA .... VALID'];
+    if(perfect) out.push('   EXTENDED TEST: ALL '+NOTE_TOTAL+' STORIES .... INTACT');
+    out.push('   BOOTING.',
       '',
       'The machine boots clean for the first time in years. Nobody will ever',
       'know why. You will.  '+bonus,
       '',
       '*** You have restored the boot sector ***',
       '',
-      'Score: '+this.score+' of 100, in '+this.moves+' moves. Standing: '+this._rank()+'.',
-      'Side notes: '+notes+' of '+NOTE_TOTAL+' noticed.'];
+      'Score: '+this.score+' of 100, in '+this.moves+' moves.'+(newBest?'  (a new best run)':''),
+      'Completion: '+this._completion()+'%.   Standing: '+(perfect&&this.score>=100?'Ring 0, Archivist':this._rank())+'.');
     if(notes<NOTE_TOTAL) out.push('(the machine had '+(NOTE_TOTAL-notes)+' more stories to tell. they are still in there,','somewhere behind an  examine .)');
     else out.push('You read every story this machine had. It will not forget that.');
-    out.push('', '(keep wandering, type  restart  to run it back, or  quit .)');
+    out.push('',
+      '(type  boot  to watch it happen,  amusing  for the list of things you',
+      'did anyway,  restart  to run it back, or  quit .)');
     return out;
+  }
+
+  // the true ending: post-win, ride INT 19 and watch the machine come up
+  _codaLines(){
+    return ['You climb the bus one last time and pull INT 19.',
+      '',
+      'The BIOS reads track 0, sector 1. Finds 55 AA. Trusts it.',
+      'Control passes to the loader, the loader passes it on, and the machine',
+      'comes up around you like a city getting its power back: drivers waking,',
+      'clocks agreeing, the prompt lighting at last.',
+      '',
+      'Somewhere in conventional memory there is now one more resident than',
+      'the map says there should be. Nobody minds.',
+      '',
+      '   C:\\> _',
+      '',
+      '*** THE END ***',
+      '',
+      'Final: '+this._completion()+'% complete, '+this.score+' of 100 points, '+this.moves+' moves.',
+      '(type  adventure  any time. the machine remembers.)'];
   }
 }
