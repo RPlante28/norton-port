@@ -8,7 +8,7 @@
 //
 //  THE ANIMATIONS (use these names as the `viz:` value in content.js):
 //    radar  pipe  pantry  route  boot  web  dash  sheets  blast
-//    court  mc    wave    hud    ascent ridge steam  classified  loot
+//    court  mc    wave    hud    boulder read  ridge  steam  classified  loot
 //
 //  TO TWEAK ONE: find it by name below and edit its drawing code.
 //  TO ADD ONE:   add  myname:(f)=>{ ...return a string... },  then set
@@ -344,31 +344,42 @@ window.VIZ = (function () {
         return L.join('\n');
       },
       // CLIMBING - literally just a rock: a shaded boulder with light slowly raking across it
-      ascent:(f)=>{
+      // CLIMBING - a climber dynos up a bouldering route hold by hold, then sends it
+      boulder:(f)=>{
         const W=34, H=15;
         const g=[]; for(let r=0;r<H;r++) g.push(new Array(W).fill(' '));
-        const cx=16.5, cy=7.4, rx=13, ry=6.2;
-        const la=f*0.035, Lx=Math.cos(la), Ly=Math.sin(la)*0.6-0.55, Ll=Math.hypot(Lx,Ly)||1;
-        const lx=Lx/Ll, ly=Ly/Ll;
-        for(let y=0;y<H;y++) for(let x=0;x<W;x++){
-          const nx=(x-cx)/rx, ny=(y-cy)/ry, ang=Math.atan2(ny,nx);
-          const wob=0.12*Math.sin(ang*3+1.2)+0.06*Math.sin(ang*5-0.5);   // irregular boulder edge
-          const r2=nx*nx+ny*ny;
-          if(r2>1+wob) continue;
-          let b=-(nx*lx+ny*ly);
-          b=b*0.8+(1-r2)*0.3;
-          let ch;
-          if(r2>0.9+wob) ch='\u2593';
-          else if(b<-0.12) ch='\u2591';
-          else if(b<0.20) ch='\u2592';
-          else if(b<0.52) ch='\u2593';
-          else ch='\u2588';
-          g[y][x]=ch;
+        for(let y=0;y<H;y++) for(let x=0;x<W;x++){ if(((x*5+y*11)%23)===0) g[y][x]='\u00b7'; }   // faint wall texture
+        const holds=[[5,13],[10,12],[7,10],[13,9],[10,7],[16,6],[13,4],[19,3],[16,1]];            // the route, bottom -> top
+        const N=holds.length, per=9, cyc=N+2;
+        const step=Math.floor(f/per)%cyc, sub=(f%per)/per;
+        const put=(x,y,ch)=>{ x=Math.round(x); y=Math.round(y); if(x>=0&&x<W&&y>=0&&y<H) g[y][x]=ch; };
+        for(let i=0;i<N;i++){ const [hx,hy]=holds[i]; let ch=(i<=step)?'\u25cf':'\u25cb'; if(i===step+1&&step+1<N) ch='\u25ce'; put(hx,hy,ch); }   // sent / to-do / next
+        if(step<N-1){
+          const [ax,ay]=holds[step], [bx,by]=holds[step+1];
+          const jump=Math.sin(sub*Math.PI)*1.7;                                                   // the dyno arc
+          for(let k=1;k<=2;k++){ const s2=Math.max(0,sub-k*0.14); const tx=Math.round(ax+(bx-ax)*s2), ty=Math.round(ay+(by-ay)*s2-Math.sin(s2*Math.PI)*1.7); if(g[ty]&&g[ty][tx]===' ') g[ty][tx]='\u00b7'; }
+          put(ax+(bx-ax)*sub, ay+(by-ay)*sub-jump, '@');
+          if(sub>0.82) [[bx-1,by],[bx+1,by],[bx,by-1]].forEach(([px,py])=>{ if(g[py]&&g[py][px]===' ') put(px,py,'\u2591'); });   // chalk puff on the latch
+        } else {
+          put(holds[N-1][0], holds[N-1][1], '@');
+          if(Math.floor(f/3)%2===0) 'SEND'.split('').forEach((c,i)=>put(2+i,0,c));                 // topped out
         }
-        // fault cracks raking down the face (part of the rock itself)
-        const crack=(x0,y0,x1,y1)=>{ const n=24; for(let i=0;i<=n;i++){ const x=Math.round(x0+(x1-x0)*i/n), y=Math.round(y0+(y1-y0)*i/n); if(x>=0&&x<W&&y>=0&&y<H&&g[y][x]!==' ') g[y][x]='\u2591'; } };
-        crack(12,2,15,12); crack(22,3,18,12);
         return g.map(r=>' '+r.join('')).join('\n');
+      },
+      // READING - an open book; the pages shimmer with text and the title cycles through favorites
+      read:(f)=>{
+        const W=14;
+        const books=['RED RISING','DUNE I & II','PROJECT HAIL MARY','THE THREE-BODY PROBLEM','THE LORD OF THE RINGS'];
+        const title=books[Math.floor(f/60)%books.length];
+        const line=(row,seed)=>{ let s=''; for(let i=0;i<W;i++){ s+=(((row*11+i*7+seed*29+Math.floor(f/2))%7)>1)?'~':' '; } return s; };
+        const rows=[];
+        rows.push('  READING  \u2022  '+title);
+        rows.push(' \u250c'+'\u2500'.repeat(W)+'\u252c'+'\u2500'.repeat(W)+'\u2510');
+        for(let r=0;r<6;r++){ let L=line(r,1), R=line(r,3); if(r===0) L=(title+'              ').slice(0,W); rows.push(' \u2502'+L+'\u2502'+R+'\u2502'); }
+        rows.push(' \u2514'+'\u2500'.repeat(W)+'\u2534'+'\u2500'.repeat(W)+'\u2518');
+        const prog=(f%420)/420, bars=22, fn=Math.round(prog*bars);
+        rows.push('  '+'\u2588'.repeat(fn)+'\u2591'.repeat(bars-fn)+' '+String(Math.round(prog*100)).padStart(3)+'%');
+        return rows.join('\n');
       },
       // HIKING - a smoothly scrolling journey, climbing toward the snowcapped dome of Mt. Rainier
       ridge:(f)=>{
