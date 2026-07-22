@@ -301,7 +301,8 @@ snake:
         { name:'READING .TXT', kind:'file', size:'2 048', date:'07.20.26', doc:D({ viz:'read', vizLabel:'NOW READING \u00b7 SCI-FI', title:'Reading', meta:'SCIENCE FICTION', tags:['Sci-Fi','Red Rising','Dune','Project Hail Mary'], bullets:[
           'Mostly science fiction, across a lot of different authors and worlds.',
           'Favorites: Red Rising, The Lord of the Rings, and Dune (1 and 2), with the rest of the series on my list.',
-          'Project Hail Mary is a standout. Currently making my way through The Three-Body Problem.' ] }) },
+          'Project Hail Mary is a standout. Currently making my way through The Three-Body Problem.',
+          'A common mix-up: because I love The Lord of the Rings, people assume I was named after the Riders of Rohan. I was not. Rohan is a Sanskrit name meaning ascending, rising, or healing, and an epithet of the preserver god Vishnu.' ] }) },
         { name:'HIKING', kind:'dir', size:'\u25b6SUB-DIR\u25c4', date:'06.28.26', children:[
           { name:'NOTABLE .TXT', kind:'file', size:'2 048', date:'06.28.26', doc:D({ viz:'ridge', vizLabel:'ELEVATION PROFILE \u00b7 SUMMITS', title:'Notable Hikes', meta:'NEW ENGLAND \u00b7 CATSKILLS', tags:['Monadnock','Devil\u2019s Path'], bullets:[
             'Mt. Monadnock (NH, 3,165 ft), my baseline mountain. Where I first hiked as a scout; climbed it many times, most recently June 2026.',
