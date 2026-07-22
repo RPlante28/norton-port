@@ -314,6 +314,7 @@ snake:
             'Mt. Washington (NH, 6,288 ft), Northeast\u2019s tallest. Tuckerman Ravine ~8.4 mi round trip, ~4,250 ft gain; strenuous, notoriously severe weather.',
             'Great Range Traverse (Adirondacks, NY), ~25 mi, ~9,000+ ft gain over ~9 High Peaks incl. Gothics, Saddleback, Basin, Haystack, and Marcy. One of the toughest ridge days in the East.',
             'Katahdin (ME, 5,269 ft), Knife Edge loop ~10\u201311 mi, ~4,200 ft gain; exposed 1.1-mi arete finish. The hardest day-hike on the Northeast list.',
+            'Mt. St. Helens (WA, 8,366 ft), the active volcano. Monitor Ridge ~10 mi round trip, ~4,500 ft gain; strenuous but non-technical, over boulder fields and ash to the crater rim. A Cascades warm-up before Rainier.',
             'Mt. Rainier (WA, 14,411 ft), THE END GOAL. A glaciated alpine climb (Disappointment Cleaver ~9 mi, ~9,000 ft gain) needing rope, crampons, and ice axe. Everything else on this list is training for it.' ] }) },
         ]},
         { name:'COOKING .TXT', kind:'file', size:'1 920', date:'06.28.26', doc:D({ viz:'steam', vizLabel:'HEAT \u00b7 EXPERIMENT', title:'Cooking', meta:'EXPLORATORY \u00b7 FUSION', tags:['Indian','Asian','Greek','Mexican','Fusion'], bullets:[
