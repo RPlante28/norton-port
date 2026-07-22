@@ -100,9 +100,13 @@ html.nc-blockcur, html.nc-blockcur * { cursor: none !important; }
 .nc-fkey:hover > span:last-child { background: var(--yellow); }
 .nc-mtab:hover { background: var(--dos-blue) !important; color: var(--cyan) !important; }
 .nc-mitem:hover { background: var(--dos-blue); color: var(--cyan) !important; }
-.nc-cfg:hover { background: var(--dos-blue); color: var(--cyan); }
-/* the [x]/(o) marks carry an inline dark-blue colour so they read on the grey
-   dialog; on hover the row goes dark blue, so force the marks bright to stay legible */
+/* Settings rows invert on hover: dark-blue background, bright cyan text. The
+   marks and the radio labels carry an inline dark-blue colour so they read on
+   the grey dialog; !important forces them bright on hover (inline styles would
+   otherwise win) so nothing turns unreadable. `color` covers rows whose colour
+   sits on the element itself (radios); the `span` rule covers child spans
+   (toggle marks/labels). */
+.nc-cfg:hover { background: var(--dos-blue); color: var(--cyan) !important; }
 .nc-cfg:hover span { color: var(--cyan) !important; }
 
 /* ASCII animation heroes: use a complete monospace so box/block glyphs align */
