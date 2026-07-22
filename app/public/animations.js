@@ -338,8 +338,7 @@ window.VIZ = (function () {
         L.push('  FP    ['+bar(fp,20,22,'\u2592')+']');
         L.push('  STAM  ['+bar(stam,20,22,'\u2591')+']');
         L.push('');
-        L.push('  BOSS \u2620 ['+bar(boss,bossMax,24,'\u2588')+']');
-        L.push('  souls-like \u00b7 metroidvania \u00b7 roguelike');
+        L.push('  BOSS  ['+bar(boss,bossMax,24,'\u2588')+']');
         L.push(' '+'\u2500'.repeat(W));
         return L.join('\n');
       },

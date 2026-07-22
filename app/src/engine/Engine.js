@@ -340,7 +340,11 @@ export default class Engine {
     return {
       // pointer events so mouse and touch both work; capture keeps the drag
       // tracking even when the finger slides off the thin bar
-      down:(e)=>{ this._sliding=true; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){ } if(e.preventDefault) e.preventDefault(); apply(e, false); },
+      // Only preventDefault for touch/pen (stops the page scrolling on a mobile
+      // drag). On mouse, preventDefault would suppress the compatibility
+      // mousemove events that drive the custom cursor, freezing it mid-drag;
+      // text selection is already blocked by user-select:none on the bar.
+      down:(e)=>{ this._sliding=true; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){ } if(e.pointerType!=='mouse' && e.preventDefault) e.preventDefault(); apply(e, false); },
       move:(e)=>{ if(this._sliding) apply(e, false); },
       up:(e)=>{ if(this._sliding){ this._sliding=false; apply(e, true); } },
     };

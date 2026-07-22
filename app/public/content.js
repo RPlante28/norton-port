@@ -290,7 +290,7 @@ snake:
           'Play guitar, bass, and drums, currently in a band in college.',
           'In high school, played with friends for the talent shows and graduation.',
           'I spend time across all of it: writing, playing, and listening closely. (Videos coming once I dig them up.)' ] }) },
-        { name:'GAMING .TXT', kind:'file', size:'2 048', date:'06.28.26', doc:D({ viz:'hud', vizLabel:'PLAYER HUD \u00b7 NO HITS TAKEN', title:'Gaming', meta:'SOULS-LIKE \u00b7 METROIDVANIA \u00b7 ROGUELIKE', tags:['Elden Ring','Dark Souls','Hollow Knight','Silksong'], bullets:[
+        { name:'GAMING .TXT', kind:'file', size:'2 048', date:'06.28.26', doc:D({ viz:'hud', title:'Gaming', meta:'SOULS-LIKE \u00b7 METROIDVANIA \u00b7 ROGUELIKE', tags:['Elden Ring','Dark Souls','Hollow Knight','Silksong'], bullets:[
           'Drawn to Souls-likes, Metroidvanias, and roguelikes, genres that reward patience and pattern reading.',
           'Favorites: Elden Ring, Dark Souls, Hollow Knight, and Silksong.',
           'Same instinct as debugging: read the system, fail, adjust, and run it back until it clicks.' ] }) },
