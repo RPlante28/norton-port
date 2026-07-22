@@ -294,10 +294,10 @@ snake:
           'Drawn to Souls-likes, Metroidvanias, and roguelikes, genres that reward patience and pattern reading.',
           'Favorites: Elden Ring, Dark Souls, Hollow Knight, and Silksong.',
           'Same instinct as debugging: read the system, fail, adjust, and run it back until it clicks.' ] }) },
-        { name:'CLIMBING.TXT', kind:'file', size:'1 792', date:'06.28.26', doc:D({ viz:'boulder', vizLabel:'PROBLEM \u00b7 SEND', title:'Climbing', meta:'BOULDERING', tags:['Bouldering','Problem-solving','Progression'], bullets:[
-          'Boulder regularly, short, hard problems where the route is the puzzle.',
-          'Got a group of friends into it; now it is how we hang out and push each other.',
-          'Love the progression: a wall that felt impossible last month becomes a warm-up.' ] }) },
+        { name:'CLIMBING.TXT', kind:'file', size:'1 792', date:'06.28.26', doc:D({ viz:'boulder', title:'Climbing', meta:'BOULDERING', tags:['Bouldering','Problem-solving','Progression'], bullets:[
+          'Boulder a couple times a week. The route is a puzzle, and working out the moves is the fun part.',
+          'A few friends have gotten into it too, so it is mostly how we hang out now.',
+          'Mostly in it for the slow progress, and there is always plenty left to work on.' ] }) },
         { name:'READING .TXT', kind:'file', size:'2 048', date:'07.20.26', doc:D({ viz:'read', vizLabel:'NOW READING \u00b7 SCI-FI', title:'Reading', meta:'SCIENCE FICTION', tags:['Sci-Fi','Red Rising','Dune','Project Hail Mary'], bullets:[
           'Mostly science fiction, across a lot of different authors and worlds.',
           'Favorites: Red Rising, The Lord of the Rings, and Dune (1 and 2), with the rest of the series on my list.',
