@@ -26,6 +26,7 @@
 //    renderVals             the one big `vals` object every component reads
 // =====================================================================
 import React from 'react';
+import Adventure from './Adventure.js';
 
 export default class Engine {
   // React-compatible state store: synchronous merge, then notify subscribers.
@@ -93,7 +94,7 @@ export default class Engine {
     this.vmSpeed = 3;         // index into vmSpeeds() - default 5 Hz (visible)
     this._vizGens = this._mkVizGens();
     this._vizRefCb = (el)=>{ this._vizEl = el; if(el){ if(this._pendingViz){ const t=this._pendingViz; this._pendingViz=null; this._startViz(t); } } else { this._stopViz(); } };
-    this.state = { stack:[this.root], sel:0, activeMenu:null, sortKey:null, cmdMsg:'', dialog:null, booting:true, bootText:'', sent:false, cliMode:false, editing:null, edMode:'insert', edModeV:'normal', term:[], mailFlow:null };
+    this.state = { stack:[this.root], sel:0, activeMenu:null, sortKey:null, cmdMsg:'', dialog:null, booting:true, bootText:'', sent:false, cliMode:false, editing:null, edMode:'insert', edModeV:'normal', term:[], mailFlow:null, advFlow:null };
     this.bootScript = [
       this.build.os+' BIOS v'+this.build.version+'  (C) '+this.build.year+' '+this.build.org,
       '',
@@ -294,6 +295,7 @@ export default class Engine {
     { id:'sudo',   reveal:'sudo <cmd>        you are not root',                    clue:'try to pull rank.' },
     { id:'xyzzy',  reveal:'xyzzy             (nothing happens)',                   clue:'a hollow voice, from Colossal Cave.' },
     { id:'modem',  reveal:'modem             dials a BBS, pulls a live GitHub feed', clue:'phone home at 33.6k.' },
+    { id:'advent', reveal:'adventure         BOOT SECTOR, a text adventure in here', clue:'two bytes are missing. go find them.' },
   ]; }
   _loadEggs(){ try{ const r=localStorage.getItem('rohanEggs'); const o=r?JSON.parse(r):null; return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; } }
   _saveEggs(){ try{ localStorage.setItem('rohanEggs', JSON.stringify(this._eggs||{})); }catch(e){} }
@@ -485,7 +487,7 @@ export default class Engine {
   cowsay(msg){ msg=msg||'moo'; const top=' '+'_'.repeat(msg.length+2); const bot=' '+'-'.repeat(msg.length+2); return [ top, '< '+msg+' >', bot, '        \\   ^__^', '         \\  (oo)\\_______', '            (__)\\       )\\/\\', '                ||----w |', '                ||     ||' ]; }
 
   // ----- CLI-only mode -----
-  toggleCli(){ const on=!this.state.cliMode; this.setState({ cliMode:on, activeMenu:null, mailFlow:null }); setTimeout(()=>{ const el=on?this._cli:this._cmd; if(el) el.focus(); }, 30); }
+  toggleCli(){ const on=!this.state.cliMode; if(!on && this.state.advFlow && this._adv) this._adv.save(); this.setState({ cliMode:on, activeMenu:null, mailFlow:null, advFlow:null }); setTimeout(()=>{ const el=on?this._cli:this._cmd; if(el) el.focus(); }, 30); }
 
   // ----- sudo (interactive password prompt) -----
   sudoInput(v){
@@ -801,6 +803,14 @@ export default class Engine {
     out.push(row('  NO CARRIER'), top, '');
     return out;
   }
+  // ----- text adventure input (routed here while advFlow is set) -----
+  advInput(v){
+    if(!this._adv || !this.state.advFlow) return;
+    this.print(['> '+v]);
+    const r=this._adv.input(v);
+    this.print(r.lines);
+    if(r.quit) this.setState({ advFlow:null });
+  }
   edToInsert(after){
     if(this.state.editing && this.state.editing.ro){ this.setState({ edStatus:"E21: '"+this.state.editing.name+"' is read-only (press :q to leave)" }); return; }
     this.setState({ edModeV:'insert' });
@@ -1005,6 +1015,7 @@ export default class Engine {
     'copy': { d:'copy to clipboard', s:'copy <email|github|linkedin|resume>', l:['Copies a contact detail to the clipboard.'] },
     'sysinfo|neofetch': { d:'system summary', s:'sysinfo', l:['Prints a neofetch-style summary of this machine.'] },
     'modem|feed|dialup|bbs': { d:'live GitHub feed over a modem', s:'modem [-f]', l:['Dials a fake BBS, then pulls live data from GitHub and prints it','as a bulletin: top repositories and recent activity. Results are','cached for 15 minutes; add  -f  to force a fresh pull.'] },
+    'adventure|advent|zork': { d:'a text adventure inside the machine', s:'adventure', l:['BOOT SECTOR: you are GUEST, an unprivileged process, and the boot','signature on track 0 is gone. Nine rooms, 100 points, eight side','notes for the observant. Progress is saved; quit any time.'] },
     'theme|color|monitor': { d:'monitor phosphor colour', s:'theme <blue|amber|green|white>', l:['Switches the display between the blue default and amber / green / white','phosphor. Also in Configuration.'] },
     'cli|gui': { d:'toggle CLI mode', s:'cli | gui', l:['Switches between the full-screen terminal and the file browser.'] },
     'clear|cls': { d:'clear the screen', s:'clear', l:['Clears the terminal scrollback.'] },
@@ -1410,6 +1421,14 @@ export default class Engine {
     if(cmd==='logo' || cmd==='bounce' || cmd==='dvd'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('bouncing …'); this._startSaver('logo', true); return; }
     if(cmd==='screensaver' || cmd==='saver' || cmd==='ss'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } const en=this._enabledSaverModes(); const M=en.length?en:['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0], true); return; }
     if(cmd==='modem' || cmd==='feed' || cmd==='dialup' || cmd==='bbs' || cmd==='wire'){ this._modemFeed(arg==='-f' || arg==='fresh' || arg==='reload'); return; }
+    if(cmd==='adventure' || cmd==='advent' || cmd==='zork' || cmd==='bootsector'){
+      this._egg('advent');
+      if(!this.state.cliMode) this.toggleCli();
+      if(!this._adv) this._adv=new Adventure();
+      this.setState({ advFlow:true });
+      this.print(this._adv.start());
+      return;
+    }
     if(cmd==='bc' || cmd==='calc'){
       const e=(arg||'').trim();
       if(!e){ this.out(['usage: bc <expression>    e.g.  bc (2+3)*4    bc 2^10    bc 22/7']); return; }
@@ -2066,15 +2085,15 @@ export default class Engine {
       cliCursRef:(el)=>{ this._cliCurs=el; }, cmdCursRef:(el)=>{ this._cmdCurs=el; },
       onCliCaret:(e)=>this._moveCursor(this._cliCurs, e.target),
       onCmdCaret:(e)=>this._moveCursor(this._cmdCurs, e.target),
-      cliPrompt: this.state.sudoFlow ? '[sudo] password for guest:' : (this.state.mailFlow ? (this.mailPrompt(this.state.mailFlow.step)+' >') : (fullPath+'>')),
+      cliPrompt: this.state.sudoFlow ? '[sudo] password for guest:' : (this.state.mailFlow ? (this.mailPrompt(this.state.mailFlow.step)+' >') : (this.state.advFlow ? '>' : (fullPath+'>'))),
       cliPromptColor: (this.state.mailFlow||this.state.sudoFlow) ? '#fcfc54' : '#d4d8dc',
-      cliPlaceholder: this.state.sudoFlow ? '' : (this.state.mailFlow ? 'type your '+this.state.mailFlow.step+'  (or  cancel )' : ''),
+      cliPlaceholder: this.state.sudoFlow ? '' : (this.state.mailFlow ? 'type your '+this.state.mailFlow.step+'  (or  cancel )' : (this.state.advFlow ? 'look · x <thing> · n s e w u d · take · hint' : '')),
       cliInputType: this.state.sudoFlow ? 'password' : 'text',
       focusCli:()=>{ if(this._cli) this._cli.focus(); },
       mailActive: !!this.state.mailFlow,
       onCliKey:(e)=>{ const el=e.target;
         // history recall (↑/↓) and tab-completion, only outside sudo/mail prompts
-        if(!this.state.sudoFlow && !this.state.mailFlow){
+        if(!this.state.sudoFlow && !this.state.mailFlow && !this.state.advFlow){
           const hist=this._cmdHistory||[];
           if(e.key==='ArrowUp'){ e.preventDefault(); if(!hist.length) return; if(this._histIdx==null) this._histIdx=hist.length; this._histIdx=Math.max(0,this._histIdx-1); el.value=hist[this._histIdx]||''; this._moveCursor(this._cliCurs, el); return; }
           if(e.key==='ArrowDown'){ e.preventDefault(); if(this._histIdx==null) return; this._histIdx=Math.min(hist.length,this._histIdx+1); el.value=(this._histIdx>=hist.length)?'':(hist[this._histIdx]||''); this._moveCursor(this._cliCurs, el); return; }
@@ -2083,8 +2102,9 @@ export default class Engine {
         if(e.key==='Enter'){ const v=el.value; el.value=''; this._histIdx=null;
           if(this.state.sudoFlow){ this.sudoInput(v); }
           else if(this.state.mailFlow){ this.echo(this.mailPrompt(this.state.mailFlow.step)+' > '+v); this.mailInput(v); }
+          else if(this.state.advFlow){ this.advInput(v); }
           else { this.runCommand(v); }
-        } else if(e.key==='Escape'){ if(this.state.sudoFlow){ el.value=''; this.setState({ sudoFlow:null }); this.print(['[sudo] password for guest: ','^C','']); } else if(this.state.mailFlow){ this.setState({ mailFlow:null }); this.print(['^C  mail aborted.']); } } },
+        } else if(e.key==='Escape'){ if(this.state.sudoFlow){ el.value=''; this.setState({ sudoFlow:null }); this.print(['[sudo] password for guest: ','^C','']); } else if(this.state.mailFlow){ this.setState({ mailFlow:null }); this.print(['^C  mail aborted.']); } else if(this.state.advFlow){ if(this._adv) this._adv.save(); this.setState({ advFlow:null }); this.print(['', '(progress saved. type  adventure  to resume.)']); } } },
       // editor
       editing: this.state.editing, isEditing: !!this.state.editing,
       edInPanel: !!this.state.editing && !this.state.cliMode,
