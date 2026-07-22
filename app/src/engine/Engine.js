@@ -189,7 +189,7 @@ export default class Engine {
   // cowsay, fortune, boss, sudo, xyzzy, …) are deliberately kept OUT of this
   // list so they never surface via Tab-completion or `help`. They live only in
   // the `secrets` ledger once discovered.
-  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sound','screensaver']; }
+  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sound','screensaver','modem','feed']; }
   // only complete against what's in the CURRENT directory (what's actually available)
   _completionNames(){
     const set=new Set();
@@ -293,6 +293,7 @@ export default class Engine {
     { id:'boss',   reveal:'boss              blank the screen, fast',              clue:'someone is coming.' },
     { id:'sudo',   reveal:'sudo <cmd>        you are not root',                    clue:'try to pull rank.' },
     { id:'xyzzy',  reveal:'xyzzy             (nothing happens)',                   clue:'a hollow voice, from Colossal Cave.' },
+    { id:'modem',  reveal:'modem             dials a BBS, pulls a live GitHub feed', clue:'phone home at 33.6k.' },
   ]; }
   _loadEggs(){ try{ const r=localStorage.getItem('rohanEggs'); const o=r?JSON.parse(r):null; return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; } }
   _saveEggs(){ try{ localStorage.setItem('rohanEggs', JSON.stringify(this._eggs||{})); }catch(e){} }
@@ -682,6 +683,124 @@ export default class Engine {
       if(this.state.dialog==='mailsent') this.setState({ mailSent:Object.assign({}, this.state.mailSent, { ok, done:true }) });
     });
   }
+  // ----- live GitHub feed "over the modem" ---------------------------
+  // Dials up a fake BBS, then pulls real data from api.github.com and prints
+  // it as a bulletin. Client-side fetch (runs in the visitor's browser), cached
+  // in localStorage so we stay clear of the 60/hr unauthenticated rate limit.
+  _modemFeed(force){
+    if(this._modemBusy) return;
+    this._modemBusy=true;
+    this._egg('modem');
+    if(!this.state.cliMode) this.toggleCli();
+    const line=(s)=>this.print([s]);
+    // scheduled dial-up handshake - each entry is [delay-ms, text]
+    const script=[
+      [40,  ''],
+      [40,  'ATZ'],
+      [340, 'OK'],
+      [260, 'ATDT #RPLANTE28'],
+      [520, 'DIALING . . .'],
+      [900, 'RING'],
+      [700, 'CARRIER 33600'],
+      [420, 'PROTOCOL: LAP-M / V.42bis'],
+      [360, 'CONNECT 33600/ARQ'],
+      [520, ''],
+      [120, 'GITHUB.BBS  -  node 1  -  established 2021'],
+      [120, 'authenticating guest . . . . . . . . . . ok'],
+      [120, 'fetching bulletin from api.github.com . . .'],
+    ];
+    let t=0;
+    script.forEach(([dt,s])=>{ t+=dt; setTimeout(()=>line(s), t); });
+    setTimeout(()=>{
+      this._fetchGithub(force).then(d=>{
+        this.print(this._renderBbs(d));
+        this._modemBusy=false;
+      });
+    }, t+250);
+  }
+  _fetchGithub(force){
+    const CK='rohanGhFeed', TTL=15*60*1000, u='RPlante28';
+    if(!force){
+      try{ const r=JSON.parse(localStorage.getItem(CK)||'null'); if(r && r.d && Date.now()-r.t<TTL){ r.d.cached=true; return Promise.resolve(r.d); } }catch(e){}
+    }
+    const j=(url)=>fetch(url,{ headers:{ 'Accept':'application/vnd.github+json' } }).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
+    return Promise.all([
+      j('https://api.github.com/users/'+u),
+      j('https://api.github.com/users/'+u+'/repos?sort=pushed&per_page=100'),
+      j('https://api.github.com/users/'+u+'/events/public?per_page=30'),
+    ]).then(([user,repos,events])=>{
+      const d=this._packGithub(user,repos,events);
+      try{ localStorage.setItem(CK, JSON.stringify({ t:Date.now(), d })); }catch(e){}
+      return d;
+    }).catch(()=>{
+      // fall back to any cached copy, even if stale
+      try{ const r=JSON.parse(localStorage.getItem(CK)||'null'); if(r && r.d){ r.d.cached=true; r.d.stale=true; return r.d; } }catch(e){}
+      return { error:true };
+    });
+  }
+  _packGithub(user,repos,events){
+    const rs=Array.isArray(repos)?repos.filter(r=>!r.fork):[];
+    const stars=rs.reduce((a,r)=>a+(r.stargazers_count||0),0);
+    const top=rs.slice().sort((a,b)=> (b.stargazers_count-a.stargazers_count) || (new Date(b.pushed_at)-new Date(a.pushed_at)) ).slice(0,6)
+      .map(r=>({ name:r.name, stars:r.stargazers_count||0, lang:r.language||'-', desc:(r.description||'').trim() }));
+    const pushes=(Array.isArray(events)?events:[]).filter(e=>e.type==='PushEvent').slice(0,6).map(e=>({
+      repo:(e.repo&&e.repo.name||'').split('/').pop(),
+      msg:((e.payload&&e.payload.commits&&e.payload.commits.length&&e.payload.commits[e.payload.commits.length-1].message)||'').split('\n')[0],
+      at:e.created_at,
+    })).filter(p=>p.msg);
+    return {
+      login:user.login||'RPlante28', name:user.name||'Rohan Plante',
+      followers:user.followers||0, following:user.following||0,
+      repoCount:(user.public_repos||rs.length), stars,
+      since:(user.created_at||'').slice(0,4), top, pushes,
+      synced:Date.now(),
+    };
+  }
+  _ago(iso){
+    const s=Math.max(0,(Date.now()-new Date(iso).getTime())/1000);
+    if(s<90) return 'just now';
+    const m=s/60; if(m<60) return Math.round(m)+'m ago';
+    const h=m/60; if(h<24) return Math.round(h)+'h ago';
+    const d=h/24; if(d<14) return Math.round(d)+'d ago';
+    return Math.round(d/7)+'w ago';
+  }
+  _renderBbs(d){
+    const W=60, top='+'+'='.repeat(W)+'+', rule='+'+'-'.repeat(W)+'+';
+    const row=(s)=>'| '+String(s==null?'':s).slice(0,W-2).padEnd(W-2)+' |';
+    if(!d || d.error){
+      return ['', top, row('  GITHUB.BBS  -  NO CARRIER'), rule,
+        row('  could not reach api.github.com.'),
+        row('  the line may be busy (rate limit) - try again shortly,'),
+        row('  or visit  github.com/RPlante28  directly.'), top, ''];
+    }
+    const pad=(n,w)=>String(n).padStart(w);
+    const out=['', top,
+      row('  GITHUB.BBS   node 1   33.6k   '+(d.cached?'[cached]':'[live]')),
+      row('  user: '+d.login+'   ('+d.name+')'),
+      rule,
+      row('  followers '+d.followers+'   following '+d.following+'   repos '+d.repoCount),
+      row('  total stars '+d.stars+'   member since '+(d.since||'-')),
+      rule,
+      row('  TOP REPOSITORIES'),
+      row('')];
+    if(d.top && d.top.length){
+      d.top.forEach(r=>{
+        out.push(row('  * '+pad(r.stars,3)+'  '+(r.name+'            ').slice(0,20)+' '+(r.lang+'          ').slice(0,10)));
+        if(r.desc) out.push(row('        '+r.desc.slice(0,W-10)));
+      });
+    } else { out.push(row('  (no public repositories)')); }
+    out.push(rule, row('  RECENT ACTIVITY'), row(''));
+    if(d.pushes && d.pushes.length){
+      d.pushes.forEach(p=>{
+        out.push(row('  push  '+(p.repo+'              ').slice(0,16)+' '+this._ago(p.at)));
+        out.push(row('        "'+p.msg.slice(0,W-12)+'"'));
+      });
+    } else { out.push(row('  (no recent public pushes)')); }
+    out.push(rule);
+    if(d.stale) out.push(row('  (offline - showing last cached bulletin)'), rule);
+    out.push(row('  NO CARRIER'), top, '');
+    return out;
+  }
   edToInsert(after){
     if(this.state.editing && this.state.editing.ro){ this.setState({ edStatus:"E21: '"+this.state.editing.name+"' is read-only (press :q to leave)" }); return; }
     this.setState({ edModeV:'insert' });
@@ -885,6 +1004,7 @@ export default class Engine {
     'go': { d:'open a link', s:'go <github|linkedin|marist>', l:['Opens an external link in a new tab.'] },
     'copy': { d:'copy to clipboard', s:'copy <email|github|linkedin|resume>', l:['Copies a contact detail to the clipboard.'] },
     'sysinfo|neofetch': { d:'system summary', s:'sysinfo', l:['Prints a neofetch-style summary of this machine.'] },
+    'modem|feed|dialup|bbs': { d:'live GitHub feed over a modem', s:'modem [-f]', l:['Dials a fake BBS, then pulls live data from GitHub and prints it','as a bulletin: top repositories and recent activity. Results are','cached for 15 minutes; add  -f  to force a fresh pull.'] },
     'theme|color|monitor': { d:'monitor phosphor colour', s:'theme <blue|amber|green|white>', l:['Switches the display between the blue default and amber / green / white','phosphor. Also in Configuration.'] },
     'cli|gui': { d:'toggle CLI mode', s:'cli | gui', l:['Switches between the full-screen terminal and the file browser.'] },
     'clear|cls': { d:'clear the screen', s:'clear', l:['Clears the terminal scrollback.'] },
@@ -1289,6 +1409,7 @@ export default class Engine {
     if(cmd==='defrag' || cmd==='optimize'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('optimizing drive C: …'); this._startSaver('defrag', true); return; }
     if(cmd==='logo' || cmd==='bounce' || cmd==='dvd'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } this.say('bouncing …'); this._startSaver('logo', true); return; }
     if(cmd==='screensaver' || cmd==='saver' || cmd==='ss'){ if(this._reduceMotion()){ this.out(['(reduced motion is on)']); return; } const en=this._enabledSaverModes(); const M=en.length?en:['logo','stars','matrix','pipes']; this._startSaver(M[(Math.random()*M.length)|0], true); return; }
+    if(cmd==='modem' || cmd==='feed' || cmd==='dialup' || cmd==='bbs' || cmd==='wire'){ this._modemFeed(arg==='-f' || arg==='fresh' || arg==='reload'); return; }
     if(cmd==='bc' || cmd==='calc'){
       const e=(arg||'').trim();
       if(!e){ this.out(['usage: bc <expression>    e.g.  bc (2+3)*4    bc 2^10    bc 22/7']); return; }
