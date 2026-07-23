@@ -145,7 +145,8 @@ snake:
           '  O   toggle CLI       Esc  close / back\n'+
           '  F1  help window      F6   contact\n\n'+
           'TRY TYPING\n'+
-          '  help \u00b7 tree \u00b7 cat WHOAMI.TXT \u00b7 open raven \u00b7 mail\n\n'+
+          '  help \u00b7 tree \u00b7 cat WHOAMI.TXT \u00b7 open raven \u00b7 mail\n'+
+          '  in a hurry? type  tldr  \u00b7  share a file with  share\n\n'+
           'This file is the permanent manual, come back any time\n'+
           'with  cat WHOAMI.TXT  or by opening  WHOAMI.TXT .\n\n'+
           '- Rohan'

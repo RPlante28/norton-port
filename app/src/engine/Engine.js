@@ -190,7 +190,7 @@ export default class Engine {
   // cowsay, fortune, boss, sudo, xyzzy, …) are deliberately kept OUT of this
   // list so they never surface via Tab-completion or `help`. They live only in
   // the `secrets` ledger once discovered.
-  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sound','screensaver','modem','feed']; }
+  _commandNames(){ return ['cd','ls','dir','tree','open','cat','edit','vim','make','touch','mkdir','rm','rename','cp','find','grep','wc','head','tail','stat','echo','pwd','history','clear','6502','viz','mail','resume','go','copy','sysinfo','neofetch','man','theme','cli','gui','config','about','help','whoami','date','ver','bc','ps','top','sound','screensaver','modem','feed','share','tldr','hire']; }
   // only complete against what's in the CURRENT directory (what's actually available)
   _completionNames(){
     const set=new Set();
@@ -1039,6 +1039,8 @@ export default class Engine {
     'sysinfo|neofetch': { d:'system summary', s:'sysinfo', l:['Prints a neofetch-style summary of this machine.'] },
     'modem|feed|dialup|bbs': { d:'live GitHub feed over a modem', s:'modem [-f]', l:['Dials a fake BBS, then pulls live data from GitHub and prints it','as a bulletin: top repositories and recent activity. Results are','cached for 15 minutes; add  -f  to force a fresh pull.'] },
     'adventure|advent|zork': { d:'a text adventure inside the machine', s:'adventure', l:['BOOT SECTOR: a two-act text adventure. Act 1, get the reseated','machine to POST; Act 2, reconstruct a lost DISKREET passphrase and','unseal drive C. In the GUI it opens a window with tap buttons;','progress is saved. Type  hint  any time.'] },
+    'tldr|start|recruiter|overview': { d:'the 30-second version', s:'tldr', l:['Prints a fast briefing: who I am, selected work, and how to reach','the resume, email, and GitHub. For anyone who is short on time.'] },
+    'share|link|permalink': { d:'copy a link to the current file', s:'share', l:['Copies a shareable URL for whatever you are looking at to the','clipboard. Opening that link jumps straight back to the same file,','so you can point someone at one project directly.'] },
     'theme|color|monitor': { d:'monitor phosphor colour', s:'theme <blue|amber|green|white>', l:['Switches the display between the blue default and amber / green / white','phosphor. Also in Configuration.'] },
     'cli|gui': { d:'toggle CLI mode', s:'cli | gui', l:['Switches between the full-screen terminal and the file browser.'] },
     'clear|cls': { d:'clear the screen', s:'clear', l:['Clears the terminal scrollback.'] },
@@ -1074,6 +1076,49 @@ export default class Engine {
     if(sel && sel.kind==='file') parts.push(this._slugOf(sel.name));      // + the highlighted file
     const want = parts.length ? '#'+parts.join('/') : '';
     if((location.hash||'')!==want){ try{ history.replaceState(null, '', location.pathname+location.search+want); }catch(e){} }
+  }
+  // copy the current deep link (URL + auto-synced hash) so you can send someone
+  // straight to the file you're looking at
+  _shareLink(){
+    if(typeof location==='undefined'){ this.out(['(no link available here)']); return; }
+    this._syncHash();
+    const url=location.href;
+    const its=this.items(), sel=its[this.state.sel];
+    const what=(sel && sel.kind==='file') ? sel.name.replace(/\s+/g,'') : (location.hash ? 'this view' : 'the home page');
+    const done=(msg)=>this.out([msg, '  '+url]);
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(url).then(()=>done('link to '+what+' copied to clipboard:'), ()=>done('link to '+what+':'));
+        return;
+      }
+    }catch(e){}
+    done('link to '+what+':');
+  }
+  // a fast, dry briefing for someone (a recruiter) who wants the essentials now
+  _recruiterCard(){
+    const L=this.links, W=46, bar='+'+'-'.repeat(W)+'+', row=(s)=>'| '+(s||'').slice(0,W-2).padEnd(W-2)+' |';
+    return [ bar,
+      row('  ROHAN PLANTE  -  the 30-second version'),
+      bar,
+      row('  CS @ Marist University. I build systems'),
+      row('  with moving parts you can see.'),
+      row(''),
+      row('  SELECTED WORK'),
+      row('   * MaristMaps - campus navigator + AI agent'),
+      row('     (Best Overall, Marist hackathon 2026)'),
+      row('   * 6502 CPU emulator - scalar-pipelined,'),
+      row('     cycle-stepped, hazard handling'),
+      row('   * Full-stack apps - Flask, React, Postgres'),
+      row(''),
+      row('  THE ESSENTIALS'),
+      row('   resume ....... press F4  (or type  resume )'),
+      row('   email ........ '+L.email),
+      row('   github ....... github.com/RPlante28'),
+      row('   contact ...... type  mail'),
+      row(''),
+      row('  Open to SWE / data internships & new-grad.'),
+      bar,
+      'tip: type  share  to copy a link to any file you open.' ];
   }
   // navigate to whatever the URL hash points at (on load, paste, back/forward).
   // Walks a slug path; also accepts a single bare slug (legacy / shorthand links).
@@ -1464,7 +1509,9 @@ export default class Engine {
     if(cmd==='ps' || cmd==='top' || cmd==='htop'){ this.out(this._psList(cmd!=='ps')); return; }
     if(cmd==='date' || cmd==='time'){ this.out([new Date().toString()]); return; }
     if(cmd==='ver' || cmd==='version'){ this.out([this.verLine+' - Portfolio Commander - (c) '+this.build.year]); return; }
-    if(cmd==='hire' || cmd==='hireme'){ this.out(['> Rohan is open to internships & new-grad SWE roles.', '  resume: F4   \u00b7   mail: type  mail    \u00b7   github: go github']); return; }
+    if(cmd==='share' || cmd==='link' || cmd==='permalink'){ this._shareLink(); return; }
+    if(cmd==='tldr' || cmd==='start' || cmd==='recruiter' || cmd==='overview' || cmd==='summary'){ this.out(this._recruiterCard()); return; }
+    if(cmd==='hire' || cmd==='hireme'){ this.out(['> Rohan is open to internships & new-grad SWE roles.', '  the fast version: type  tldr   \u00b7   resume: F4   \u00b7   mail: type  mail']); return; }
     if(cmd==='rohan' || cmd==='me'){ this.out(['Rohan Plante - CS @ Marist, Eagle Scout, hackathon winner.', 'type  whoami , or  cat WHOAMI.TXT']); return; }
     if(cmd==='6502' || cmd==='cpu' || cmd==='mon'){ if(this.state.cliMode){ this.cliVm(arg); } else { this.openVM(); } return; }
     if(cmd==='viz' || cmd==='dataviz' || cmd==='dashboards' || cmd==='tableau'){ if(this.state.cliMode){ this.openDataViz(); this.say('opened DATA-ANL.LOG - use the dashboard buttons'); } else { this.openDataViz(); this.say(''); } return; }
@@ -2161,6 +2208,7 @@ export default class Engine {
       fEdit:()=>this.editSelected(), fCli:()=>this.toggleCli(),
       // 6502 VM
       isVM: view==='vm', openVM:()=>this.openVM(),
+      copyLink:()=>this._shareLink(),
       vm: vmData, vmRunning: !!this.vmRunning,
       vmStep:()=>this.vmStep(), vmRun:()=>this.vmRun(), vmReset:()=>this.vmReset(),
       vmEdit:()=>this.vmEditProgram(), vmNew:()=>this.vmNewProgram(),

@@ -200,6 +200,9 @@ export default function DocView({ v }) {
             ▶ RUN THE LIVE DEMO ▸
           </span>
         )}
+        <span className="nc-btn cursor-pointer" onClick={v.copyLink} title="copy a shareable link to this file">
+          ⧉ COPY LINK ▸
+        </span>
       </div>
 
       {v.isRavenPhotos && (
