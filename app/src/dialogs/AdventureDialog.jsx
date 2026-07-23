@@ -37,14 +37,15 @@ export default function AdventureDialog({ v }) {
     </span>
   );
 
-  // compass: a tidy 3x3 rose; only live exits are pressable
+  // compass: a tidy 3x3 rose; only live exits are pressable. In a sub-menu it
+  // stays put (so nothing shifts) but greys out entirely.
   const CELLS = [['', 'N', 'Up'], ['W', '', 'E'], ['', 'S', 'Dn']];
   const DIR = { N: 'n', S: 's', E: 'e', W: 'w', Up: 'u', Dn: 'd' };
-  const Compass = () => (
+  const Compass = ({ disabled }) => (
     <div className="grid grid-cols-3 gap-1 shrink-0" style={{ width: '132px' }}>
       {CELLS.flat().map((label, i) => {
         if (!label) return <span key={i} />;
-        const live = ui.exits[DIR[label]];
+        const live = ui.exits[DIR[label]] && !disabled;
         return (
           <span key={i} onClick={live ? () => send(DIR[label]) : undefined}
             className={'text-[12px] py-[6px] text-center select-none '
@@ -57,49 +58,51 @@ export default function AdventureDialog({ v }) {
     </div>
   );
 
-  // the control deck below the screen, in one of three modes
+  // the control deck below the screen: the compass is always present (greyed in
+  // a sub-menu so the layout never shifts); only the right column swaps
   const Deck = () => {
-    if (mode === 'examine' || mode === 'take') {
-      const list = mode === 'examine' ? ui.exams : ui.takes;
-      const heading = mode === 'examine' ? 'Examine what?' : 'Take what?';
-      const empty = mode === 'examine' ? 'Nothing here worth a closer look.' : 'Nothing here to take.';
-      return (
-        <div className="px-2.5 py-2.5">
-          <div className="flex items-center gap-2 mb-2">
-            <span onClick={() => setMode('main')} className="nc-dlgbtn px-2.5 py-[4px] text-[12px] cursor-pointer select-none">&lsaquo; Back</span>
-            <span className="text-[12px] text-[#06457a] font-bold">{heading}</span>
-          </div>
-          {list.length ? (
-            <div className="flex flex-wrap gap-1.5">
-              {list.map((o, i) => (
-                <Btn key={i} label={o.label}
-                  onTap={() => { send(o.cmd); if (mode === 'take') setMode('main'); }} />
-              ))}
-            </div>
-          ) : <div className="text-[12px] text-[#06457a]">{empty}</div>}
-        </div>
-      );
-    }
-    // main deck
+    const sub = mode === 'examine' || mode === 'take';
+    const list = mode === 'examine' ? ui.exams : ui.takes;
+    const heading = mode === 'examine' ? 'Examine what?' : 'Take what?';
+    const empty = mode === 'examine' ? 'Nothing here worth a closer look.' : 'Nothing here to take.';
     return (
       <div className="px-2.5 py-2.5 flex gap-3 items-start flex-wrap">
-        <Compass />
+        <Compass disabled={sub} />
         <div className="flex-1 min-w-[220px] flex flex-col gap-1.5">
-          <div className="flex flex-wrap gap-1.5">
-            <Btn cmd="look" label="Look" />
-            <Btn cmd="map" label="Map" />
-            {ui.exams.length > 0 && <Btn onTap={() => setMode('examine')} label="Examine…" />}
-            {ui.takes.length > 0 && <Btn onTap={() => setMode('take')} label="Take…" />}
-            <Btn cmd="listen" label="Listen" />
-            <Btn cmd="inventory" label="Items" />
-            <Btn cmd="hint" label="Hint" />
-            <Btn cmd="score" label="Score" />
-            {ui.won && <Btn cmd="amusing" label="Amusing" />}
-          </div>
-          {ui.cipher && (
-            <div className="text-[11px] text-[#06457a] mt-0.5 leading-snug">
-              Cipher room: type <b>xor &lt;hex&gt; &lt;hex&gt;</b> to unmask a share, then <b>unseal &lt;word&gt;</b> in the volume.
-            </div>
+          {sub ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span onClick={() => setMode('main')} className="nc-dlgbtn px-2.5 py-[4px] text-[12px] cursor-pointer select-none">&lsaquo; Back</span>
+                <span className="text-[12px] text-[#06457a] font-bold">{heading}</span>
+              </div>
+              {list.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {list.map((o, i) => (
+                    <Btn key={i} label={o.label}
+                      onTap={() => { send(o.cmd); if (mode === 'take') setMode('main'); }} />
+                  ))}
+                </div>
+              ) : <div className="text-[12px] text-[#06457a]">{empty}</div>}
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-1.5">
+                <Btn cmd="look" label="Look" />
+                <Btn cmd="map" label="Map" />
+                {ui.exams.length > 0 && <Btn onTap={() => setMode('examine')} label="Examine…" />}
+                {ui.takes.length > 0 && <Btn onTap={() => setMode('take')} label="Take…" />}
+                <Btn cmd="listen" label="Listen" />
+                <Btn cmd="inventory" label="Items" />
+                <Btn cmd="hint" label="Hint" />
+                <Btn cmd="score" label="Score" />
+                {ui.won && <Btn cmd="amusing" label="Amusing" />}
+              </div>
+              {ui.cipher && (
+                <div className="text-[11px] text-[#06457a] mt-0.5 leading-snug">
+                  Cipher room: type <b>xor &lt;hex&gt; &lt;hex&gt;</b> to unmask a share, then <b>unseal &lt;word&gt;</b> in the volume.
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
