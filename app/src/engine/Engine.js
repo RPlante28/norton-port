@@ -295,7 +295,7 @@ export default class Engine {
     { id:'sudo',   reveal:'sudo <cmd>        you are not root',                    clue:'try to pull rank.' },
     { id:'xyzzy',  reveal:'xyzzy             (nothing happens)',                   clue:'a hollow voice, from Colossal Cave.' },
     { id:'modem',  reveal:'modem             dials a BBS, pulls a live GitHub feed', clue:'phone home at 33.6k.' },
-    { id:'advent', reveal:'adventure         BOOT SECTOR, a text adventure in here', clue:'two bytes are missing. go find them.' },
+    { id:'advent', reveal:'adventure         BOOT SECTOR, a two-act adventure in here', clue:'the disk is sealed. take the key back out of the machine.' },
   ]; }
   _loadEggs(){ try{ const r=localStorage.getItem('rohanEggs'); const o=r?JSON.parse(r):null; return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; } }
   _saveEggs(){ try{ localStorage.setItem('rohanEggs', JSON.stringify(this._eggs||{})); }catch(e){} }
@@ -811,7 +811,8 @@ export default class Engine {
     this.print(r.lines);
     if(r.quit) this.setState({ advFlow:null });
   }
-  // windowed mode: ADVENT.EXE runs the same game inside a dialog
+  // windowed mode: ADVENT.EXE runs the same game inside a dialog with on-screen
+  // buttons (mobile-friendly) plus a text line for anything the buttons don't cover
   openAdventWin(){
     if(!this._adv) this._adv=new Adventure();
     this.setState({ dialog:'advent', activeMenu:null, advWinTerm:this._adv.start() });
@@ -823,8 +824,8 @@ export default class Engine {
     v=(v||'').trim(); if(!v) return;
     const r=this._adv.input(v);
     this.setState(s=>({ advWinTerm:(s.advWinTerm||[]).concat(['> '+v], r.lines) }));
-    // an explicit quit closes the window; the boot coda ends the game but
-    // stays on screen so the ending can actually be read
+    // an explicit quit closes the window; the boot coda ends the game but stays
+    // on screen so the ending can be read
     if(r.quit && /^(quit|q|exit|bye)\b/i.test(v)){ this.closeDialog(); return; }
     this._advScrollDown();
   }
@@ -1033,7 +1034,7 @@ export default class Engine {
     'copy': { d:'copy to clipboard', s:'copy <email|github|linkedin|resume>', l:['Copies a contact detail to the clipboard.'] },
     'sysinfo|neofetch': { d:'system summary', s:'sysinfo', l:['Prints a neofetch-style summary of this machine.'] },
     'modem|feed|dialup|bbs': { d:'live GitHub feed over a modem', s:'modem [-f]', l:['Dials a fake BBS, then pulls live data from GitHub and prints it','as a bulletin: top repositories and recent activity. Results are','cached for 15 minutes; add  -f  to force a fresh pull.'] },
-    'adventure|advent|zork': { d:'a text adventure inside the machine', s:'adventure', l:['BOOT SECTOR: you are GUEST, an unprivileged process, and the boot','signature on track 0 is gone. Nine rooms, 100 points, eight side','notes for the observant. Progress is saved; quit any time.'] },
+    'adventure|advent|zork': { d:'a text adventure inside the machine', s:'adventure', l:['BOOT SECTOR: a two-act text adventure. Act 1, get the reseated','machine to POST; Act 2, reconstruct a lost DISKREET passphrase and','unseal drive C. In the GUI it opens a window with tap buttons;','progress is saved. Type  hint  any time.'] },
     'theme|color|monitor': { d:'monitor phosphor colour', s:'theme <blue|amber|green|white>', l:['Switches the display between the blue default and amber / green / white','phosphor. Also in Configuration.'] },
     'cli|gui': { d:'toggle CLI mode', s:'cli | gui', l:['Switches between the full-screen terminal and the file browser.'] },
     'clear|cls': { d:'clear the screen', s:'clear', l:['Clears the terminal scrollback.'] },
@@ -1512,7 +1513,7 @@ export default class Engine {
         'Norton Commander hid its dotfiles until you flipped this switch in Configuration. You flipped it.',
         'There are a handful of things this desktop can do that are not in any help screen. Type  secrets  in the terminal to open the ledger: it lists what you have already turned up and leaves a one-line pointer for each one you have not.',
         'No trophies, no timer. Work through the pointers and you will have seen everything worth seeing in here.' ] } }]);
-      // the adventure's EXE only materialises once the game has been found via
+      // the game's EXE only materialises once the adventure has been found via
       // the terminal (its egg is logged) - a hidden file that earns its dot
       if(!this._eggs) this._eggs=this._loadEggs();
       if(this._eggs.advent){
@@ -2225,6 +2226,7 @@ export default class Engine {
       isContactDlg: this.state.dialog==='contact',
       isAdventDlg: this.state.dialog==='advent',
       advTerm: (this.state.advWinTerm||[]).join('\n'),
+      advUi: (this._adv && this.state.dialog==='advent') ? this._adv.uiHints() : null,
       advSend: (val)=>this.advWinSend(val),
       openAdventWin: ()=>this.openAdventWin(),
       advInputRef: (el)=>{ this._advIn=el; },
