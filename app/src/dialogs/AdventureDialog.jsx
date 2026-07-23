@@ -1,27 +1,28 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 // ADVENT.EXE window: the BOOT SECTOR adventure in a Norton-style dialog.
 //
-//   +-----------------------------------------+
-//   |            ADVENT.EXE - Boot Sector      |   title bar
+//   +-- ADVENT.EXE - Boot Sector ----------[x]-+   title bar (x closes)
 //   | +-------------------------------------+  |
 //   | |  dark terminal: scrollback + prompt |  |   the "screen"
 //   | +-------------------------------------+  |
-//   |  [ compass ]   [ context + quick btns ]  |   control deck (grey chrome)
+//   |  [ compass ]   [ stable action buttons ] |   control deck (grey chrome)
 //   |                 [ Close ]                 |
-//   +-----------------------------------------+
+//   +------------------------------------------+
 //
-// The deck lives BELOW the screen on the grey chrome, and every control is a
-// standard raised dialog button (.nc-dlgbtn) so it matches the rest of the UI.
-// Built so the whole game is playable by tapping on a phone.
+// The main deck is stable room to room. Examine / Take open a focused
+// sub-panel ("Examine what?" + this room's options + Back) so the deck never
+// churns with per-room buttons. Everything is a standard raised dialog button,
+// and the whole game is playable by tapping.
 export default function AdventureDialog({ v }) {
   const inRef = useRef(null);
+  const [mode, setMode] = useState('main'); // 'main' | 'examine' | 'take'
   const ui = v.advUi || { exits: {}, takes: [], exams: [], acts: [], cipher: false };
   const send = (cmd) => { v.advSend(cmd); if (inRef.current) inRef.current.focus(); };
 
   const onKey = (e) => {
     if (e.key === 'Enter') { const val = e.target.value; e.target.value = ''; v.advSend(val); }
-    else if (e.key === 'Escape') { v.closeDialog(); }
+    else if (e.key === 'Escape') { if (mode !== 'main') setMode('main'); else v.closeDialog(); }
     else if (!e.target.value) {
       const k = { ArrowUp: 'n', ArrowDown: 's', ArrowLeft: 'w', ArrowRight: 'e' }[e.key];
       if (k) { e.preventDefault(); v.advSend(k); }
@@ -29,14 +30,14 @@ export default function AdventureDialog({ v }) {
     e.stopPropagation();
   };
 
-  // shared button look = the standard raised dialog button
-  const Btn = ({ cmd, label, cls = '' }) => (
-    <span onClick={() => send(cmd)} className={'nc-dlgbtn px-2.5 py-[4px] text-[12px] cursor-pointer select-none ' + cls}>
+  const Btn = ({ cmd, onTap, label, cls = '' }) => (
+    <span onClick={onTap || (() => send(cmd))}
+      className={'nc-dlgbtn px-2.5 py-[4px] text-[12px] cursor-pointer select-none ' + cls}>
       {label}
     </span>
   );
 
-  // compass: a tidy 3x3 rose; only live exits are pressable, dead ones sit flat
+  // compass: a tidy 3x3 rose; only live exits are pressable
   const CELLS = [['', 'N', 'Up'], ['W', '', 'E'], ['', 'S', 'Dn']];
   const DIR = { N: 'n', S: 's', E: 'e', W: 'w', Up: 'u', Dn: 'd' };
   const Compass = () => (
@@ -56,11 +57,64 @@ export default function AdventureDialog({ v }) {
     </div>
   );
 
+  // the control deck below the screen, in one of three modes
+  const Deck = () => {
+    if (mode === 'examine' || mode === 'take') {
+      const list = mode === 'examine' ? ui.exams : ui.takes;
+      const heading = mode === 'examine' ? 'Examine what?' : 'Take what?';
+      const empty = mode === 'examine' ? 'Nothing here worth a closer look.' : 'Nothing here to take.';
+      return (
+        <div className="px-2.5 py-2.5">
+          <div className="flex items-center gap-2 mb-2">
+            <span onClick={() => setMode('main')} className="nc-dlgbtn px-2.5 py-[4px] text-[12px] cursor-pointer select-none">&lsaquo; Back</span>
+            <span className="text-[12px] text-[#06457a] font-bold">{heading}</span>
+          </div>
+          {list.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {list.map((o, i) => (
+                <Btn key={i} label={o.label}
+                  onTap={() => { send(o.cmd); if (mode === 'take') setMode('main'); }} />
+              ))}
+            </div>
+          ) : <div className="text-[12px] text-[#06457a]">{empty}</div>}
+        </div>
+      );
+    }
+    // main deck
+    return (
+      <div className="px-2.5 py-2.5 flex gap-3 items-start flex-wrap">
+        <Compass />
+        <div className="flex-1 min-w-[220px] flex flex-col gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
+            <Btn cmd="look" label="Look" />
+            <Btn cmd="map" label="Map" />
+            {ui.exams.length > 0 && <Btn onTap={() => setMode('examine')} label="Examine…" />}
+            {ui.takes.length > 0 && <Btn onTap={() => setMode('take')} label="Take…" />}
+            <Btn cmd="listen" label="Listen" />
+            <Btn cmd="inventory" label="Items" />
+            <Btn cmd="hint" label="Hint" />
+            <Btn cmd="score" label="Score" />
+            {ui.won && <Btn cmd="amusing" label="Amusing" />}
+          </div>
+          {ui.cipher && (
+            <div className="text-[11px] text-[#06457a] mt-0.5 leading-snug">
+              Cipher room: type <b>xor &lt;hex&gt; &lt;hex&gt;</b> to unmask a share, then <b>unseal &lt;word&gt;</b> in the volume.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div onClick={(e) => { v.stop(e); if (inRef.current) inRef.current.focus(); }}
       className="bg-[#b8b8b8] text-black w-[600px] max-w-[95vw] text-[13.5px]"
       style={{ boxShadow: '6px 6px 0 rgba(0,0,0,0.45)' }}>
-      <div className="bg-dos-blue text-cyan text-center p-[3px] font-bold">ADVENT.EXE - Boot Sector</div>
+      <div className="relative bg-dos-blue text-cyan text-center p-[3px] font-bold">
+        ADVENT.EXE - Boot Sector
+        <span onClick={v.closeDialog} title="close (progress saved)"
+          className="nc-close absolute right-[5px] top-1/2 -translate-y-1/2 text-[12px] font-bold">x</span>
+      </div>
 
       {/* the screen */}
       <div className="mx-2.5 mt-2.5" style={{ borderStyle: 'solid', borderWidth: '2px', borderColor: '#7a7a7a #ffffff #ffffff #7a7a7a' }}>
@@ -82,27 +136,7 @@ export default function AdventureDialog({ v }) {
         </div>
       </div>
 
-      {/* control deck, on the grey chrome below the screen */}
-      <div className="px-2.5 py-2.5 flex gap-3 items-start flex-wrap">
-        <Compass />
-        <div className="flex-1 min-w-[220px] flex flex-col gap-1.5">
-          {(ui.takes.length > 0 || ui.exams.length > 0) && (
-            <div className="flex flex-wrap gap-1.5">
-              {ui.takes.map((t, i) => <Btn key={'t' + i} cmd={t.cmd} label={t.label} cls="font-bold" />)}
-              {ui.exams.map((x, i) => <Btn key={'x' + i} cmd={x.cmd} label={'Examine ' + x.label} />)}
-            </div>
-          )}
-          <div className="flex flex-wrap gap-1.5">
-            {ui.acts.map((a, i) => <Btn key={'a' + i} cmd={a.cmd} label={a.label} />)}
-            {ui.won && <Btn cmd="amusing" label="Amusing" />}
-          </div>
-          {ui.cipher && (
-            <div className="text-[11px] text-[#06457a] mt-0.5 leading-snug">
-              Cipher room: type <b>xor &lt;hex&gt; &lt;hex&gt;</b> to unmask a share, then <b>unseal &lt;word&gt;</b> in the volume.
-            </div>
-          )}
-        </div>
-      </div>
+      <Deck />
 
       <div className="flex justify-center pb-3.5">
         <span onClick={v.closeDialog} className="nc-dlgbtn px-[22px] py-[3px] cursor-pointer" title="progress is saved automatically">Close</span>

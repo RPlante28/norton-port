@@ -730,12 +730,14 @@ export default class Adventure {
   uiHints(){
     const R=this.rooms()[this.room]; const F=this.flags;
     const exits={}; ['n','s','e','w','u','d'].forEach(d=>{ exits[d]=!!R.exits[d]; });
-    // takeable items present
+    // takeable items present (label is just the item name; the sub-menu header
+    // already says "Take what?")
     const takes=Object.keys(this.itemLoc).filter(id=>this.itemLoc[id]===this.room)
-      .map(id=>({ cmd:'take '+this.items()[id].names[0], label:'Take '+this.items()[id].short }));
-    // notable examinables: first noun of each x-entry key
-    const exams=Object.keys(R.x||{}).map(k=>k.split('|')[0]).filter(n=>n && n.length<=14)
-      .slice(0,6).map(n=>({ cmd:'examine '+n, label:n }));
+      .map(id=>({ cmd:'take '+this.items()[id].names[0], label:this.items()[id].short.replace(/^(a|an|the) /,'') }));
+    // notable examinables: first noun of each x-entry key, shown behind the
+    // Examine sub-menu so the main deck stays stable room to room
+    const exams=Object.keys(R.x||{}).map(k=>k.split('|')[0]).filter(n=>n && n.length<=16)
+      .map(n=>({ cmd:'examine '+n, label:n.charAt(0).toUpperCase()+n.slice(1) }));
     // context actions
     const acts=[{cmd:'look',label:'Look'},{cmd:'map',label:'Map'},{cmd:'listen',label:'Listen'},{cmd:'inventory',label:'Items'},{cmd:'hint',label:'Hint'},{cmd:'score',label:'Score'}];
     const cipher = (this.act>=2 && (this.room==='keysafe'||this.room==='volume') && !F.unsealed);
