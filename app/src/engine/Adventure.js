@@ -568,6 +568,9 @@ export default class Adventure {
         if(this.room==='volume'){ out.push(...this._resolveExamine(this.rooms().volume.x['floor|bad sectors|badsectors|graveyard|cracks'])); }
         else out.push('Nothing here needs a surface scan.'); break;
 
+      case 'sweep': case 'lidar': case 'ping': out.push(...this._sweep()); break;
+      case 'recover': case 'search': case 'salvage': case 'sift': out.push(...this._search()); break;
+
       case 'score': case 'status': case 'progress': case 'stats':
         out.push(...this._checklist(),
           'Completion: '+this._completion()+'%   (side notes '+this._noteCount()+'/'+this._noteTotal()+' - amusements '+Object.keys(this.fun).length+'/'+this._funTotal()+')',
@@ -720,6 +723,64 @@ export default class Adventure {
     const out=['MaristMaps route solver: '+path.map(id=>this._roomName(id)).join(' -> ')+'   ('+hops+' hop'+(hops===1?'':'s')+')', ...this._lookLines()];
     if(was){ const a=this._ambient(target); if(a) out.push('', a); }
     return out;
+  }
+  // ----- M3: LiDAR sweep (light the Dark Sector) -----------------------
+  _sweep(){
+    const has=(id)=>this.inv.indexOf(id)>=0;
+    if(this.room!=='dark'){
+      if(!has('lidar')) return ['You have nothing here that can see what your eyes cannot.'];
+      return ['The LiDAR spins up, sweeps, and finds this room already perfectly well lit. It powers down, faintly disappointed.'];
+    }
+    if(!has('lidar')) return ['Pitch black, and your eyes are useless. You need something that maps a room without light.','(there was a scanner card back up in the expansion slots.)'];
+    if(this.flags.darkLit) return ['Already mapped. The point cloud holds; the dark keeps its edges.'];
+    this.flags.darkLit=1;
+    const art=[
+      '   LiDAR: spinning up . . . 4,096 returns per sweep',
+      '',
+      '         . :   . .     .    :    . .',
+      '      :  .   +------------+   .  :  .',
+      '       . .   |  gouged    |     :  . .',
+      '         :   |  tracks    |  .    :',
+      '      .  :   +------------+  . .  :  .',
+      '         . .    :    .   .    :  .',
+      '',
+      '   MAP COMPLETE. The dark has edges now.'];
+    const bonus=this._award(6);
+    return ['You hold up the LiDAR card and let it sweep. It does the one thing it',
+      'was built to do: it refuses to trust the dark.','',...art,'',
+      'The Dark Sector resolves out of nothing, drawn in points of pale',
+      'light.  '+bonus, ...this._lookLines(), '', ...this._tierResult('dark', 'the swept floor')];
+  }
+  // ----- M4: tiered CHK loot (CHKDSK fragments + your chest-tiering) ----
+  // rolls a stable tier the first time, then hands out a tiered reward once.
+  _tierResult(key, where){
+    if(!this.flags['tier_'+key]){ const r=Math.random(); this.flags['tier_'+key]= r>0.90?'RARE':(r>0.58?'UNCOMMON':'COMMON'); }
+    const tier=this.flags['tier_'+key];
+    const head='CHK-tiering rolls a fragment from '+where+'  ->  ['+tier+']';
+    if(this.flags['looted_'+key]) return [head, '  (already recovered)'];
+    this.flags['looted_'+key]=1;
+    if(tier==='RARE'){
+      this.flags.fragmentFound=(this.flags.fragmentFound||0)+1;
+      return [head, '  A clean recovery: three readable characters of what is plainly a',
+        '  passphrase, and a checksum saying there were four.  '+this._award(8),
+        '  (the machine is starting to remember the word.)'];
+    }
+    if(tier==='UNCOMMON') return [head, '  A lore scrap: a paragraph of a project write-up, half a recipe, one',
+      '  bar of a song. Nothing you strictly need. Everything you would miss.'];
+    return [head, '  FILE0000.CHK: 512 bytes of noise the disk doctor swept up after some',
+      '  old crash. Junk, mostly. You keep it anyway; that is the whole point',
+      '  of a lost and found.'];
+  }
+  _search(){
+    if(this.room==='lostfound'){
+      for(const k of ['lf1','lf2']){ if(!this.flags['looted_'+k]) return ['You sift the orphaned clusters for anything the disk doctor filed here.', '', ...this._tierResult(k, 'the lost and found')]; }
+      return ['You have sifted the lost and found clean. Whatever it kept, you carry now.'];
+    }
+    if(this.room==='dark' && this.flags.darkLit){
+      if(!this.flags['looted_dark']) return this._tierResult('dark', 'the swept floor');
+      return ['You have already recovered what the LiDAR turned up here.'];
+    }
+    return ['There is nothing here to sift through.'];
   }
   // ambient one-liners on revisiting a room (dry, occasional)
   _ambient(id){
@@ -955,6 +1016,9 @@ export default class Adventure {
     if(exams.length) actions.push({ kind:'panel', label:'Examine…', panel:'examine', title:'Examine what?', options:exams, empty:'Nothing here worth a closer look.' });
     if(takes.length) actions.push({ kind:'panel', label:'Take…', panel:'take', title:'Take what?', options:takes, empty:'Nothing here to take.', closeOnPick:true });
     if(goOpts.length) actions.push({ kind:'panel', label:'Go…', panel:'go', title:'Go where?', options:goOpts, empty:'Nowhere else visited yet.', closeOnPick:true });
+    // contextual mechanics
+    if(this.room==='dark' && this.inv.indexOf('lidar')>=0 && !this.flags.darkLit) actions.push({ kind:'cmd', label:'Sweep (LiDAR)', cmd:'sweep' });
+    if(this.room==='lostfound' || (this.room==='dark' && this.flags.darkLit)) actions.push({ kind:'cmd', label:'Search', cmd:'search' });
     actions.push({ kind:'cmd', label:'Listen', cmd:'listen' });
     actions.push({ kind:'cmd', label:'Items', cmd:'inventory' });
     actions.push({ kind:'cmd', label:'Journal', cmd:'journal' });
