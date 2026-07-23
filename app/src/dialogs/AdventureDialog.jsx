@@ -6,23 +6,27 @@ import { useRef, useState } from 'react';
 //   | +-------------------------------------+  |
 //   | |  dark terminal: scrollback + prompt |  |   the "screen"
 //   | +-------------------------------------+  |
-//   |  [ compass ]   [ stable action buttons ] |   control deck (grey chrome)
-//   |                 [ Close ]                 |
+//   |  [ compass ]   [ action buttons ]        |   control deck (grey chrome)
+//   |            [ Undo ] [ Reset ] [ Close ]   |
 //   +------------------------------------------+
 //
-// The main deck is stable room to room. Examine / Take open a focused
-// sub-panel ("Examine what?" + this room's options + Back) so the deck never
-// churns with per-room buttons. Everything is a standard raised dialog button,
-// and the whole game is playable by tapping.
+// The deck is DATA-DRIVEN: the engine's uiHints() returns a list of actions
+// (kind 'cmd' or 'panel'), and this component renders them generically, so new
+// game mechanics get buttons without any change here. Panels (Examine…, Take…,
+// Go…, …) open a focused chooser with a Back button. Compass stays put (greyed)
+// in a sub-panel so nothing shifts. Everything is playable by tapping.
 export default function AdventureDialog({ v }) {
   const inRef = useRef(null);
-  const [mode, setMode] = useState('main'); // 'main' | 'examine' | 'take'
-  const ui = v.advUi || { exits: {}, takes: [], exams: [], acts: [], cipher: false };
+  const [mode, setMode] = useState('main');   // 'main' | 'panel' | 'reset'
+  const [panel, setPanel] = useState(null);   // the active panel action object
+  const ui = v.advUi || { exits: {}, actions: [], cipher: false };
   const send = (cmd) => { v.advSend(cmd); if (inRef.current) inRef.current.focus(); };
+  const openPanel = (a) => { setPanel(a); setMode('panel'); };
+  const back = () => { setMode('main'); setPanel(null); };
 
   const onKey = (e) => {
     if (e.key === 'Enter') { const val = e.target.value; e.target.value = ''; v.advSend(val); }
-    else if (e.key === 'Escape') { if (mode !== 'main') setMode('main'); else v.closeDialog(); }
+    else if (e.key === 'Escape') { if (mode !== 'main') back(); else v.closeDialog(); }
     else if (!e.target.value) {
       const k = { ArrowUp: 'n', ArrowDown: 's', ArrowLeft: 'w', ArrowRight: 'e' }[e.key];
       if (k) { e.preventDefault(); v.advSend(k); }
@@ -37,7 +41,7 @@ export default function AdventureDialog({ v }) {
     </span>
   );
 
-  // compass: a tidy 3x3 rose; only live exits are pressable. In a sub-menu it
+  // compass: a tidy 3x3 rose; only live exits are pressable. In a sub-panel it
   // stays put (so nothing shifts) but greys out entirely.
   const CELLS = [['', 'N', 'Up'], ['W', '', 'E'], ['', 'S', 'Dn']];
   const DIR = { N: 'n', S: 's', E: 'e', W: 'w', Up: 'u', Dn: 'd' };
@@ -58,72 +62,50 @@ export default function AdventureDialog({ v }) {
     </div>
   );
 
-  // the control deck below the screen. Fixed footprint: the compass is always
-  // present on the left (greyed in a sub-menu) with a divider, and the right
-  // column is a fixed width whose buttons are centered in even rows. Only the
-  // right column's content swaps, so nothing shifts between modes.
-  const Deck = () => {
-    const sub = mode !== 'main';
-    const list = mode === 'examine' ? ui.exams : ui.takes;
-    const heading = mode === 'examine' ? 'Examine what?' : 'Take what?';
-    const empty = mode === 'examine' ? 'Nothing here worth a closer look.' : 'Nothing here to take.';
-    return (
-      <div className="px-3 py-3 flex justify-center">
-        <div className="flex flex-wrap justify-center items-stretch gap-x-4 gap-y-3">
-          <div className="flex items-center shrink-0"><Compass disabled={sub} /></div>
-          <span className="hidden sm:block w-px bg-[#9a9a9a] self-stretch" />
-
-          <div className="w-[300px] max-w-full flex flex-col justify-center">
-            {mode === 'main' && (
-              <>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Btn cmd="look" label="Look" />
-                  <Btn cmd="map" label="Map" />
-                  <Btn onTap={() => setMode('examine')} label="Examine…" />
-                  {ui.takes.length > 0 && <Btn onTap={() => setMode('take')} label="Take…" />}
-                  <Btn cmd="listen" label="Listen" />
-                  <Btn cmd="inventory" label="Items" />
-                  <Btn cmd="hint" label="Hint" />
-                  <Btn cmd="score" label="Score" />
-                  {ui.won && <Btn cmd="amusing" label="Amusing" />}
-                </div>
-                {ui.cipher && (
-                  <div className="text-[11px] text-[#06457a] mt-2 leading-snug text-center">
-                    Cipher room: type <b>xor &lt;hex&gt; &lt;hex&gt;</b> to unmask a share, then <b>unseal &lt;word&gt;</b> in the volume.
-                  </div>
-                )}
-              </>
-            )}
-
-            {(mode === 'examine' || mode === 'take') && (
-              <>
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span onClick={() => setMode('main')} className="nc-dlgbtn px-2.5 py-[5px] text-[12px] cursor-pointer select-none">&lsaquo; Back</span>
-                  <span className="text-[12px] text-[#06457a] font-bold">{heading}</span>
-                </div>
-                {list.length ? (
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {list.map((o, i) => (
-                      <Btn key={i} label={o.label}
-                        onTap={() => { send(o.cmd); if (mode === 'take') setMode('main'); }} />
-                    ))}
-                  </div>
-                ) : <div className="text-[12px] text-[#06457a] text-center">{empty}</div>}
-              </>
-            )}
-
-            {mode === 'reset' && (
-              <div className="text-center">
-                <div className="text-[12px] text-[#06457a] mb-2 leading-snug">Reset the game?<br />This wipes all progress on this save.</div>
-                <div className="flex justify-center gap-2">
-                  <Btn onTap={() => { send('reset yes'); setMode('main'); }} label="Reset game" cls="font-bold" />
-                  <Btn onTap={() => setMode('main')} label="Cancel" />
-                </div>
-              </div>
-            )}
+  const RightColumn = () => {
+    if (mode === 'reset') {
+      return (
+        <div className="text-center">
+          <div className="text-[12px] text-[#06457a] mb-2 leading-snug">Reset the game?<br />This wipes all progress on this save.</div>
+          <div className="flex justify-center gap-2">
+            <Btn onTap={() => { send('reset yes'); back(); }} label="Reset game" cls="font-bold" />
+            <Btn onTap={back} label="Cancel" />
           </div>
         </div>
-      </div>
+      );
+    }
+    if (mode === 'panel' && panel) {
+      return (
+        <>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <span onClick={back} className="nc-dlgbtn px-2.5 py-[5px] text-[12px] cursor-pointer select-none">&lsaquo; Back</span>
+            <span className="text-[12px] text-[#06457a] font-bold">{panel.title}</span>
+          </div>
+          {panel.options && panel.options.length ? (
+            <div className="flex flex-wrap justify-center gap-2">
+              {panel.options.map((o, i) => (
+                <Btn key={i} label={o.label} onTap={() => { send(o.cmd); if (panel.closeOnPick) back(); }} />
+              ))}
+            </div>
+          ) : <div className="text-[12px] text-[#06457a] text-center">{panel.empty || 'Nothing here.'}</div>}
+        </>
+      );
+    }
+    // main: render the engine-declared actions
+    return (
+      <>
+        <div className="flex flex-wrap justify-center gap-2">
+          {ui.actions.map((a, i) => (
+            <Btn key={i} label={a.label}
+              onTap={a.kind === 'panel' ? () => openPanel(a) : () => send(a.cmd)} />
+          ))}
+        </div>
+        {ui.cipher && (
+          <div className="text-[11px] text-[#06457a] mt-2 leading-snug text-center">
+            Cipher room: type <b>xor &lt;hex&gt; &lt;hex&gt;</b> to unmask a share, then <b>unseal &lt;word&gt;</b> in the volume.
+          </div>
+        )}
+      </>
     );
   };
 
@@ -157,9 +139,17 @@ export default function AdventureDialog({ v }) {
         </div>
       </div>
 
-      <Deck />
+      {/* control deck */}
+      <div className="px-3 py-3 flex justify-center">
+        <div className="flex flex-wrap justify-center items-stretch gap-x-4 gap-y-3">
+          <div className="flex items-center shrink-0"><Compass disabled={mode !== 'main'} /></div>
+          <span className="hidden sm:block w-px bg-[#9a9a9a] self-stretch" />
+          <div className="w-[300px] max-w-full flex flex-col justify-center"><RightColumn /></div>
+        </div>
+      </div>
 
       <div className="flex justify-center gap-3 pb-3.5">
+        {ui.canUndo && <span onClick={() => send('undo')} className="nc-dlgbtn px-4 py-[3px] cursor-pointer" title="take back your last move">Undo</span>}
         <span onClick={() => setMode('reset')} className="nc-dlgbtn px-4 py-[3px] cursor-pointer" title="start over (asks to confirm)">Reset</span>
         <span onClick={v.closeDialog} className="nc-dlgbtn px-[22px] py-[3px] cursor-pointer" title="progress is saved automatically">Close</span>
       </div>

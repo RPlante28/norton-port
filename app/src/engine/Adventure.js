@@ -394,12 +394,15 @@ export default class Adventure {
     'Commands:',
     '  look (l) . map (m) . listen         get your bearings',
     '  n s e w u d                         move (or  go north , etc.)',
+    '  go <room>                           auto-route to a room you have visited',
     '  examine <thing> (x)                 look closely - the good stuff is here',
     '  take / drop / inventory (i)',
     '  use <thing> on <thing>              apply one thing to another',
     '  xor <hex> <hex>                     the Keysafe/volume cipher tool (Act 2)',
     '  unseal <passphrase>                 open the disk once you have rebuilt it',
-    '  score . hint . reset . quit',
+    '  journal . map . score . hint         where you are and what is left',
+    '  undo                                take back your last move',
+    '  reset . quit',
     'Everything else you will have to discover. This machine keeps secrets.',
   ]; }
 
@@ -412,6 +415,12 @@ export default class Adventure {
     if(!s) return { lines:['Say again?'], quit:false };
     // keep hex tokens intact; strip filler words
     s=s.replace(/\b(the|a|an|at|to)\b/g,' ').replace(/\s+/g,' ').trim();
+    // ----- one-step undo (also the safety net for an accidental ending) -----
+    if(s==='undo' || s==='oops'){
+      if(this._undo){ this._load(JSON.parse(this._undo)); this._undo=null; this.save(); return { lines:['', '(undone - the machine forgets your last move.)', ...this._lookLines()], quit:false }; }
+      return { lines:['There is nothing to undo.'], quit:false };
+    }
+    this._undo = JSON.stringify(this.serialize());   // snapshot for a one-step undo of this command
     this.moves++;
     const F=this.flags, IT=this.items();
     const words=s.split(' '); let verb=words[0]; let rest=words.slice(1).join(' ');
@@ -424,13 +433,15 @@ export default class Adventure {
         if(this.room==='platters' && DIR[verb]==='e' && !F.headFlying) out.push('The parked head blocks the way onto track 0. It will not move for pedestrians.');
         else if(this.room==='boot' && DIR[verb]==='e' && this.act<2) out.push('The DISKREET door is unpowered until the machine POSTs. First get it to boot.');
         else out.push('You can\'t go that way.');
-      } else { this.room=to; if(to==='volume') F.volumeSeen=1; out.push(...this._lookLines()); }
+      } else { const was=this.seen[to]; this.room=to; if(to==='volume') F.volumeSeen=1; out.push(...this._lookLines()); if(was){ const a=this._ambient(to); if(a) out.push('', a); } }
       this.save(); return { lines:out, quit };
     }
 
     switch(verb){
       case 'look': case 'l': out.push(...this._lookLines()); break;
       case 'map': case 'm': out.push(...this._mapLines()); break;
+      case 'go': case 'route': case 'travel': case 'walk': out.push(...this._go(rest)); break;
+      case 'journal': case 'recap': case 'log': out.push(...this._journalLines()); break;
       case 'help': case '?': out.push(...this._help()); break;
       case 'hint': case 'hints': out.push(...this._hint()); break;
       case 'amusing': out.push(...this._amusing()); break;
@@ -632,6 +643,84 @@ export default class Adventure {
     return ['MAP  (explored so far)      [ ] = you    ? = unexplored, go there',''].concat(out);
   }
 
+  _roomName(id){ return ({ memory:'MEMORY', bus:'BUS', cpu:'6502', cmos:'CMOS', platters:'PLATTERS', boot:'BOOT', modem:'MODEM', bios:'BIOS', irq:'VECTORS', volume:'VOLUME', vram:'VRAM', opl:'OPL', keysafe:'KEYSAFE', floppy:'DRIVE A', lostfound:'LOST+FND' })[id]||id; }
+  _roomByName(n){
+    n=(n||'').replace(/\s+/g,'').toLowerCase();
+    const A={ memory:'memory',ram:'memory', bus:'bus', cpu:'cpu','6502':'cpu', cmos:'cmos',clock:'cmos', platters:'platters',platter:'platters',disk:'platters', boot:'boot',bootsector:'boot', modem:'modem', bios:'bios',rom:'bios', irq:'irq',vectors:'irq',vector:'irq', volume:'volume', vram:'vram',video:'vram', opl:'opl',sound:'opl',soundchip:'opl', keysafe:'keysafe', floppy:'floppy',drivea:'floppy', lostfound:'lostfound','lost+fnd':'lostfound',lostandfound:'lostfound' };
+    return A[n]||null;
+  }
+  // MaristMaps-style route solver: shortest path over rooms you've discovered
+  _go(rest){
+    if(!rest) return ['Go where? Name a room you have visited (see  map ).'];
+    const target=this._roomByName(rest);
+    if(!target) return ['No such place. Try  map  for where you can go.'];
+    if(!this.seen[target]) return ['You have not been there yet. The route solver only plots a course through rooms you have already discovered.'];
+    if(target===this.room) return ['You are already there.'];
+    const R=this.rooms(), prev={ [this.room]:null }, q=[this.room];
+    while(q.length){ const cur=q.shift(); if(cur===target) break; const ex=R[cur].exits||{}; Object.keys(ex).forEach(k=>{ const t=ex[k]; if(this.seen[t] && !(t in prev)){ prev[t]=cur; q.push(t); } }); }
+    if(!(target in prev)) return ['No known route from here to there. The way may not be open yet.'];
+    const path=[]; let c=target; while(c!=null){ path.unshift(c); c=prev[c]; }
+    const was=this.seen[target];
+    this.room=target; if(target==='volume') this.flags.volumeSeen=1;
+    const hops=path.length-1;
+    const out=['MaristMaps route solver: '+path.map(id=>this._roomName(id)).join(' -> ')+'   ('+hops+' hop'+(hops===1?'':'s')+')', ...this._lookLines()];
+    if(was){ const a=this._ambient(target); if(a) out.push('', a); }
+    return out;
+  }
+  // ambient one-liners on revisiting a room (dry, occasional)
+  _ambient(id){
+    if(Math.random()>=0.32) return null;
+    const any=[ 'A capacitor somewhere lets out a small, contented tick.',
+      'The fans change pitch, then think better of it.',
+      'Dust drifts through a refresh cycle and is re-remembered.',
+      'Something distant re-seats itself and settles.',
+      'The machine hums the same three notes it always does.',
+      'A status LED blinks once, for no one in particular.' ];
+    const per={ memory:['A resident program rolls over in its sleep.'],
+      bus:['A stray packet asks for directions and moves on.'],
+      platters:['3,600 rpm, forever, without complaint.'],
+      modem:['The dial tone waits, patient as a held breath.'],
+      cpu:['The 6502 counts something only it can see.'],
+      cmos:['The clock keeps time nobody asked it to keep.'],
+      bios:['The ROM remembers, which is all ROM does.'],
+      irq:['A vector fires, is handled, and forgets it happened.'],
+      volume:['Behind the cipher haze, the shapes shift and go still.'],
+      keysafe:['The Keysafe does arithmetic it will never explain.'],
+      vram:['A grey thumbnail flickers, almost resolving, then not.'],
+      opl:['The sound chip holds its instrument and says nothing.'] };
+    const pool=(per[id]||[]).concat(any);
+    return pool[(Math.random()*pool.length)|0];
+  }
+  // a short "story so far" recap, act- and progress-aware
+  _journalLines(){
+    const F=this.flags, bx=(v)=>v?'[x]':'[ ]';
+    const L=['JOURNAL  -  the story so far',''];
+    if(!F.posted){
+      L.push('The machine will not boot. The failing disk was pulled and reseated,',
+        'and the boot sector lost its signature in the process.','',
+        'OBJECTIVE: get the machine to POST.',
+        '  '+bx(F.headFlying)+' free the parked disk head',
+        '  '+bx(F.cpuAwake)+' wake the 6502 (recover $55)',
+        '  '+bx(F.modemHooked)+' hook the modem (receive $AA)',
+        '  '+bx(F.jumperWrite)+' enable writes to track 0',
+        '  '+bx(F.posted)+' write the boot signature');
+    } else if(!F.unsealed){
+      L.push('The machine POSTs now, but that same reseat changed its hardware',
+        'fingerprint, and DISKREET has sealed drive C. The recovery passphrase',
+        'was never written down.','',
+        'OBJECTIVE: rebuild the passphrase and unseal the disk.',
+        '  '+bx(F.volumeSeen)+' reach the sealed volume (east of BOOT)',
+        '  '+bx(F.escrowRead)+' find the escrowed key-shares (Keysafe)',
+        '  '+bx(F.sigFound)+' recover the original drive signature',
+        '  '+bx(F.unsealed)+' unseal the volume');
+    } else {
+      L.push('Drive C is open. Everything sealed came back. You can  boot  to',
+        'watch the machine come all the way up, or keep wandering.');
+    }
+    L.push('', 'Explored '+Object.keys(this.seen).length+' rooms  -  '+this._noteCount()+' of '+this._noteTotal()+' side notes  -  '+this.moves+' moves.');
+    return L;
+  }
+
   // ----- Act 1 puzzle verbs --------------------------------------------
   _use(verb, rest){
     const F=this.flags;
@@ -787,23 +876,37 @@ export default class Adventure {
   }
 
   // ----- structured state for the GUI button bar -----------------------
+  // ----- structured state for the GUI: a declarative action schema so the
+  // dialog can render every command as a button without hardcoding mechanics.
+  // Each action is { kind:'cmd', label, cmd }              -> sends a command
+  //             or  { kind:'panel', label, panel, title,   -> opens a chooser
+  //                   options:[{cmd,label}], empty, closeOnPick }
   uiHints(){
     const R=this.rooms()[this.room]; const F=this.flags;
     const exits={}; ['n','s','e','w','u','d'].forEach(d=>{ exits[d]=!!R.exits[d]; });
-    const itemsHere=Object.keys(this.itemLoc).filter(id=>this.itemLoc[id]===this.room);
     const IT=this.items();
-    const label=(id)=>IT[id].short.replace(/^(a|an|the) /,'');
-    // Take only lists items you have already examined (inspect before pocketing)
-    const takes=itemsHere.filter(id=>this.flags['exam_'+id])
-      .map(id=>({ cmd:'take '+IT[id].names[0], label:label(id) }));
-    // Examine lists room features (first noun of each x-entry) plus any loose
-    // items present, so the button player can inspect a thing before taking it
+    const itemsHere=Object.keys(this.itemLoc).filter(id=>this.itemLoc[id]===this.room);
+    const ilabel=(id)=>IT[id].short.replace(/^(a|an|the) /,'');
+    const takes=itemsHere.filter(id=>this.flags['exam_'+id]).map(id=>({ cmd:'take '+IT[id].names[0], label:ilabel(id) }));
     const exams=Object.keys(R.x||{}).map(k=>k.split('|')[0]).filter(n=>n && n.length<=16)
       .map(n=>({ cmd:'examine '+n, label:n.charAt(0).toUpperCase()+n.slice(1) }))
-      .concat(itemsHere.map(id=>({ cmd:'examine '+IT[id].names[0], label:label(id) })));
-    // context actions
-    const acts=[{cmd:'look',label:'Look'},{cmd:'map',label:'Map'},{cmd:'listen',label:'Listen'},{cmd:'inventory',label:'Items'},{cmd:'hint',label:'Hint'},{cmd:'score',label:'Score'}];
+      .concat(itemsHere.map(id=>({ cmd:'examine '+IT[id].names[0], label:ilabel(id) })));
+    const goOpts=Object.keys(this.seen).filter(id=>id!==this.room && R && this.rooms()[id]).map(id=>({ cmd:'go '+id, label:this._roomName(id) }));
+
+    const actions=[];
+    actions.push({ kind:'cmd', label:'Look', cmd:'look' });
+    actions.push({ kind:'cmd', label:'Map', cmd:'map' });
+    if(exams.length) actions.push({ kind:'panel', label:'Examine…', panel:'examine', title:'Examine what?', options:exams, empty:'Nothing here worth a closer look.' });
+    if(takes.length) actions.push({ kind:'panel', label:'Take…', panel:'take', title:'Take what?', options:takes, empty:'Nothing here to take.', closeOnPick:true });
+    if(goOpts.length) actions.push({ kind:'panel', label:'Go…', panel:'go', title:'Go where?', options:goOpts, empty:'Nowhere else visited yet.', closeOnPick:true });
+    actions.push({ kind:'cmd', label:'Listen', cmd:'listen' });
+    actions.push({ kind:'cmd', label:'Items', cmd:'inventory' });
+    actions.push({ kind:'cmd', label:'Journal', cmd:'journal' });
+    actions.push({ kind:'cmd', label:'Hint', cmd:'hint' });
+    actions.push({ kind:'cmd', label:'Score', cmd:'score' });
+    if(F.won) actions.push({ kind:'cmd', label:'Amusing', cmd:'amusing' });
+
     const cipher = (this.act>=2 && (this.room==='keysafe'||this.room==='volume') && !F.unsealed);
-    return { act:this.act, room:this.room, exits, takes, exams, acts, cipher, won:!!F.won };
+    return { act:this.act, room:this.room, exits, actions, cipher, won:!!F.won, canUndo:!!this._undo };
   }
 }
