@@ -142,7 +142,7 @@ export default function AdventureDialog({ v }) {
       {/* control deck */}
       <div className="px-3 py-3 flex justify-center">
         <div className="flex flex-wrap justify-center items-stretch gap-x-4 gap-y-3">
-          <div className="flex items-center shrink-0"><Compass disabled={mode !== 'main'} /></div>
+          <div className="flex items-center shrink-0"><Compass disabled={mode !== 'main' || ui.pending} /></div>
           <span className="hidden sm:block w-px bg-[#9a9a9a] self-stretch" />
           <div className="w-[300px] max-w-full flex flex-col justify-center"><RightColumn /></div>
         </div>

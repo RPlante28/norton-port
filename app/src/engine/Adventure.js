@@ -467,6 +467,7 @@ export default class Adventure {
     '  6502 <hex> <hex>                     run the machine-language monitor',
     '  sweep . search . combine             LiDAR, recover loot, craft from salvage',
     '  journal . score . hint               where you are and what is left',
+    '  leaderboard                          your past runs and endings',
     '  undo                                take back your last move',
     '  reset . quit',
     'Everything else you will have to discover. This machine keeps secrets.',
@@ -483,8 +484,18 @@ export default class Adventure {
     s=s.replace(/\b(the|a|an|at|to)\b/g,' ').replace(/\s+/g,' ').trim();
     // ----- one-step undo (also the safety net for an accidental ending) -----
     if(s==='undo' || s==='oops'){
-      if(this._undo){ this._load(JSON.parse(this._undo)); this._undo=null; this.save(); return { lines:['', '(undone - the machine forgets your last move.)', ...this._lookLines()], quit:false }; }
+      if(this._undo){ this._load(JSON.parse(this._undo)); this._undo=null; this.pending=null; this.save(); return { lines:['', '(undone - the machine forgets your last move.)', ...this._lookLines()], quit:false }; }
       return { lines:['There is nothing to undo.'], quit:false };
+    }
+    // ----- a destructive action is armed and waiting for CONFIRM -----
+    if(this.pending){
+      const pend=this.pending; this.pending=null;
+      if(/^(confirm|yes|y|do it|doit)$/.test(s)){
+        this._undo = JSON.stringify(this.serialize());   // snapshot BEFORE destruction so undo reverts it
+        this.moves++; this.save();
+        return { lines:this._destruct(pend), quit:false };
+      }
+      return { lines:['You stop. The machine exhales; nothing was destroyed.'], quit:false };
     }
     this._undo = JSON.stringify(this.serialize());   // snapshot for a one-step undo of this command
     this.moves++;
@@ -592,6 +603,8 @@ export default class Adventure {
         out.push(...this._dashboard(), '', ...this._checklist()); break;
 
       case 'ask': case 'consult': case 'oracle': case 'advisor': out.push(...this._ask(rest)); break;
+      case 'leaderboard': case 'runs': case 'scores': case 'records': out.push(...this._leaderboard()); break;
+      case 'play': case 'encore': out.push(...this._play()); break;
 
       case 'save': this.save(); out.push('Saved. It saves on every move anyway, but the gesture is appreciated.'); break;
 
@@ -619,7 +632,8 @@ export default class Adventure {
         if(this.room==='platters'){ out.push('3,600 rpm. No.'); const fn=this._funNote('gravity'); if(fn) out.push(fn); }
         else out.push('You jump. The stack pointer flinches.'); break;
 
-      case 'wait': case 'z':
+      case 'wait': case 'z': case 'sleep': case 'rest':
+        if(this.room==='dark' && !F.darkLit){ out.push(...this._endGrue()); break; }   // F5
         if(this._crystalGone()){ out.push('Time passes. Well. For the rest of the machine it doesn\'t, technically. That one is on you.'); const fn=this._funNote('timelord'); if(fn) out.push(fn); }
         else out.push('Time passes.'); break;
 
@@ -627,15 +641,30 @@ export default class Adventure {
 
       case 'dir': case 'ls': case 'cd': case 'pwd': case 'cls': out.push('Wrong shell. Out there you are a user. In here you are a process.'); { const fn=this._funNote('shell'); if(fn) out.push(fn); } break;
 
-      case 'erase': case 'del': case 'delete': case 'wipe':
-        if(this.room==='bios'){ out.push('You reach toward the pencil line, DO NOT ERASE AGAIN. Somewhere a POST beep clears its throat, once. You put your hand down.'); const fn=this._funNote('erase'); if(fn) out.push(fn); }
-        else out.push('There is nothing here you could erase, which is for the best.'); break;
-
       case 'brute': case 'bruteforce': case 'crack': case 'force': case 'hack':
         out.push('You ask DISKREET to just try every key. It computes, briefly, the year it would finish, declines to share the number, and goes back to sleep. DES was chosen for exactly this reason.'); { const fn=this._funNote('brute'); if(fn) out.push(fn); } break;
 
+      // ---- destructive actions: armed, confirm-gated, always undoable (F2/F3) ----
+      case 'erase': case 'del': case 'delete': case 'wipe':
+        if(this.room==='bios') out.push(...this._arm('dark', ['You move to erase the BIOS ROM. The pencil line begs you not to. Without','a BIOS this machine cannot POST at all - it would go dark, and stay dark.']));
+        else if(['volume','boot','platters','dark'].indexOf(this.room)>=0) out.push(...this._arm('nocarrier', ['You could erase the disk, right here, right now - everything behind the','cipher with it. That is not recovery. That is the other thing.']));
+        else out.push('There is nothing here you could safely erase, which is for the best.');
+        break;
       case 'format':
-        out.push('format C:  -  the fastest way to make sure nobody ever recovers anything. Absolutely not. That is the opposite of tonight.'); break;
+        out.push(...this._arm('nocarrier', ['format C: overwrites the entire disk. Every recovery, gone for good, the','way a real format is meant to work. There is no coming back from this,','except  undo .']));
+        break;
+      case 'reseat': case 'unseat':
+        out.push(...this._arm('nocarrier', ['You could pull the fixed disk and reseat it AGAIN - the very thing that','sealed it. Do that while it is sealed and DISKREET takes the whole volume','down with it, for keeps.']));
+        break;
+      case 'smash': case 'break': case 'destroy': case 'kick': case 'wreck':
+        out.push(...this._arm('dark', ['You could put a fist through something load-bearing. It would certainly','stop the machine. It would also stop everything you came here to save.']));
+        break;
+      case 'unplug': case 'pull': case 'yank': case 'poweroff': case 'shutdown': case 'halt': {
+        const tgt=rest||verb;
+        if(/drive|disk|ribbon|cable/.test(tgt)) out.push(...this._arm('nocarrier', ['You could yank the drive\'s ribbon mid-seal. The controller would fault','and take drive C offline, permanently.']));
+        else if(/batter|cell|crystal|clock|cmos/.test(tgt)) out.push(...this._arm('dark', ['You could pull the clock\'s heart out. The machine would forget what time','it is, and what it is, and never fully wake again.']));
+        else out.push(...this._arm('dark', ['You could pull the plug: a cold power-off, mid-everything, the disk half','open and the cipher half fed. It would not come back the same, if at all.']));
+        break; }
 
       case 'boot': case 'reboot':
         if(F.won){ this.save(); quit=true; out.push(...this._codaLines()); }
@@ -1075,9 +1104,70 @@ export default class Adventure {
     this.save();
     return rej;
   }
+  // ----- destructive endings: arm -> CONFIRM -> destroy (all undoable) -----
+  _arm(ending, warn){ this.pending={ ending }; return warn.concat(['', '>>> type  CONFIRM  to do it. anything else stops.  (undo reverts, too.) <<<']); }
+  _destruct(pend){
+    this.flags.bricked=pend.ending; this._recordRun(pend.ending);
+    return pend.ending==='nocarrier' ? this._endNoCarrier() : this._endDark();
+  }
+  _endNoCarrier(){ return ['   DRIVE C: WRITING ZEROS . . .','   [################################]  done','',
+    '*** THE DISK DIED ***','',
+    'The data goes the way the real data went: completely, and at your own',
+    'hand this time. The machine will still boot. It will just have nothing',
+    'left worth booting for.','',
+    'You did not mean it. Type  undo  and none of it happened.  (or  restart .)']; }
+  _endDark(){ return ['   POWER: DROPPING . . .','   . . . . . . . . . . . . . . . . . . . . .','',
+    '*** LIGHTS OUT ***','',
+    'The machine goes dark all at once, the way old machines do: no drama, no',
+    'shutdown, just gone. The disk was half-open. It will not be, again.','',
+    'Type  undo  to bring it back to the last second it was alive.  (or  restart .)']; }
+  _endGrue(){ this.flags.bricked='grue'; this._recordRun('grue'); return ['You wait, in the dark, in the one room that told you not to.','',
+    'It is pitch black. You are eaten by a grue.','',
+    '*** YOU HAVE BEEN EATEN BY A GRUE ***','',
+    '(the oldest death in the genre. type  undo  - you were only visiting.)']; }
+  // W3: the Encore - play the recovered songs (a warm post-win coda; the
+  // natural home for real MP3s later, via the app layer)
+  _play(){
+    if(!this.flags.won) return ['There is nothing to play yet. The songs are still sealed.'];
+    this.flags.encored=1;
+    return ['You tell the OPL to play what it just got back.','',
+      '   OPL2  -  9 voices  -  loading patch . . . ready',
+      '   > PLAY  SONGS\\*.*','',
+      'It plays a song written on this machine, years ago, late, unhurried,',
+      'unreleased. A few of them are good and most of them are not, which is',
+      'exactly what a folder of songs is supposed to be. The point was never',
+      'that they were good. The point was that they were yours, and you',
+      'thought they were gone.','',
+      '*** ENCORE ***'];
+  }
+  // M6/leaderboard: past runs, best highlighted
+  _leaderboard(){
+    let runs=[]; try{ runs=JSON.parse(localStorage.getItem('rohanAdvRuns')||'[]'); }catch{ runs=[]; }
+    if(!runs.length) return ['LEADERBOARD - no finished runs yet.','(reach an ending - any ending - and it lands here.)'];
+    const endLabel={ recovery:'RECOVERED', archivist:'ARCHIVIST', wipe:'TAMPER-WIPED', nocarrier:'NO CARRIER', dark:'WENT DARK', grue:'EATEN BY GRUE' };
+    const win=(e)=>e==='recovery'||e==='archivist';
+    // best = a win with highest %, then fewest moves
+    let best=-1, bestPct=-1, bestMoves=1e9;
+    runs.forEach((r,i)=>{ if(win(r.ending) && (r.pct>bestPct || (r.pct===bestPct && r.moves<bestMoves))){ best=i; bestPct=r.pct; bestMoves=r.moves; } });
+    const out=['LEADERBOARD - your runs   ('+runs.length+')','  #  RESULT         %    mv  itm  rm  notes  secr'];
+    runs.slice().reverse().forEach((r,idx)=>{
+      const i=runs.length-1-idx;
+      const mark=(i===best)?'*':' ';
+      out.push(' '+mark+(runs.length-idx<10?' ':'')+(runs.length-idx)+'  '+((endLabel[r.ending]||r.ending)+'            ').slice(0,13)+' '+String(r.pct).padStart(3)+'  '+String(r.moves).padStart(3)+'  '+String(r.items).padStart(3)+'  '+String(r.rooms).padStart(2)+'   '+String(r.notes).padStart(2)+'    '+String(r.secrets).padStart(2));
+    });
+    out.push('  (* = best run)');
+    return out;
+  }
+  // leaderboard: append this run's stats + ending (best run highlighted later)
+  _recordRun(ending){
+    try{ const key='rohanAdvRuns'; const runs=JSON.parse(localStorage.getItem(key)||'[]');
+      runs.push({ ending, pct:this._completion(), moves:this.moves, items:this.inv.length, rooms:Object.keys(this.seen).length, notes:this._noteCount(), secrets:Object.keys(this.fun).length, at:Date.now() });
+      localStorage.setItem(key, JSON.stringify(runs.slice(-40)));
+    }catch{ /* ignore */ }
+  }
   // F1 - the BitLocker-style self-destruct after too many wrong keys
   _tamperWipe(rej){
-    const F=this.flags; F.bricked='wipe'; this.save();
+    const F=this.flags; F.bricked='wipe'; this._recordRun('wipe'); this.save();
     return (rej||[]).concat(['','',
       '   DISKREET: ATTEMPT LIMIT REACHED','   TAMPER RESPONSE - SCORCHING VOLUME',
       '   [################################]  16 passes . . . done','',
@@ -1110,7 +1200,14 @@ export default class Adventure {
       'Completion: '+this._completion()+'%'+(newBest?'   (a new best run)':'')+'.  Standing: '+(full?'Ring 0, Archivist':this._rank())+'.'];
     if(full) out.push('You read every story this machine had and found every last thing it hid.','It will not forget that.');
     else out.push('Side notes '+notes+'/'+this._noteTotal()+', amusements '+Object.keys(this.fun).length+'/'+this._funTotal()+'. There is more in here, behind an  examine .');
-    out.push('', '(type  boot  to watch it come up clean,  amusing  for what you did along','the way,  restart  to run it again, or  quit .)');
+    // badges (W2/W5/W6)
+    const allRooms=Object.keys(this.rooms()).length, badges=[];
+    if(!(this.flags.attempts>0)) badges.push('  [NO-DEATH RUN]  DISKREET never rejected you once.');
+    if(Object.keys(this.seen).length>=allRooms) badges.push('  [CARTOGRAPHER]  every room in the machine, mapped.');
+    if(full) badges.push('  [ARCHIVIST]    every story found, every secret turned up.');
+    if(badges.length) out.push('', 'EARNED:', ...badges);
+    this._recordRun(full?'archivist':'recovery');
+    out.push('', '(type  play  to hear what you recovered,  boot  to watch it come up','clean,  amusing  for what you did along the way, or  restart .)');
     return out;
   }
   _codaLines(){
@@ -1134,6 +1231,12 @@ export default class Adventure {
   uiHints(){
     const R=this.rooms()[this.room]; const F=this.flags;
     const exits={}; ['n','s','e','w','u','d'].forEach(d=>{ exits[d]=!!R.exits[d]; });
+    // a destructive action is armed: the deck shows only CONFIRM / Cancel
+    if(this.pending){
+      return { exits, pending:true, canUndo:!!this._undo, actions:[
+        { kind:'cmd', label:'CONFIRM', cmd:'confirm' },
+        { kind:'cmd', label:'Cancel', cmd:'cancel' } ] };
+    }
     const IT=this.items();
     const itemsHere=Object.keys(this.itemLoc).filter(id=>this.itemLoc[id]===this.room);
     const ilabel=(id)=>IT[id].short.replace(/^(a|an|the) /,'');
@@ -1162,7 +1265,8 @@ export default class Adventure {
     actions.push({ kind:'cmd', label:'Journal', cmd:'journal' });
     actions.push({ kind:'cmd', label:'Hint', cmd:'hint' });
     actions.push({ kind:'cmd', label:'Score', cmd:'score' });
-    if(F.won) actions.push({ kind:'cmd', label:'Amusing', cmd:'amusing' });
+    if(F.won){ actions.push({ kind:'cmd', label:'Play (Encore)', cmd:'play' }); actions.push({ kind:'cmd', label:'Amusing', cmd:'amusing' }); }
+    actions.push({ kind:'cmd', label:'Leaderboard', cmd:'leaderboard' });
 
     const cipher = (this.act>=2 && (this.room==='keysafe'||this.room==='volume') && !F.unsealed);
     return { act:this.act, room:this.room, exits, actions, cipher, won:!!F.won, canUndo:!!this._undo };
