@@ -454,6 +454,7 @@ export default class Adventure {
     '  xor <hex> <hex>                     the Keysafe/volume cipher tool (Act 2)',
     '  unseal <passphrase>                 open the disk once you have rebuilt it',
     '  ask <topic>                         consult ADVISOR.SYS (the expert system)',
+    '  6502 <hex> <hex>                     run the machine-language monitor',
     '  sweep . search . combine             LiDAR, recover loot, craft from salvage',
     '  journal . score . hint               where you are and what is left',
     '  undo                                take back your last move',
@@ -575,6 +576,7 @@ export default class Adventure {
       case 'sweep': case 'lidar': case 'ping': out.push(...this._sweep()); break;
       case 'recover': case 'search': case 'salvage': case 'sift': out.push(...this._search()); break;
       case 'combine': case 'cook': case 'craft': case 'build': case 'assemble': out.push(...this._combine()); break;
+      case 'mon': case 'monitor': case 'asm': case '6502': out.push(...this._mon(rest)); break;
 
       case 'score': case 'status': case 'progress': case 'stats': case 'dashboard':
         out.push(...this._dashboard(), '', ...this._checklist()); break;
@@ -824,6 +826,29 @@ export default class Adventure {
   }
   _askTopics(){ return [ {k:'machine',l:'the machine'}, {k:'disk',l:'the disk'}, {k:'cipher',l:'the cipher'}, {k:'dark',l:'the dark'}, {k:'passphrase',l:'the passphrase'}, {k:'advisor',l:'the advisor'} ]; }
 
+  // ----- M2: the 6502 machine-language monitor (your emulator, as a tool) -
+  _mon(rest){
+    if(this.room!=='cpu') return ['There is no processor here to run it on. The 6502 sits in the coprocessor socket, north of the bus.'];
+    if(!this.flags.cpuAwake) return ['The 6502 has no clock yet, so it cannot run a thing. Wake it first - it was waiting on a crystal.'];
+    const parts=(rest||'').split(/\s+/).filter(Boolean);
+    if(parts.length<2) return ['6502 MONITOR  (your emulator, running for real)',
+      '  Usage:  6502 <hex> <hex>   assembles LDA #$aa / EOR #$bb and steps it',
+      '                             through the CPU, leaving the result in A.',
+      '  This is how you unmask a share without ever leaving the processor:',
+      '  a share XOR the drive signature is exactly one EOR instruction.'];
+    const a=this._parseHex(parts[0]), b=this._parseHex(parts[1]);
+    if(isNaN(a)||isNaN(b)) return ['Those are not both hex bytes. Try two values like  62  and  2A .'];
+    const r=(a^b)&0xff, ch=r>=32&&r<127?String.fromCharCode(r):'.';
+    const note=(b===0x37||a===0x37)?'   (that is the post-reseat fingerprint; it will not unmask cleanly)':'';
+    return ['You hand-assemble two instructions and single-step the 6502:','',
+      '   C000  A9 '+hx(a)+'     LDA #$'+hx(a),
+      '   C002  49 '+hx(b)+'     EOR #$'+hx(b),
+      '   C004  00        BRK','',
+      '   run . . . 6 cycles . . . halted at C004',
+      '   A = '+hx(r)+"   ('"+ch+"')"+note,'',
+      'The accumulator holds the unmasked byte. Your emulator did that, one',
+      'cycle at a time, exactly the way you built it to.'];
+  }
   // ----- M5: crafting (solder salvage parts into a tool) ---------------
   _combine(){
     const has=(id)=>this.inv.indexOf(id)>=0;
@@ -1078,6 +1103,7 @@ export default class Adventure {
     if(this.room==='lostfound' || (this.room==='dark' && this.flags.darkLit)) actions.push({ kind:'cmd', label:'Search', cmd:'search' });
     const salv=['cap','solder','heatsink'].filter(id=>this.inv.indexOf(id)>=0).length;
     if(salv>=2 && !this.flags.probeMade) actions.push({ kind:'cmd', label:'Combine', cmd:'combine' });
+    if(this.room==='cpu' && this.flags.cpuAwake) actions.push({ kind:'cmd', label:'6502 Monitor', cmd:'6502' });
     actions.push({ kind:'cmd', label:'Listen', cmd:'listen' });
     actions.push({ kind:'cmd', label:'Items', cmd:'inventory' });
     actions.push({ kind:'panel', label:'Ask…', panel:'ask', title:'Ask the advisor about:', options:this._askTopics().map(t=>({ cmd:'ask '+t.k, label:t.l })) });
