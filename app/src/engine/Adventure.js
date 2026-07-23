@@ -28,6 +28,13 @@ const PASS = 'HOME';
 const K_ORIG = 0x2a;                                   // original drive signature
 const K_NOW  = 0x37;                                   // post-reseat fingerprint (red herring)
 const SHARES = PASS.split('').map((c) => c.charCodeAt(0) ^ K_ORIG); // 0x62 65 67 6f
+// the seal-time fingerprint = drive XOR bios XOR cmos. bios/cmos are unchanged,
+// so a player can DEDUCE the original drive signature: K_ORIG = F_SEAL^BIOS^CMOS
+// (solution S-C), without ever reading the drive label (solution S-A).
+const BIOS_SIG = 0x1b;
+const CMOS_SIG = 0x4e;
+const F_SEAL = K_ORIG ^ BIOS_SIG ^ CMOS_SIG;           // 0x7F
+const ATTEMPT_MAX = 6;                                 // wrong unseals before F1 tamper-wipe
 const hx = (n) => (n & 0xff).toString(16).toUpperCase().padStart(2, '0');
 
 export default class Adventure {
@@ -159,6 +166,7 @@ export default class Adventure {
       listen: this._crystalGone() ? 'Nothing. You are standing in a stopped clock, which is a strange place to stand.' : 'Tick. 32,768 times a second, which to human ears is one long unbroken note of quiet competence.',
       x:{ 'clock|cmos|rtc|chip|date': this._crystalGone() ? 'Frozen at the moment you took the crystal. It will forgive you if you win.' : 'The date reads '+this._dosDate()+'. Checksum valid. It is quietly proud of this.',
         'battery|cell':'Three volts of stubbornness. Rated for five years, serving its fifteenth.',
+        'signature|sig|serial|id|contribution':'The RTC reports its hardware signature: CMOS SIG '+hx(CMOS_SIG)+'. Unchanged since the machine was built - it is one of the three bytes the fingerprint is made of.',
         'registers|alarm|alarms|calendar|calendars': { note:'calendars', t:'Two academic calendars are burned into the alarm registers. The older one is set to Danvers, Massachusetts, vocational-technical, honors flagged. The newer one is set to Poughkeepsie, computer science, and it is still accumulating.' } } },
     platters: { name:'The Disk Platters',
       exits: F.headFlying ? { w:'bus', e:'boot' } : { w:'bus' },
@@ -215,6 +223,7 @@ export default class Adventure {
       x:{ 'rom|eprom|die|window':'Through the quartz window you can see the die. It is beautiful the way bridges are beautiful.',
         'jumper|jp1|header|pins': F.jumperWrite ? 'JP1 sits on WRITE TRK0. Reckless. Correct.' : 'A two-millimeter decision. On SAFE, the controller refuses all writes to track 0. On WRITE TRK0, it minds its own business.',
         'label':'ROHAN-DOS BIOS v2.11, and under it in pencil: DO NOT ERASE AGAIN.',
+        'signature|sig|serial|id|contribution':'The BIOS reports its checksum signature: BIOS SIG '+hx(BIOS_SIG)+'. Burned in at the factory, unchanged since - one of the three bytes the machine fingerprint is made of.',
         'post|self-test|log|test': { note:'postlog', t:'You page through the self-test log. Most nights are routine; some are starred: FALL 2022, CYBER LEAGUE .... PASS. MAY 2024, OUTSTANDING VO-TECH .... PASS. APR 2026, HACKATHON 24 HRS .... BEST OVERALL. The beep, the log notes, has never once been off pitch.' } } },
     irq: { name:'The Interrupt Vector Table', exits:{ u:'bus', e:'slots' },
       desc:[ 'The bottom of memory, 0000 to 03FF, where the interrupt vectors',
@@ -276,6 +285,7 @@ export default class Adventure {
       listen:'A cricket-thin whine of a chip doing arithmetic it will never explain to you.',
       x:{ 'panel|shares|escrow|table|keyshares|key-shares|share': { note:'escrow', t:'The escrow panel lists four key-shares, one per byte of the passphrase:\n     S0 '+hx(SHARES[0])+'    S1 '+hx(SHARES[1])+'    S2 '+hx(SHARES[2])+'    S3 '+hx(SHARES[3])+'\nEach share is one passphrase byte XOR-masked by the drive\'s signature, so the shares alone are useless without the machine they were bound to. Unmask a share by XOR-ing it with that signature. There is a  xor  tool built into this room.' },
         ['fingerprint|current|readout|'+hx(K_NOW).toLowerCase()]: 'CURRENT FINGERPRINT '+hx(K_NOW)+'. This is what the Keysafe measures NOW, after the reseat. Try to unmask the shares with it and you get garbage: it is not the signature the key was sealed under. The original is stamped on the drive itself.',
+        'seal|record|sealtime|seal record|log': { note:'sealrecord', t:'A sealed-at record, etched when the volume was locked:\n     FINGERPRINT @ SEAL  '+hx(F_SEAL)+'\n     COMPOSITION         DRIVE (xor) BIOS (xor) CMOS\nThe BIOS and CMOS have not changed since; only the drive did. So the drive\'s ORIGINAL signature is just this seal fingerprint XOR the BIOS signature XOR the CMOS signature. You could read those two off the BIOS and the clock and never need the drive label at all.' },
         'keysafe|coprocessor|chip': { note:'binding', t:'This is where a key becomes a hostage. DISKREET measured the machine - drive, BIOS, clock - and fused the passphrase to that measurement, so a stolen disk in another machine stays dark. It is good security and a terrible trap: change the hardware, even to fix it, and the disk locks out its own owner. Nobody wrote the passphrase down, because the hardware was supposed to remember it. Then the hardware changed.' } } },
     floppy: { name:'Drive A', exits:{ e:'keysafe' },
       desc:[ 'The 5.25-inch floppy drive, drive A, its door still latched on a',
@@ -818,8 +828,13 @@ export default class Adventure {
     if(/cipher|xor|share|unmask|key/.test(t)) return say('Each escrowed share is one passphrase byte XOR the original drive', 'signature. Unmask each, read it as a letter. The signature is stamped', 'on the drive itself - not the fingerprint the Keysafe measures now.');
     if(/dark|lidar|corrupt|sector/.test(t)) return say('You cannot reason about what you cannot see. A scanner card in the', 'expansion slots maps a room without any light at all.');
     if(/pass|word|phrase/.test(t)){
-      if((F.fragmentFound||0)>=1) return say('You have recovered fragments of it: four characters, spelling a', 'small, ordinary word for the place a person keeps what matters.');
-      return say('I could infer it with more facts. Recover fragments in the lost and', 'found, or unmask the shares. The word is short, and human.');
+      // S-D: with enough facts (a rare fragment, or broad exploration), the
+      // expert system can infer the whole word and just tell you
+      if((F.fragmentFound||0)>=1 || this._noteCount()>=8){
+        F.solvedOracle=1;
+        return say('I have enough facts now to close the inference. The recovered', 'fragments and what you have turned up agree on one small, human word', 'for the place a person keeps what matters:  the passphrase is HOME.', '(go to the volume and  unseal HOME .)');
+      }
+      return say('I could infer it with more facts. Recover a fragment in the lost and', 'found, or explore more of the machine, then ask me again. The word is', 'short, and human.');
     }
     if(/you|advisor|oracle|eliza|who|agent/.test(t)) return say('I am a small advisor, not a large one: a route table and a few hundred', 'rules. One day something like me will learn to speak. For now I point.');
     return say('Tell me more about "'+rest+'". (I only know the machine and its trouble.)');
@@ -930,7 +945,20 @@ export default class Adventure {
       if(this.room==='modem' && this._matchItem(a,['vector'])) b='modem';
       else if(this.room==='cpu' && this._matchItem(a,['crystal'])) b='cpu';
       else if(this.room==='platters' && this._matchItem(a,['unpark'])) b='head';
+      else if((this.room==='volume'||this.room==='keysafe') && this._matchItem(a,['probe'])) b='cell';
       else return ['Use '+a+' on what?'];
+    }
+    // S-F: the cold probe reads the sealed cell directly, no cipher needed
+    if(this._matchItem(a,['probe']) && /cell|lock|diskreet|seal|volume|keypad/.test(b)){
+      if(!this._has('probe')) return ['You have not built the cold probe yet. (combine the salvage parts.)'];
+      if(this.room!=='volume' && this.room!=='keysafe') return ['There is no sealed cell here to read. The lock is in the volume.'];
+      if(F.unsealed) return ['The volume is already open. Nothing left to probe.'];
+      F.probeRead=1; F.solvedProbe=1;
+      return ['You set the cold probe against DISKREET\'s master cell and hold a',
+        'charge there - dead steady, patient, never quite tripping the tamper',
+        'line. The cell gives up its contents one careful bit at a time:','',
+        '   H  O  M  E','',
+        'The passphrase, read straight off the hardware. Type  unseal HOME .'];
     }
     if(this._matchItem(a,['crystal']) && /cpu|6502|processor|clock|coprocessor|pin/.test(b)){
       if(this.room!=='cpu') return ['The coprocessor is not here.'];
@@ -1016,6 +1044,7 @@ export default class Adventure {
     const F=this.flags;
     if(this.act<2) return ['Nothing is sealed yet. First get the machine to POST.'];
     if(F.unsealed) return ['The volume is already open. It keeps its secrets for other people now.'];
+    if(F.bricked) return ['The volume is scorched - DISKREET wiped it. Nothing left to unseal.','Type  undo  to take back the attempt that did it, or  restart .'];
     if(this.room!=='volume') return ['The DISKREET lock is in the volume, east of the boot sector. Bring the passphrase there.'];
     let g=(rest||'').trim();
     if(!g) return ['Usage:  unseal <passphrase>  . Rebuild it from the escrowed shares first (Keysafe, north).'];
@@ -1031,11 +1060,33 @@ export default class Adventure {
       F.unsealed=1; F.won=1; const bonus=this._award(20); const newBest=this._saveBest(); this.save();
       return this._winLines(bonus, newBest);
     }
-    // wrong: tailored nudges
-    const shareWords = SHARES.map(x=>String.fromCharCode(x^K_NOW)).join('');
-    if(norm===shareWords.toUpperCase().replace(/[^A-Z]/g,'')) return ['DISKREET: KEY REJECTED.','You unmasked the shares with the CURRENT fingerprint. That is the machine','after the reseat - the wrong key. Use the ORIGINAL drive signature.'];
-    if(norm===SHARES.map(x=>hx(x)).join('') || /62.?65.?67.?6f/i.test(g)) return ['DISKREET: KEY REJECTED. Those are the masked shares, not the passphrase.','Unmask each one first:  xor <share> <original signature> .'];
-    return ['DISKREET: KEY REJECTED.  ('+verb+' '+g+')','The DES rounds fold back up. Rebuild the passphrase from the four shares,','unmasked with the drive\'s original signature, and try the word they spell.'];
+    // ---- wrong attempt: DISKREET counts them, and wipes on the sixth (F1) ----
+    F.attempts=(F.attempts||0)+1;
+    const left=ATTEMPT_MAX - F.attempts;
+    const shareWords=SHARES.map(x=>String.fromCharCode(x^K_NOW)).join('');
+    let rej;
+    if(norm===shareWords.toUpperCase().replace(/[^A-Z]/g,'')) rej=['DISKREET: KEY REJECTED.','You unmasked the shares with the CURRENT fingerprint - the machine after','the reseat. Use the ORIGINAL drive signature.'];
+    else if(norm===SHARES.map(x=>hx(x)).join('') || /62.?65.?67.?6f/i.test(g)) rej=['DISKREET: KEY REJECTED. Those are the masked shares, not the passphrase.','Unmask each one first with the original drive signature.'];
+    else rej=['DISKREET: KEY REJECTED.  ('+verb+' '+g+')','The DES rounds fold back up. Rebuild the passphrase from the four shares,','unmasked with the drive\'s original signature.'];
+    if(left<=0) return this._tamperWipe(rej);
+    rej.push('');
+    if(left<=2) rej.push('*** WARNING: '+left+' attempt'+(left===1?'':'s')+' left before DISKREET scorches the volume. ***');
+    else rej.push('(DISKREET is counting: '+left+' attempts remain before it tamper-wipes.)');
+    this.save();
+    return rej;
+  }
+  // F1 - the BitLocker-style self-destruct after too many wrong keys
+  _tamperWipe(rej){
+    const F=this.flags; F.bricked='wipe'; this.save();
+    return (rej||[]).concat(['','',
+      '   DISKREET: ATTEMPT LIMIT REACHED','   TAMPER RESPONSE - SCORCHING VOLUME',
+      '   [################################]  16 passes . . . done','',
+      '*** THE DISK DIED ***','',
+      'The volume writes zeros over itself, the way it was built to when it',
+      'decides it is under attack. What was behind the cipher is gone now -',
+      'really gone, the way the real one went.','',
+      'But this is not the real one, and you are not out of moves. Type  undo ',
+      'and the last attempt never happened.   (or  restart  to begin again.)']);
   }
 
   _winLines(bonus, newBest){
@@ -1104,6 +1155,7 @@ export default class Adventure {
     const salv=['cap','solder','heatsink'].filter(id=>this.inv.indexOf(id)>=0).length;
     if(salv>=2 && !this.flags.probeMade) actions.push({ kind:'cmd', label:'Combine', cmd:'combine' });
     if(this.room==='cpu' && this.flags.cpuAwake) actions.push({ kind:'cmd', label:'6502 Monitor', cmd:'6502' });
+    if((this.room==='volume'||this.room==='keysafe') && this.inv.indexOf('probe')>=0 && !this.flags.unsealed) actions.push({ kind:'cmd', label:'Read cell (probe)', cmd:'use probe on cell' });
     actions.push({ kind:'cmd', label:'Listen', cmd:'listen' });
     actions.push({ kind:'cmd', label:'Items', cmd:'inventory' });
     actions.push({ kind:'panel', label:'Ask…', panel:'ask', title:'Ask the advisor about:', options:this._askTopics().map(t=>({ cmd:'ask '+t.k, label:t.l })) });
