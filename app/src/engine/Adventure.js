@@ -66,22 +66,27 @@ export default class Adventure {
     unpark: { names:['unpark','unpark.com','utility','program','com'], short:'UNPARK.COM',
       here:'UNPARK.COM is resident here, doing nothing in particular.',
       desc:'A 412 byte utility with one job: convincing a parked disk head to fly again. The copyright string inside just says GOOD LUCK.',
+      loose:'(it is loaded but idle - loose enough to carry off and put to work.)',
       points:5, takeMsg:'You lift UNPARK.COM out of upper memory. It weighs 412 bytes and seems glad to be needed.' },
     crystal: { names:['crystal','quartz','xtal'], short:'a quartz crystal',
       here:'A quartz crystal shivers in its socket, 32,768 beats per second.',
-      desc:'It vibrates faintly in your hand, still counting, out of habit.',
+      desc:'It vibrates faintly, still counting, out of habit.',
+      loose:'(it sits loose in its socket - you could lift it straight out.)',
       points:5, takeMsg:'You pull the crystal free. The ticking stops. Inside the CMOS chip, time is now officially somebody else\'s problem.' },
     vector: { names:['vector','pointer','irq4','int0c'], short:'an interrupt vector',
       here:'A dropped interrupt vector lies on the ground, still pointing at nothing.',
       desc:'Four bytes of segment and offset, coiled like wire. The tag reads INT 0C, COM1.',
+      loose:'(it is just lying here, unattached - you could pocket it.)',
       points:5, takeMsg:'You coil the vector and pocket it. The bare signpost looks relieved.' },
     b55: { names:['55','$55','0x55','byte 55','first byte'], short:'the byte $55',
       here:'The byte $55 sits in the accumulator, ready to be copied out.',
       desc:'01010101. Half of a boot signature. It hums with intent.',
+      loose:'(it is loose in the accumulator - yours to copy out.)',
       points:5, takeMsg:'You copy $55 out of the accumulator. The CPU does not object. Registers are public property here.' },
     baa: { names:['aa','$aa','0xaa','byte aa','second byte'], short:'the byte $AA',
       here:'The byte $AA blinks in the receive buffer.',
       desc:'10101010. The other half of a boot signature, delivered over copper by someone who wanted this machine to live.',
+      loose:'(it is loose in the receive buffer - waiting to be lifted.)',
       points:5, takeMsg:'You lift $AA out of the buffer. The modem\'s lights settle back into a slow, satisfied scan.' },
   }; }
 
@@ -364,7 +369,7 @@ export default class Adventure {
   // ----- entry points ---------------------------------------------------
   start(){
     const resumed = this.moves>0 || this.act>1 || this.inv.length>0 || this.room!=='memory';
-    const head=['', 'BOOT SECTOR', 'A text adventure in two acts, and 512 bytes of trouble.', ''];
+    const head=['', 'BOOT SECTOR', 'A text adventure, loosely based on true events.', ''];
     const best=this._best(); const bestLine = best ? ['(best run: '+best.pct+'% in '+best.moves+' moves.)'] : [];
     const intro = resumed
       ? ['(resuming: Act '+this.act+', '+this._completion()+'% complete, '+this.moves+' moves. type  restart  to start over.)'].concat(bestLine)
@@ -445,7 +450,14 @@ export default class Adventure {
       case 'examine': case 'x': case 'inspect': case 'read': case 'r': {
         if(!rest){ out.push(verb==='read'?'Read what?':'Examine what?'); break; }
         const near=this.inv.concat(Object.keys(this.itemLoc).filter(id=>this.itemLoc[id]===this.room));
-        const it=this._matchItem(rest, near); if(it){ out.push(IT[it].desc); break; }
+        const it=this._matchItem(rest, near);
+        if(it){
+          out.push(IT[it].desc);
+          // examining a loose item here marks it as inspected (a prerequisite for
+          // taking it) and drops a small nudge that it can be lifted
+          if(this.itemLoc[it]===this.room){ F['exam_'+it]=1; if(IT[it].loose) out.push(IT[it].loose); }
+          break;
+        }
         const R=this.rooms()[this.room]; let hit=null;
         Object.keys(R.x||{}).forEach(k=>{ if(!hit && k.split('|').some(n=> rest===n || rest.indexOf(n)>=0 )) hit=R.x[k]; });
         if(hit){ out.push(...this._resolveExamine(hit)); }
@@ -459,6 +471,8 @@ export default class Adventure {
         const here=Object.keys(this.itemLoc).filter(id=>this.itemLoc[id]===this.room);
         const it=this._matchItem(rest, here);
         if(!it){ out.push(this._matchItem(rest,this.inv)?'You already have that.':'You can\'t take that.'); break; }
+        // must inspect a thing before pocketing it - no grabbing blind
+        if(!F['exam_'+it]){ out.push('You don\'t pocket what you haven\'t looked at. Examine it first.'); break; }
         delete this.itemLoc[it]; this.inv.push(it);
         const pts=IT[it].points && !F['scored_'+it] ? IT[it].points : 0; if(pts) F['scored_'+it]=1;
         out.push((IT[it].takeMsg||('You take '+IT[it].short+'.')) + (pts?('  '+this._award(pts)):'')); break; }
@@ -739,14 +753,17 @@ export default class Adventure {
   uiHints(){
     const R=this.rooms()[this.room]; const F=this.flags;
     const exits={}; ['n','s','e','w','u','d'].forEach(d=>{ exits[d]=!!R.exits[d]; });
-    // takeable items present (label is just the item name; the sub-menu header
-    // already says "Take what?")
-    const takes=Object.keys(this.itemLoc).filter(id=>this.itemLoc[id]===this.room)
-      .map(id=>({ cmd:'take '+this.items()[id].names[0], label:this.items()[id].short.replace(/^(a|an|the) /,'') }));
-    // notable examinables: first noun of each x-entry key, shown behind the
-    // Examine sub-menu so the main deck stays stable room to room
+    const itemsHere=Object.keys(this.itemLoc).filter(id=>this.itemLoc[id]===this.room);
+    const IT=this.items();
+    const label=(id)=>IT[id].short.replace(/^(a|an|the) /,'');
+    // Take only lists items you have already examined (inspect before pocketing)
+    const takes=itemsHere.filter(id=>this.flags['exam_'+id])
+      .map(id=>({ cmd:'take '+IT[id].names[0], label:label(id) }));
+    // Examine lists room features (first noun of each x-entry) plus any loose
+    // items present, so the button player can inspect a thing before taking it
     const exams=Object.keys(R.x||{}).map(k=>k.split('|')[0]).filter(n=>n && n.length<=16)
-      .map(n=>({ cmd:'examine '+n, label:n.charAt(0).toUpperCase()+n.slice(1) }));
+      .map(n=>({ cmd:'examine '+n, label:n.charAt(0).toUpperCase()+n.slice(1) }))
+      .concat(itemsHere.map(id=>({ cmd:'examine '+IT[id].names[0], label:label(id) })));
     // context actions
     const acts=[{cmd:'look',label:'Look'},{cmd:'map',label:'Map'},{cmd:'listen',label:'Listen'},{cmd:'inventory',label:'Items'},{cmd:'hint',label:'Hint'},{cmd:'score',label:'Score'}];
     const cipher = (this.act>=2 && (this.room==='keysafe'||this.room==='volume') && !F.unsealed);
