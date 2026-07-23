@@ -46,7 +46,8 @@ export default class Adventure {
     this.heard={};        // rooms listened to
     this.score=0; this.moves=0;
     this.seen={};
-    this.itemLoc={ unpark:'memory', crystal:'cmos', vector:'irq' };
+    this.itemLoc={ unpark:'memory', crystal:'cmos', vector:'irq',
+      lidar:'slots', heatsink:'slots', cap:'bios', solder:'irq' };
   }
   _load(r){ this.act=r.act||1; this.room=r.room; this.inv=r.inv||[]; this.flags=r.flags||{}; this.notes=r.notes||{}; this.fun=r.fun||{}; this.heard=r.heard||{}; this.score=r.score||0; this.moves=r.moves||0; this.seen=r.seen||{}; this.itemLoc=r.itemLoc||this.itemLoc; }
   serialize(){ return { act:this.act, room:this.room, inv:this.inv, flags:this.flags, notes:this.notes, fun:this.fun, heard:this.heard, score:this.score, moves:this.moves, seen:this.seen, itemLoc:this.itemLoc }; }
@@ -88,6 +89,26 @@ export default class Adventure {
       desc:'10101010. The other half of a boot signature, delivered over copper by someone who wanted this machine to live.',
       loose:'(it is loose in the receive buffer - waiting to be lifted.)',
       points:5, takeMsg:'You lift $AA out of the buffer. The modem\'s lights settle back into a slow, satisfied scan.' },
+    lidar: { names:['lidar','rig','scanner','card','raven'], short:'a LiDAR rig',
+      here:'A LiDAR scanner card sits in slot 6, its little laser still warm.',
+      desc:'Salvaged from a self-driving prototype (RAVEN-V). Spun up, it paints a room in a cloud of points and reads back what is there - it can see where your eyes cannot.',
+      loose:'(it lifts out of the slot with a click - you could carry it.)',
+      points:5, takeMsg:'You pull the LiDAR card. It hums, eager to sweep something dark.' },
+    heatsink: { names:['heatsink','heat-sink','sink','fins'], short:'a heat-sink',
+      here:'A finned aluminum heat-sink lies loose on the board.',
+      desc:'Aluminum fins, still faintly warm. The kind of spare part that always ends up useful.',
+      loose:'(loose - you could pocket it.)',
+      points:2, takeMsg:'You pocket the heat-sink.' },
+    cap: { names:['cap','capacitor','electrolytic'], short:'a spare capacitor',
+      here:'A spare electrolytic capacitor is wedged in a corner of the board.',
+      desc:'A small can of stored charge. Salvage, until it is not.',
+      loose:'(loose - you could pocket it.)',
+      points:2, takeMsg:'You pocket the capacitor.' },
+    solder: { names:['solder','coil','spool'], short:'a coil of solder',
+      here:'A coil of solder is snagged on a vector pin.',
+      desc:'Sixty-forty, rosin core. For when two things need to become one.',
+      loose:'(loose - you could pocket it.)',
+      points:2, takeMsg:'You free the coil of solder.' },
   }; }
 
   // ----- rooms ---------------------------------------------------------
@@ -193,15 +214,41 @@ export default class Adventure {
         'jumper|jp1|header|pins': F.jumperWrite ? 'JP1 sits on WRITE TRK0. Reckless. Correct.' : 'A two-millimeter decision. On SAFE, the controller refuses all writes to track 0. On WRITE TRK0, it minds its own business.',
         'label':'ROHAN-DOS BIOS v2.11, and under it in pencil: DO NOT ERASE AGAIN.',
         'post|self-test|log|test': { note:'postlog', t:'You page through the self-test log. Most nights are routine; some are starred: FALL 2022, CYBER LEAGUE .... PASS. MAY 2024, OUTSTANDING VO-TECH .... PASS. APR 2026, HACKATHON 24 HRS .... BEST OVERALL. The beep, the log notes, has never once been off pitch.' } } },
-    irq: { name:'The Interrupt Vector Table', exits:{ u:'bus' },
+    irq: { name:'The Interrupt Vector Table', exits:{ u:'bus', e:'slots' },
       desc:[ 'The bottom of memory, 0000 to 03FF, where the interrupt vectors',
         'live. Rows of them stand like signposts, each aimed at its handler:',
         'timer, keyboard, disk. One post is bare. The hatch up to the bus is',
-        'overhead.' ],
+        'overhead; the cards that raise these interrupts sit east, in the',
+        'expansion slots.' ],
       listen:'Interrupts arriving and being dispatched, over and over: a train station where every train is on time.',
       x:{ 'vectors|table|signposts|posts|rows':'INT 08 ticking, INT 09 waiting on the keyboard, INT 13 disk services recently oiled. INT 1C runs a small hook that schedules events for a community server and has never missed one. And INT 0C, COM1: bare.',
         'nmi': { note:'nmi', t:'The non-maskable interrupt hums to itself. You cannot mask it. Nobody can. That is the point. When you meet a problem like this, the trick is not to silence it; the trick is to have written a good handler years in advance.' },
-        'post|int 0c|0c|com1':'The post for INT 0C, COM1. Whatever it pointed to, it points there no longer.' } },
+        'post|int 0c|0c|com1':'The post for INT 0C, COM1. Whatever it pointed to, it points there no longer.',
+        'solder|coil|wire': (this.itemLoc.solder==='irq') ? 'A coil of solder is snagged on one of the vector pins.' : 'Bare pins where the solder was.' } },
+    slots: { name:'The Expansion Slots', exits:{ w:'irq', d:'dark' },
+      desc:[ 'The ISA expansion bay: a row of long black card slots, most empty,',
+        'a couple populated. This is where the machine grew whatever it needed',
+        'to grow. The vector table is back west; below, a slot has gone dark and',
+        'cold, opening onto a corrupted stretch of the disk.' ],
+      listen:'The soft click of card-edge contacts settling, and, from the dark slot below, nothing at all.',
+      x:{ 'slots|slot|bay|cards|isa':'Eight-bit and sixteen-bit slots. Room to add a sound card, a modem, a scanner, whatever a person could dream up and solder in.',
+        'lidar|card|scanner|rig|raven': { note:'raven', t:'The card in slot 6 came off a self-driving prototype, RAVEN-V. Its LiDAR unit still spins up on power, sweeping a room into a cloud of points and calling out what it sees. It learned to drive by never trusting its eyes alone; here it can see where you cannot.' },
+        'dark slot|dead slot|cold slot|below':'The bottom slot is dark and faintly cold. The card that lived there failed, and its patch of the disk went with it, into corruption. You would need a way to see down there.' } },
+    dark: { name:'The Dark Sector', exits:{ u:'slots' },
+      desc: this.flags.darkLit
+        ? [ 'The corrupted stretch of drive C, lit now by the LiDAR sweep: a low',
+            'space of gouged tracks and dead clusters, mapped in points of pale',
+            'light. Things that were lost here can be seen again. The way up is',
+            'back to the expansion slots.' ]
+        : [ 'Pitch black. This is a corrupted stretch of the disk, and nothing',
+            'your eyes can do will change that. You can hear the surface',
+            'breathing static somewhere ahead, and the air stirs as though the',
+            'dark itself is paying attention. You are not getting anywhere',
+            'blind. The way up, toward light, is back to the expansion slots.' ],
+      listen: this.flags.darkLit ? 'The fine hiss of dead sectors, and the LiDAR ticking as it keeps the room drawn.' : 'Static, breathing. And, underneath it, something that is not the disk.',
+      x: this.flags.darkLit ? {
+        'tracks|clusters|surface|sectors|floor': { note:'darklore', t:'Read by LiDAR, the corruption resolves into shapes: a half-recovered photo, a fragment of a song with no file attached, the tail end of a project that never shipped. The disk kept them even after it forgot how to reach them. Nothing is ever truly gone here; it is only unlit.' },
+      } : {} },
 
     // ---------------- ACT 2 : the sealed volume ------------------------
     volume: { name:'The Sealed Volume', exits: (this._lostOpen() ? { w:'boot', n:'keysafe', e:'vram', s:'opl', d:'lostfound' } : { w:'boot', n:'keysafe', e:'vram', s:'opl' }),
@@ -278,8 +325,12 @@ export default class Adventure {
   _award(pts){ this.score=Math.min(100, this.score+pts); return '[+'+pts+' points]'; }
   _noteCatalog(){
     if(this.__notes) return this.__notes;
+    // force conditional rooms (e.g. the lit Dark Sector) on while scanning so the
+    // side-note total is stable regardless of current progress
+    const sv=this.flags.darkLit; this.flags.darkLit=1;
     const ids=new Set(); const rs=this.rooms();
     Object.keys(rs).forEach(k=>{ const x=rs[k].x||{}; Object.keys(x).forEach(n=>{ const v=x[n]; if(v&&typeof v==='object'&&v.note) ids.add(v.note); }); });
+    this.flags.darkLit=sv;
     this.__notes=[...ids]; return this.__notes;
   }
   _noteTotal(){ return this._noteCatalog().length; }
@@ -597,7 +648,7 @@ export default class Adventure {
   // MODEM / down VECTORS); VOLUME is the Act 2 hub.
   _mapLines(){
     const L={ memory:'MEMORY', bus:'BUS', cpu:'6502', cmos:'CMOS', platters:'PLATTERS', boot:'BOOT',
-      modem:'MODEM', bios:'BIOS', irq:'VECTORS', volume:'VOLUME', vram:'VRAM', opl:'OPL',
+      modem:'MODEM', bios:'BIOS', irq:'VECTORS', slots:'SLOTS', dark:'DARK', volume:'VOLUME', vram:'VRAM', opl:'OPL',
       keysafe:'KEYSAFE', floppy:'DRIVE A', lostfound:'LOST+FND' };
     const R=this.rooms();
     const disc=(id)=>!!this.seen[id];
@@ -624,16 +675,19 @@ export default class Adventure {
     node(2,43,'boot');
     if(disc('bus')){ put(3,10,'+--------+--------+'); put(5,9,'up'); put(5,17,'south'); put(5,26,'down'); }
     node(4,8,'bios'); node(4,17,'modem'); node(4,25,'irq');
+    // the expansion wing east of VECTORS: SLOTS, then DARK below it
+    edge(disc('irq')||disc('slots'),4,32,'--'); node(4,34,'slots');
+    edge(disc('slots')||disc('dark'),5,36,'|'); node(6,34,'dark',36);
     // ---- Act 2 : the sealed disk (opens east from BOOT) ----
     if(this.act>=2 && disc('boot')){
-      put(7,1,'--- the sealed disk  (east, from BOOT) ---');
-      node(9,19,'floppy',25); edge(disc('keysafe')||disc('floppy'),9,27,'--'); node(9,30,'keysafe',33);
-      edge(disc('volume')||disc('keysafe'),10,33,'|');
-      put(11,6,'BOOT'); edge(disc('boot')||disc('volume'),11,11,'-------------------'); node(11,31,'volume');
-      edge(disc('volume')||disc('vram'),11,38,'------'); node(11,45,'vram');
-      edge(disc('volume')||disc('opl'),12,33,'|');
-      node(13,32,'opl',33);
-      if(this._lostOpen() && (disc('volume')||disc('lostfound'))) put(14,27,'(down: '+(disc('lostfound')?'LOST+FND':'?')+')');
+      put(8,1,'--- the sealed disk  (east, from BOOT) ---');
+      node(10,19,'floppy',25); edge(disc('keysafe')||disc('floppy'),10,27,'--'); node(10,30,'keysafe',33);
+      edge(disc('volume')||disc('keysafe'),11,33,'|');
+      put(12,6,'BOOT'); edge(disc('boot')||disc('volume'),12,11,'-------------------'); node(12,31,'volume');
+      edge(disc('volume')||disc('vram'),12,38,'------'); node(12,45,'vram');
+      edge(disc('volume')||disc('opl'),13,33,'|');
+      node(14,32,'opl',33);
+      if(this._lostOpen() && (disc('volume')||disc('lostfound'))) put(15,27,'(down: '+(disc('lostfound')?'LOST+FND':'?')+')');
     }
     // rasterize; trim blank leading/trailing rows and collapse blank runs
     let body=rows.map(r=>r.join('').replace(/\s+$/,''));
@@ -643,10 +697,10 @@ export default class Adventure {
     return ['MAP  (explored so far)      [ ] = you    ? = unexplored, go there',''].concat(out);
   }
 
-  _roomName(id){ return ({ memory:'MEMORY', bus:'BUS', cpu:'6502', cmos:'CMOS', platters:'PLATTERS', boot:'BOOT', modem:'MODEM', bios:'BIOS', irq:'VECTORS', volume:'VOLUME', vram:'VRAM', opl:'OPL', keysafe:'KEYSAFE', floppy:'DRIVE A', lostfound:'LOST+FND' })[id]||id; }
+  _roomName(id){ return ({ memory:'MEMORY', bus:'BUS', cpu:'6502', cmos:'CMOS', platters:'PLATTERS', boot:'BOOT', modem:'MODEM', bios:'BIOS', irq:'VECTORS', slots:'EXP SLOTS', dark:'DARK SECTOR', volume:'VOLUME', vram:'VRAM', opl:'OPL', keysafe:'KEYSAFE', floppy:'DRIVE A', lostfound:'LOST+FND' })[id]||id; }
   _roomByName(n){
     n=(n||'').replace(/\s+/g,'').toLowerCase();
-    const A={ memory:'memory',ram:'memory', bus:'bus', cpu:'cpu','6502':'cpu', cmos:'cmos',clock:'cmos', platters:'platters',platter:'platters',disk:'platters', boot:'boot',bootsector:'boot', modem:'modem', bios:'bios',rom:'bios', irq:'irq',vectors:'irq',vector:'irq', volume:'volume', vram:'vram',video:'vram', opl:'opl',sound:'opl',soundchip:'opl', keysafe:'keysafe', floppy:'floppy',drivea:'floppy', lostfound:'lostfound','lost+fnd':'lostfound',lostandfound:'lostfound' };
+    const A={ memory:'memory',ram:'memory', bus:'bus', cpu:'cpu','6502':'cpu', cmos:'cmos',clock:'cmos', platters:'platters',platter:'platters',disk:'platters', boot:'boot',bootsector:'boot', modem:'modem', bios:'bios',rom:'bios', irq:'irq',vectors:'irq',vector:'irq', slots:'slots',expansion:'slots',expansionslots:'slots',exp:'slots', dark:'dark',darksector:'dark',badsector:'dark',corrupted:'dark', volume:'volume', vram:'vram',video:'vram', opl:'opl',sound:'opl',soundchip:'opl', keysafe:'keysafe', floppy:'floppy',drivea:'floppy', lostfound:'lostfound','lost+fnd':'lostfound',lostandfound:'lostfound' };
     return A[n]||null;
   }
   // MaristMaps-style route solver: shortest path over rooms you've discovered
@@ -687,7 +741,9 @@ export default class Adventure {
       volume:['Behind the cipher haze, the shapes shift and go still.'],
       keysafe:['The Keysafe does arithmetic it will never explain.'],
       vram:['A grey thumbnail flickers, almost resolving, then not.'],
-      opl:['The sound chip holds its instrument and says nothing.'] };
+      opl:['The sound chip holds its instrument and says nothing.'],
+      slots:['An empty card slot waits for something that will never come.'],
+      dark:['Something in the dark shifts its weight, and is still.'] };
     const pool=(per[id]||[]).concat(any);
     return pool[(Math.random()*pool.length)|0];
   }
