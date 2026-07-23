@@ -577,22 +577,41 @@ export default class Adventure {
     out.push(...String(hit.t).split('\n')); return out;
   }
 
+  // A grid-painted schematic that matches the real room graph exactly. ASCII
+  // only (to match the app's +--+/| aesthetic and avoid missing glyphs). Rooms
+  // you haven't visited show as dots; [BRACKETS] mark where you are. BUS is the
+  // Act 1 hub (6 exits: west MEMORY, north 6502, east PLATTERS, plus up BIOS /
+  // south MODEM / down VECTORS). VOLUME is the Act 2 hub.
   _mapLines(){
-    const nm=(id,l)=>{ const s=this.seen[id]?l:'?'.repeat(l.length); return this.room===id?'['+s+']':' '+s+' '; };
-    const a2=this.act>=2;
-    const lines=['MAP OF THE MACHINE   ( [ ] you  -  ???? unexplored )','',
-      '   '+nm('cmos','CMOS')+'--'+nm('cpu','6502')+'        '+nm('bios','BIOS'),
-      '                |',
-      '  '+nm('memory','MEM')+'---'+nm('bus','BUS')+'---'+nm('platters','PLATTERS')+'--'+nm('boot','BOOT'),
-      '              /  \\'+(a2?'                 |':''),
-      '     '+nm('modem','MODEM')+'   '+nm('irq','VECT')+(a2?'            '+nm('volume','VOLUME'):'') ];
-    if(a2){ lines.push(
-      '                              /  |  \\',
-      '                    '+nm('keysafe','KEYSAFE')+' '+nm('vram','VRAM')+' '+nm('opl','OPL'),
-      '                       |'+(this._lostOpen()?'        (down: '+nm('lostfound','LOST+FOUND')+')':''),
-      '                    '+nm('floppy','DRIVE A') );
+    const L={ memory:'MEMORY', bus:'BUS', cpu:'6502', cmos:'CMOS', platters:'PLATTERS', boot:'BOOT',
+      modem:'MODEM', bios:'BIOS', irq:'VECTORS', volume:'VOLUME', vram:'VRAM', opl:'OPL',
+      keysafe:'KEYSAFE', floppy:'DRIVE A', lostfound:'LOST+FND' };
+    const W=60, rows=[];
+    const ensure=(r)=>{ while(rows.length<=r) rows.push(new Array(W).fill(' ')); };
+    const put=(r,c,s)=>{ ensure(r); for(let i=0;i<s.length;i++){ const x=c+i; if(x>=0&&x<W) rows[r][x]=s[i]; } };
+    const place=(r,c,id)=>{ const lbl=L[id]; put(r,c, this.seen[id]?lbl:'·'.repeat(lbl.length)); if(this.room===id){ put(r,c-1,'['); put(r,c+lbl.length,']'); } };
+    // ---- Act 1 : the machine (BUS is the hub) ----
+    place(0,9,'cmos'); put(0,14,'--'); place(0,17,'cpu');
+    put(1,18,'|');
+    place(2,1,'memory'); put(2,8,'--------'); place(2,17,'bus');
+    put(2,21,'---------'); place(2,31,'platters'); put(2,40,'--'); place(2,43,'boot');
+    put(3,10,'+--------+--------+');
+    place(4,8,'bios'); place(4,17,'modem'); place(4,25,'irq');
+    put(5,9,'up'); put(5,17,'south'); put(5,26,'down');
+    // ---- Act 2 : the sealed disk (opens east through BOOT) ----
+    if(this.act>=2){
+      const b=rows.length+1;
+      put(b,1,'---- the sealed disk  (east, through BOOT) ----');
+      place(b+2,19,'floppy'); put(b+2,27,'--'); place(b+2,30,'keysafe');
+      put(b+3,33,'|');
+      put(b+4,6, this.seen.boot?'BOOT':'····'); put(b+4,11,'-------------------'); place(b+4,31,'volume');
+      put(b+4,38,'------'); place(b+4,45,'vram');
+      put(b+5,33,'|');
+      place(b+6,32,'opl');
+      if(this._lostOpen()) put(b+7,27,'(down: LOST+FND)');
     }
-    return lines;
+    const body=rows.map(r=>r.join('').replace(/\s+$/,''));
+    return ['MAP OF THE MACHINE      [ ] = you here   ···· = unexplored',''].concat(body);
   }
 
   // ----- Act 1 puzzle verbs --------------------------------------------
