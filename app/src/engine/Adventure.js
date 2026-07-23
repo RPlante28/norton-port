@@ -63,11 +63,11 @@ export default class Adventure {
 
   // ----- items ---------------------------------------------------------
   items(){ return {
-    unpark: { names:['unpark','unpark.com','utility','program','com'], short:'UNPARK.COM',
-      here:'UNPARK.COM is resident here, doing nothing in particular.',
-      desc:'A 412 byte utility with one job: convincing a parked disk head to fly again. The copyright string inside just says GOOD LUCK.',
+    unpark: { names:['unpark','unpark.exe','unpark.com','utility','program'], short:'UNPARK.EXE',
+      here:'UNPARK.EXE is resident here, doing nothing in particular.',
+      desc:'A tiny DOS utility (a program, not a place) with one job: convincing a parked disk head to fly again. The copyright string inside just says GOOD LUCK.',
       loose:'(it is loaded but idle - loose enough to carry off and put to work.)',
-      points:5, takeMsg:'You lift UNPARK.COM out of upper memory. It weighs 412 bytes and seems glad to be needed.' },
+      points:5, takeMsg:'You lift UNPARK.EXE out of upper memory. It weighs 412 bytes and seems glad to be needed.' },
     crystal: { names:['crystal','quartz','xtal'], short:'a quartz crystal',
       here:'A quartz crystal shivers in its socket, 32,768 beats per second.',
       desc:'It vibrates faintly, still counting, out of habit.',
@@ -102,7 +102,7 @@ export default class Adventure {
         'in the high addresses. The only exit is east, onto the bus.' ],
       listen:'The refresh cycles wash over the rows like surf. Every bit here is re-remembered a thousand times a second, which is either romantic or exhausting.',
       x:{ 'memory|ram|addresses':'Six hundred forty kilobytes. It was supposed to be enough for anyone.',
-        'residents|programs|tsrs|tsr|shadow|upper': { note:'residents', t:'You read the resident list. UNPARK.COM, idle. TABLEAU.DRV, rendering dashboards for an office upstairs. And EAGLE.SYS, resident since 2016: it maintains the trails through memory, checks on the younger processes, and cannot be unloaded. Nobody has ever wanted to.' },
+        'residents|programs|tsrs|tsr|shadow|upper': { note:'residents', t:'You read the resident list. UNPARK.EXE, idle. TABLEAU.DRV, rendering dashboards for an office upstairs. And EAGLE.SYS, resident since 2016: it maintains the trails through memory, checks on the younger processes, and cannot be unloaded. Nobody has ever wanted to.' },
         'zero|null':'You reach toward address zero. Every process in memory holds its breath. You reconsider. Some null pointers are best left for others to dereference.',
         'line|640k':'The line where conventional memory ends and excuses begin.' } },
     bus: { name:'The Bus', exits:{ w:'memory', n:'cpu', e:'platters', s:'modem', u:'bios', d:'irq' },
@@ -629,10 +629,10 @@ export default class Adventure {
     }
     if((this._matchItem(a,['unpark'])||/unpark/.test(a)) && /head|drive|platter|disk|actuator/.test(b)){
       if(this.room!=='platters') return ['There is no disk head here.'];
-      if(!this._has('unpark')) return ['You don\'t have UNPARK.COM.'];
-      if(F.headFlying) return ['The head is already flying. UNPARK.COM refuses to run twice; it has standards.'];
+      if(!this._has('unpark')) return ['You don\'t have UNPARK.EXE.'];
+      if(F.headFlying) return ['The head is already flying. UNPARK.EXE refuses to run twice; it has standards.'];
       F.headFlying=1;
-      return ['UNPARK.COM loads, prints its one message,','','   HEAD RELEASED','',
+      return ['UNPARK.EXE loads, prints its one message,','','   HEAD RELEASED','',
         'and exits without taking questions. The actuator swings the head off',
         'its ramp; it settles into a graceful float, eight microns up. The way',
         'east is open.  '+this._award(5)];
