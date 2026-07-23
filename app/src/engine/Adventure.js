@@ -577,41 +577,59 @@ export default class Adventure {
     out.push(...String(hit.t).split('\n')); return out;
   }
 
-  // A grid-painted schematic that matches the real room graph exactly. ASCII
-  // only (to match the app's +--+/| aesthetic and avoid missing glyphs). Rooms
-  // you haven't visited show as dots; [BRACKETS] mark where you are. BUS is the
-  // Act 1 hub (6 exits: west MEMORY, north 6502, east PLATTERS, plus up BIOS /
-  // south MODEM / down VECTORS). VOLUME is the Act 2 hub.
+  // Fog-of-war schematic, grid-painted, ASCII only (to match the app's +--+/|
+  // aesthetic). You see a room once you have ENTERED it, along with all of that
+  // room's currently-open exits - each ending in a named room you've also
+  // visited, or a `?` if you haven't gone that way yet. Nothing beyond your
+  // discovered rooms is shown; the map builds itself out as you explore. BUS is
+  // the Act 1 hub (west MEMORY, north 6502, east PLATTERS, plus up BIOS / south
+  // MODEM / down VECTORS); VOLUME is the Act 2 hub.
   _mapLines(){
     const L={ memory:'MEMORY', bus:'BUS', cpu:'6502', cmos:'CMOS', platters:'PLATTERS', boot:'BOOT',
       modem:'MODEM', bios:'BIOS', irq:'VECTORS', volume:'VOLUME', vram:'VRAM', opl:'OPL',
       keysafe:'KEYSAFE', floppy:'DRIVE A', lostfound:'LOST+FND' };
+    const R=this.rooms();
+    const disc=(id)=>!!this.seen[id];
+    // frontier: undiscovered rooms a discovered room has a currently-open exit to
+    const front={};
+    Object.keys(R).forEach(id=>{ if(disc(id)){ const ex=R[id].exits||{}; Object.keys(ex).forEach(k=>{ if(!disc(ex[k])) front[ex[k]]=1; }); } });
     const W=60, rows=[];
     const ensure=(r)=>{ while(rows.length<=r) rows.push(new Array(W).fill(' ')); };
     const put=(r,c,s)=>{ ensure(r); for(let i=0;i<s.length;i++){ const x=c+i; if(x>=0&&x<W) rows[r][x]=s[i]; } };
-    const place=(r,c,id)=>{ const lbl=L[id]; put(r,c, this.seen[id]?lbl:'·'.repeat(lbl.length)); if(this.room===id){ put(r,c-1,'['); put(r,c+lbl.length,']'); } };
+    const edge=(cond,r,c,s)=>{ if(cond) put(r,c,s); };
+    // qc (optional) = the exact column to drop the '?' on, so it hugs whichever
+    // connector revealed the room; default is the slot's left edge
+    const node=(r,c,id,qc)=>{ if(disc(id)){ const lbl=L[id]; put(r,c,lbl); if(this.room===id){ put(r,c-1,'['); put(r,c+lbl.length,']'); } } else if(front[id]) put(r, qc==null?c:qc, '?'); };
+    const hf=!!this.flags.headFlying;
     // ---- Act 1 : the machine (BUS is the hub) ----
-    place(0,9,'cmos'); put(0,14,'--'); place(0,17,'cpu');
-    put(1,18,'|');
-    place(2,1,'memory'); put(2,8,'--------'); place(2,17,'bus');
-    put(2,21,'---------'); place(2,31,'platters'); put(2,40,'--'); place(2,43,'boot');
-    put(3,10,'+--------+--------+');
-    place(4,8,'bios'); place(4,17,'modem'); place(4,25,'irq');
-    put(5,9,'up'); put(5,17,'south'); put(5,26,'down');
-    // ---- Act 2 : the sealed disk (opens east through BOOT) ----
-    if(this.act>=2){
-      const b=rows.length+1;
-      put(b,1,'---- the sealed disk  (east, through BOOT) ----');
-      place(b+2,19,'floppy'); put(b+2,27,'--'); place(b+2,30,'keysafe');
-      put(b+3,33,'|');
-      put(b+4,6, this.seen.boot?'BOOT':'····'); put(b+4,11,'-------------------'); place(b+4,31,'volume');
-      put(b+4,38,'------'); place(b+4,45,'vram');
-      put(b+5,33,'|');
-      place(b+6,32,'opl');
-      if(this._lostOpen()) put(b+7,27,'(down: LOST+FND)');
+    edge(disc('cpu')||disc('cmos'),0,14,'--'); node(0,9,'cmos',12); node(0,17,'cpu',18);
+    edge(disc('bus')||disc('cpu'),1,18,'|');
+    node(2,1,'memory');
+    edge(disc('memory')||disc('bus'),2,8,'--------');
+    node(2,17,'bus');
+    edge(disc('bus')||disc('platters'),2,21,'---------');
+    node(2,31,'platters');
+    edge(hf&&(disc('platters')||disc('boot')),2,40,'--');
+    node(2,43,'boot');
+    if(disc('bus')){ put(3,10,'+--------+--------+'); put(5,9,'up'); put(5,17,'south'); put(5,26,'down'); }
+    node(4,8,'bios'); node(4,17,'modem'); node(4,25,'irq');
+    // ---- Act 2 : the sealed disk (opens east from BOOT) ----
+    if(this.act>=2 && disc('boot')){
+      put(7,1,'--- the sealed disk  (east, from BOOT) ---');
+      node(9,19,'floppy',25); edge(disc('keysafe')||disc('floppy'),9,27,'--'); node(9,30,'keysafe',33);
+      edge(disc('volume')||disc('keysafe'),10,33,'|');
+      put(11,6,'BOOT'); edge(disc('boot')||disc('volume'),11,11,'-------------------'); node(11,31,'volume');
+      edge(disc('volume')||disc('vram'),11,38,'------'); node(11,45,'vram');
+      edge(disc('volume')||disc('opl'),12,33,'|');
+      node(13,32,'opl',33);
+      if(this._lostOpen() && (disc('volume')||disc('lostfound'))) put(14,27,'(down: '+(disc('lostfound')?'LOST+FND':'?')+')');
     }
-    const body=rows.map(r=>r.join('').replace(/\s+$/,''));
-    return ['MAP OF THE MACHINE      [ ] = you here   ···· = unexplored',''].concat(body);
+    // rasterize; trim blank leading/trailing rows and collapse blank runs
+    let body=rows.map(r=>r.join('').replace(/\s+$/,''));
+    while(body.length && body[0]==='') body.shift();
+    while(body.length && body[body.length-1]==='') body.pop();
+    const out=[]; for(const ln of body){ if(ln==='' && out.length && out[out.length-1]==='') continue; out.push(ln); }
+    return ['MAP  (explored so far)      [ ] = you    ? = unexplored, go there',''].concat(out);
   }
 
   // ----- Act 1 puzzle verbs --------------------------------------------
