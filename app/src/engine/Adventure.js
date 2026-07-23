@@ -394,7 +394,7 @@ export default class Adventure {
     '  use <thing> on <thing>              apply one thing to another',
     '  xor <hex> <hex>                     the Keysafe/volume cipher tool (Act 2)',
     '  unseal <passphrase>                 open the disk once you have rebuilt it',
-    '  score . hint . restart . quit',
+    '  score . hint . reset . quit',
     'Everything else you will have to discover. This machine keeps secrets.',
   ]; }
 
@@ -501,6 +501,15 @@ export default class Adventure {
 
       case 'restart': this.reset(); Adventure.wipe(); this.save();
         out.push('', 'The machine forgets you ever existed. Fresh page tables all around.', ...this._lookLines()); break;
+
+      case 'reset':
+        if(/^(y|yes|confirm)$/.test((rest||'').trim())){
+          this.reset(); Adventure.wipe(); this.save();
+          out.push('', 'The machine forgets you ever existed. Fresh page tables all around.', ...this._lookLines());
+        } else {
+          out.push('Reset wipes all progress on this save. Type  reset yes  to confirm,', 'or keep playing.');
+        }
+        break;
 
       case 'quit': case 'q': case 'exit': case 'bye': this.save(); quit=true;
         out.push('', 'Progress saved: Act '+this.act+', '+this._completion()+'% in '+this.moves+' moves. Type  adventure  to return.'); break;
