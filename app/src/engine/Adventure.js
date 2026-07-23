@@ -109,6 +109,8 @@ export default class Adventure {
       desc:'Sixty-forty, rosin core. For when two things need to become one.',
       loose:'(loose - you could pocket it.)',
       points:2, takeMsg:'You free the coil of solder.' },
+    probe: { names:['probe','cold probe','cold-cathode','coldprobe'], short:'a cold probe',
+      desc:'A cold-cathode probe you soldered together from salvage. It holds a charge dead steady - steady enough to read a sealed memory cell without tripping the tamper line.' },
   }; }
 
   // ----- rooms ---------------------------------------------------------
@@ -451,7 +453,9 @@ export default class Adventure {
     '  use <thing> on <thing>              apply one thing to another',
     '  xor <hex> <hex>                     the Keysafe/volume cipher tool (Act 2)',
     '  unseal <passphrase>                 open the disk once you have rebuilt it',
-    '  journal . map . score . hint         where you are and what is left',
+    '  ask <topic>                         consult ADVISOR.SYS (the expert system)',
+    '  sweep . search . combine             LiDAR, recover loot, craft from salvage',
+    '  journal . score . hint               where you are and what is left',
     '  undo                                take back your last move',
     '  reset . quit',
     'Everything else you will have to discover. This machine keeps secrets.',
@@ -570,11 +574,12 @@ export default class Adventure {
 
       case 'sweep': case 'lidar': case 'ping': out.push(...this._sweep()); break;
       case 'recover': case 'search': case 'salvage': case 'sift': out.push(...this._search()); break;
+      case 'combine': case 'cook': case 'craft': case 'build': case 'assemble': out.push(...this._combine()); break;
 
-      case 'score': case 'status': case 'progress': case 'stats':
-        out.push(...this._checklist(),
-          'Completion: '+this._completion()+'%   (side notes '+this._noteCount()+'/'+this._noteTotal()+' - amusements '+Object.keys(this.fun).length+'/'+this._funTotal()+')',
-          'Moves: '+this.moves+'.   Standing: '+this._rank()+'.'); break;
+      case 'score': case 'status': case 'progress': case 'stats': case 'dashboard':
+        out.push(...this._dashboard(), '', ...this._checklist()); break;
+
+      case 'ask': case 'consult': case 'oracle': case 'advisor': out.push(...this._ask(rest)); break;
 
       case 'save': this.save(); out.push('Saved. It saves on every move anyway, but the gesture is appreciated.'); break;
 
@@ -781,6 +786,58 @@ export default class Adventure {
       return ['You have already recovered what the LiDAR turned up here.'];
     }
     return ['There is nothing here to sift through.'];
+  }
+  // ----- M6: an ASCII diagnostics dashboard (period Norton-SysInfo vibe) -
+  _dashboard(){
+    const W=22, bar=(f)=>{ const n=Math.max(0,Math.min(W,Math.round(f*W))); return '['+'█'.repeat(n)+'·'.repeat(W-n)+']'; };
+    const comp=this._completion(), notes=this._noteCount(), nt=this._noteTotal(), fun=Object.keys(this.fun).length, ft=this._funTotal();
+    const ms=this._milestones(), done=ms.filter(Boolean).length;
+    const row=(lbl,f,tail)=>'  '+(lbl+'          ').slice(0,11)+bar(f)+' '+tail;
+    return [ '+============== DIAGNOSTICS ==============+',
+      row('COMPLETION', comp/100, comp+'%'),
+      row('REPAIR', done/ms.length, done+'/'+ms.length),
+      row('SIDE NOTES', notes/nt, notes+'/'+nt),
+      row('AMUSEMENTS', fun/ft, fun+'/'+ft),
+      '  MOVES  '+this.moves+'      STANDING  '+this._rank(),
+      '+========================================+' ];
+  }
+  // ----- M1: the advisor - a period-accurate rule-based expert system ---
+  _ask(rest){
+    const F=this.flags, pre='ADVISOR.SYS, a small expert system, considers your question:';
+    const say=(...l)=>[pre].concat(l.map(x=>'  '+x));
+    if(!rest) return say('Ask me about: the machine, the disk, the cipher, the dark,', 'the passphrase, or the advisor itself.');
+    const t=rest.toLowerCase();
+    if(/machine|help|do|start|stuck|next/.test(t)){
+      if(!F.posted) return say('The machine will not boot: a hardware problem with a hardware', 'answer. See  journal  for the checklist, or  hint  for a nudge.');
+      if(!F.unsealed) return say('The machine runs; the disk is sealed. Its key was bound to this', 'machine\'s fingerprint, and the fingerprint changed. Rebuild the key.');
+      return say('The disk is open. There is nothing left for me to advise.');
+    }
+    if(/disk|diskreet|seal|drive|volume/.test(t)) return say('DISKREET fused the passphrase to the drive\'s ORIGINAL signature.', 'Change the hardware, even to fix it, and it locks out its own owner.');
+    if(/cipher|xor|share|unmask|key/.test(t)) return say('Each escrowed share is one passphrase byte XOR the original drive', 'signature. Unmask each, read it as a letter. The signature is stamped', 'on the drive itself - not the fingerprint the Keysafe measures now.');
+    if(/dark|lidar|corrupt|sector/.test(t)) return say('You cannot reason about what you cannot see. A scanner card in the', 'expansion slots maps a room without any light at all.');
+    if(/pass|word|phrase/.test(t)){
+      if((F.fragmentFound||0)>=1) return say('You have recovered fragments of it: four characters, spelling a', 'small, ordinary word for the place a person keeps what matters.');
+      return say('I could infer it with more facts. Recover fragments in the lost and', 'found, or unmask the shares. The word is short, and human.');
+    }
+    if(/you|advisor|oracle|eliza|who|agent/.test(t)) return say('I am a small advisor, not a large one: a route table and a few hundred', 'rules. One day something like me will learn to speak. For now I point.');
+    return say('Tell me more about "'+rest+'". (I only know the machine and its trouble.)');
+  }
+  _askTopics(){ return [ {k:'machine',l:'the machine'}, {k:'disk',l:'the disk'}, {k:'cipher',l:'the cipher'}, {k:'dark',l:'the dark'}, {k:'passphrase',l:'the passphrase'}, {k:'advisor',l:'the advisor'} ]; }
+
+  // ----- M5: crafting (solder salvage parts into a tool) ---------------
+  _combine(){
+    const has=(id)=>this.inv.indexOf(id)>=0;
+    if(this.flags.probeMade || has('probe')) return ['You have already built the cold probe. One is plenty.'];
+    const need=['cap','solder','heatsink'], missing=need.filter(id=>!has(id));
+    if(missing.length) return ['A good tool needs a capacitor, a coil of solder, and a heat-sink.',
+      'Still missing: '+missing.map(id=>this.items()[id].short.replace(/^(a|an|the) /,'')).join(', ')+'.  (there is salvage scattered around the machine.)'];
+    this.inv=this.inv.filter(id=>need.indexOf(id)<0); this.inv.push('probe');
+    this.flags.exam_probe=1; this.flags.probeMade=1;
+    return ['You solder the capacitor and the heat-sink onto a scrap of board with',
+      'the coil, blowing on each joint to cool it - fusion cooking, more or less.',
+      'What you end up with is a cold-cathode probe: steady enough to read a',
+      'sealed cell without tripping its tamper line.  '+this._award(5),
+      '(you have made  a cold probe . DISKREET keeps a cell it would rather you','not read.)'];
   }
   // ambient one-liners on revisiting a room (dry, occasional)
   _ambient(id){
@@ -1019,8 +1076,11 @@ export default class Adventure {
     // contextual mechanics
     if(this.room==='dark' && this.inv.indexOf('lidar')>=0 && !this.flags.darkLit) actions.push({ kind:'cmd', label:'Sweep (LiDAR)', cmd:'sweep' });
     if(this.room==='lostfound' || (this.room==='dark' && this.flags.darkLit)) actions.push({ kind:'cmd', label:'Search', cmd:'search' });
+    const salv=['cap','solder','heatsink'].filter(id=>this.inv.indexOf(id)>=0).length;
+    if(salv>=2 && !this.flags.probeMade) actions.push({ kind:'cmd', label:'Combine', cmd:'combine' });
     actions.push({ kind:'cmd', label:'Listen', cmd:'listen' });
     actions.push({ kind:'cmd', label:'Items', cmd:'inventory' });
+    actions.push({ kind:'panel', label:'Ask…', panel:'ask', title:'Ask the advisor about:', options:this._askTopics().map(t=>({ cmd:'ask '+t.k, label:t.l })) });
     actions.push({ kind:'cmd', label:'Journal', cmd:'journal' });
     actions.push({ kind:'cmd', label:'Hint', cmd:'hint' });
     actions.push({ kind:'cmd', label:'Score', cmd:'score' });
