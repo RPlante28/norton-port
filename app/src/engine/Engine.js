@@ -806,8 +806,9 @@ export default class Engine {
   // ----- text adventure input (routed here while advFlow is set) -----
   advInput(v){
     if(!this._adv || !this.state.advFlow) return;
-    this.print(['> '+v]);
     const r=this._adv.input(v);
+    if(r.clear){ this.setState({ term:r.lines }); return; }   // reset: clear the screen, start fresh
+    this.print(['> '+v]);
     this.print(r.lines);
     if(r.quit) this.setState({ advFlow:null });
   }
@@ -823,6 +824,8 @@ export default class Engine {
     if(!this._adv || this.state.dialog!=='advent') return;
     v=(v||'').trim(); if(!v) return;
     const r=this._adv.input(v);
+    // a reset clears the screen and starts fresh, rather than piling on
+    if(r.clear){ this.setState({ advWinTerm:r.lines }); this._advScrollTop(); return; }
     this.setState(s=>({ advWinTerm:(s.advWinTerm||[]).concat(['> '+v], r.lines) }));
     // an explicit quit closes the window; the boot coda ends the game but stays
     // on screen so the ending can be read
@@ -830,6 +833,7 @@ export default class Engine {
     this._advScrollDown();
   }
   _advScrollDown(){ setTimeout(()=>{ if(this._advScroll) this._advScroll.scrollTop=this._advScroll.scrollHeight; }, 25); }
+  _advScrollTop(){ setTimeout(()=>{ if(this._advScroll) this._advScroll.scrollTop=0; }, 25); }
   edToInsert(after){
     if(this.state.editing && this.state.editing.ro){ this.setState({ edStatus:"E21: '"+this.state.editing.name+"' is read-only (press :q to leave)" }); return; }
     this.setState({ edModeV:'insert' });

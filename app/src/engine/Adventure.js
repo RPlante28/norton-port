@@ -402,7 +402,7 @@ export default class Adventure {
     return ids.find(id=> IT[id].names.some(n=> n===noun || noun.indexOf(n)>=0 || n.indexOf(noun)>=0 )); }
 
   input(raw){
-    const out=[]; let quit=false;
+    const out=[]; let quit=false; let clear=false;
     let s=(raw||'').trim().toLowerCase().replace(/\s+/g,' ');
     if(!s) return { lines:['Say again?'], quit:false };
     // keep hex tokens intact; strip filler words
@@ -499,13 +499,13 @@ export default class Adventure {
 
       case 'save': this.save(); out.push('Saved. It saves on every move anyway, but the gesture is appreciated.'); break;
 
-      case 'restart': this.reset(); Adventure.wipe(); this.save();
-        out.push('', 'The machine forgets you ever existed. Fresh page tables all around.', ...this._lookLines()); break;
+      case 'restart': this.reset(); Adventure.wipe(); this.save(); clear=true;
+        out.push('The machine forgets you ever existed. Fresh page tables all around.', ...this._lookLines()); break;
 
       case 'reset':
         if(/^(y|yes|confirm)$/.test((rest||'').trim())){
-          this.reset(); Adventure.wipe(); this.save();
-          out.push('', 'The machine forgets you ever existed. Fresh page tables all around.', ...this._lookLines());
+          this.reset(); Adventure.wipe(); this.save(); clear=true;
+          out.push('The machine forgets you ever existed. Fresh page tables all around.', ...this._lookLines());
         } else {
           out.push('Reset wipes all progress on this save. Type  reset yes  to confirm,', 'or keep playing.');
         }
@@ -552,7 +552,7 @@ export default class Adventure {
       default: out.push('That verb is not in this machine\'s vocabulary. Try  help .');
     }
     this.save();
-    return { lines:out, quit };
+    return { lines:out, quit, clear };
   }
 
   _resolveExamine(hit){
